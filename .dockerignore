@@ -1,0 +1,28 @@
+# Gradle 빌드 결과물
+.gradle/
+
+# IDE 설정
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# 운영체제 및 에디터 임시 파일
+.DS_Store
+Thumbs.db
+*.swp
+
+# Git
+.git
+.gitignore
+
+# 로그
+*.log
+logs/
+
+# 환경변수 및 인증 파일
+*.env
+*.pem
+*.key
+*.crt
