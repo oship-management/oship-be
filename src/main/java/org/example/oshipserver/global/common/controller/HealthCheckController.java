@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthCheckController {
 
     private final String uuid = String.valueOf(UUID.randomUUID());
-
     @GetMapping("/health")
     public String healthCheck() {
         return "OK-SERVER-" + uuid;
