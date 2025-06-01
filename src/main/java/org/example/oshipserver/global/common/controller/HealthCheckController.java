@@ -11,6 +11,6 @@ public class HealthCheckController {
 
     @GetMapping("/health")
     public String healthCheck() {
-        return "OK-" + uuid;
+        return "OK-SERVER-" + uuid;
     }
 }
