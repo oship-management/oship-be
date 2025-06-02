@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
-import org.example.oshipserver.domain.auth.enums.AuthSuccessType;
 import org.example.oshipserver.domain.auth.service.AuthService;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,15 +31,13 @@ private final String uuid = String.valueOf(UUID.randomUUID());
     @PostMapping("/sellers/v1/signup")
     public BaseResponse<Long> signup_seller(@RequestBody SellerSignupRequest request){
         Long userId =  authService.signupSeller(request);
-        AuthSuccessType authSuccessType = AuthSuccessType.SIGNED_UP;
-        return new BaseResponse<>(authSuccessType.getStatus(),authSuccessType.getMessage(), userId);
+        return new BaseResponse<>(201,"회원가입 성공", userId);
     }
 
     @PostMapping("/partners/v1/signup")
     public BaseResponse<Long> signup_partner(@RequestBody PartnerSignupRequest request){
         Long userId =  authService.signupPartner(request);
-        AuthSuccessType authSuccessType = AuthSuccessType.SIGNED_UP;
-        return new BaseResponse<>(authSuccessType.getStatus(),authSuccessType.getMessage(), userId);
+        return new BaseResponse<>(201,"회원가입 성공", userId);
     }
 
     @PostMapping("/v1/login")
