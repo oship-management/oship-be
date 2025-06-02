@@ -8,3 +8,7 @@ spring:
         show_sql: false
         format_sql: false
     open-in-view: false
+
+jwt:
+  secret:
+    key: "vDLW2ZV+RkZIb8OM8Oq3oBqV3yZ3hUqjPlAEX1zjK3M="
