@@ -1,30 +1,51 @@
 package org.example.oshipserver.domain.order.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.Table;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 
 @Entity
 @Table(name = "sender_addresses")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-class SenderAddress {
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
+public class SenderAddress {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String countryCode;
-    private String state;
-    private String stateCode;
-    private String city;
-    private String address1;
-    private String address2;
-    private String zipCode;
-    private String taxId;
+    @Column(name = "sender_country_code")
+    private String senderCountryCode;
+
+    @Column(name = "sender_state")
+    private String senderState;
+
+    @Column(name = "sender_state_code")
+    private String senderStateCode;
+
+    @Column(name = "sender_city")
+    private String senderCity;
+
+    @Column(name = "sender_address_1")
+    private String senderAddress1;
+
+    @Column(name = "sender_address_2")
+    private String senderAddress2;
+
+    @Column(name = "sender_zip_code")
+    private String senderZipCode;
+
+    @Column(name = "sender_tax_id")
+    private String senderTaxId;
 }
