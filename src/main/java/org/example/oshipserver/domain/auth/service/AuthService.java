@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
-import org.example.oshipserver.domain.auth.enums.AuthErrorType;
 import org.example.oshipserver.domain.partner.entity.Partner;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.seller.entity.Seller;
@@ -15,6 +14,7 @@ import org.example.oshipserver.domain.user.repository.UserRepository;
 import org.example.oshipserver.global.common.utils.JwtUtil;
 import org.example.oshipserver.global.common.utils.PasswordEncoder;
 import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +32,7 @@ private final PartnerRepository partnerRepository;
 public Long signupSeller(SellerSignupRequest request) {
 
     if (userRepository.existsByEmail(request.email())) {
-        throw new ApiException("이미 존재하는 이메일입니다.", AuthErrorType.EMAIL_ALREADY_EXISTS);
+        throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
     }
 
     String encodedPassword = passwordEncoder.encode(request.password());
@@ -65,7 +65,7 @@ public Long signupSeller(SellerSignupRequest request) {
 public Long signupPartner(PartnerSignupRequest request) {
 
     if (userRepository.existsByEmail(request.email())) {
-        throw new ApiException("이미 존재하는 이메일입니다.", AuthErrorType.EMAIL_ALREADY_EXISTS);
+        throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
     }
 
     String encodedPassword = passwordEncoder.encode(request.password());
@@ -96,11 +96,9 @@ public Long signupPartner(PartnerSignupRequest request) {
 public String login(LoginRequest request) {
 
     User user = userRepository.findByEmail(request.email())
-                    .orElseThrow(() -> new ApiException(AuthErrorType.USER_NOT_FOUND.getDesc(),
-                        AuthErrorType.USER_NOT_FOUND));
+                    .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다" ,ErrorType.NOT_FOUND));
     if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-        throw new ApiException(AuthErrorType.PASSWORD_MISMATCH.getDesc(),
-            AuthErrorType.PASSWORD_MISMATCH);
+        throw new ApiException("비밀번호가 일치하지 않습니다.", ErrorType.FAIL);
     }
 
     return jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());

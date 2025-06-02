@@ -1,8 +1,8 @@
 package org.example.oshipserver.domain.user.enums;
 
 import java.util.Arrays;
-import org.example.oshipserver.domain.auth.enums.AuthErrorType;
 import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
 
 public enum UserRole {
     SELLER,
@@ -13,6 +13,6 @@ public enum UserRole {
         return Arrays.stream(UserRole.values())
                    .filter(r -> r.name().equalsIgnoreCase(role))
                    .findFirst()
-                   .orElseThrow(() -> new ApiException("유효하지 않은 UerRole", AuthErrorType.INVALID_USER_ROLE));
+                   .orElseThrow(() -> new ApiException("유효하지 않은 UerRole", ErrorType.VALID_FAIL));
     }
 }
