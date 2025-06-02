@@ -56,9 +56,8 @@ public class Order extends BaseTimeEntity {
 
     // 기타 정보
     private String oshipMasterNo;
-
-    // 운송정보 추후 연관관계 설정
     private String lastTrackingEvent;
+
 
     // 바코드/운송장 출력 여부
     private Boolean isPrintBarcode;
@@ -76,6 +75,10 @@ public class Order extends BaseTimeEntity {
     // 주문 아이템
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems = new ArrayList<>();
+
+    // Partner와 Seller
+    private Long parterId;
+    private Long sellerId;
 
     /*
     추후 Partner와 Seller 추가 시 연관관계 설정

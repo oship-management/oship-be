@@ -35,8 +35,8 @@ public class OrderItem extends BaseTimeEntity {
 
     @Builder
     private OrderItem(
-            String name, int quantity, BigDecimal unitValue, String valueCurrency,
-            BigDecimal weight, String weightUnit, String hsCode, String originCountryCode
+        String name, int quantity, BigDecimal unitValue, String valueCurrency,
+        BigDecimal weight, String weightUnit, String hsCode, String originCountryCode
     ) {
         this.name = name;
         this.quantity = quantity;
@@ -50,15 +50,15 @@ public class OrderItem extends BaseTimeEntity {
 
     public static OrderItem of(OrderItemDto dto) {
         return OrderItem.builder()
-                .name(dto.itemName())
-                .quantity(dto.itemQuantity())
-                .unitValue(BigDecimal.valueOf(dto.itemUnitValue()))
-                .valueCurrency(dto.itemValueCurrency())
-                .weight(BigDecimal.valueOf(dto.itemWeight()))
-                .weightUnit(dto.weightUnit())
-                .hsCode(dto.itemHSCode())
-                .originCountryCode(dto.itemOriginCountryCode())
-                .build();
+            .name(dto.itemName())
+            .quantity(dto.itemQuantity())
+            .unitValue(BigDecimal.valueOf(dto.itemUnitValue()))
+            .valueCurrency(dto.itemValueCurrency())
+            .weight(BigDecimal.valueOf(dto.itemWeight()))
+            .weightUnit(dto.weightUnit())
+            .hsCode(dto.itemHSCode())
+            .originCountryCode(dto.itemOriginCountryCode())
+            .build();
     }
 
     /**
