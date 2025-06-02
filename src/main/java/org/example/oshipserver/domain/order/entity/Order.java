@@ -4,14 +4,10 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -55,11 +51,7 @@ public class Order extends BaseTimeEntity {
 
     // 기타 정보
     private String oshipMasterNo;
-    private String trackingLevel;
-
-    // 운송정보 추후 연관관계 설정
-    private Long shipmentId;
-    private String trackingEvent;
+    private String lastTrackingEvent;
 
     // 바코드/운송장 출력 여부
     private Boolean isPrintBarcode;
@@ -81,6 +73,10 @@ public class Order extends BaseTimeEntity {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    // Partner와 Seller
+    private Long parterId;
+    private Long sellerId;
+
     /*
     추후 Partner와 Seller 추가 시 연관관계 설정
 
@@ -93,4 +89,6 @@ public class Order extends BaseTimeEntity {
     private Seller seller;
 
     */
+
+
 }
