@@ -96,7 +96,7 @@ public class AuthService {
         return savedUser.getId();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenValueObject login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
@@ -104,7 +104,7 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new ApiException("비밀번호가 일치하지 않습니다.", ErrorType.FAIL);
         }
-
+        user.setLastLoginAt();
         AccessTokenVo accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
         RefreshTokenVo refreshToken = jwtUtil.createRefreshToken(user.getId());
         TokenValueObject token = new TokenValueObject(accessToken, refreshToken);

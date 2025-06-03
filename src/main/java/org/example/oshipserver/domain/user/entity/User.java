@@ -1,21 +1,12 @@
 package org.example.oshipserver.domain.user.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -23,6 +14,7 @@ import org.example.oshipserver.global.entity.BaseTimeEntity;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@SQLRestriction("deleted_at is NULL")
 public class User extends BaseTimeEntity {
 
     @Id
@@ -44,4 +36,12 @@ public class User extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", length = 10, nullable = false)
     private UserRole userRole;
+
+    public void softDelete(){
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void setLastLoginAt(){
+        this.lastLoginAt = LocalDateTime.now();
+    }
 }
