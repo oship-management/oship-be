@@ -32,7 +32,8 @@ public class JwtFilter extends OncePerRequestFilter {
             if(!jwtUtil.validateToken(jwt)){
                 //토큰 유효한지? 만료기간등
                 //유효하지 않으면 리프레시 토큰확인하고 토큰 재발급
-                //일어나서 해야될것 여기!!!
+                filterChain.doFilter(request, response);
+                return;
             }
             Claims claims = jwtUtil.extractClaims(jwt);
             String userId = jwtUtil.extractClaims(jwt).getSubject();
