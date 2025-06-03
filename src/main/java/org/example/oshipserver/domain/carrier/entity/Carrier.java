@@ -16,9 +16,6 @@ import org.example.oshipserver.domain.carrier.enums.Services;
 import org.example.oshipserver.domain.partner.entity.Partner;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
 
-/**
- * carrier: partner가 관리하는 운송업체
- */
 @Entity
 @Table(name = "carriers")
 @Getter
