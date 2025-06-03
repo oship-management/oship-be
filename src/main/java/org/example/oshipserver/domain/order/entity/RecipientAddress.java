@@ -2,6 +2,8 @@ package org.example.oshipserver.domain.order.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -11,6 +13,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.order.entity.enums.CountryCode;
+import org.example.oshipserver.domain.order.entity.enums.StateCode;
 
 @Entity
 @Table(name = "recipient_addresses")
@@ -25,13 +29,15 @@ public class RecipientAddress {
     private Long id;
 
     @Column(name = "recipient_country_code")
-    private String recipientCountryCode;
+    @Enumerated(EnumType.STRING)
+    private CountryCode recipientCountryCode;
 
     @Column(name = "recipient_state")
     private String recipientState;
 
     @Column(name = "recipient_state_code")
-    private String recipientStateCode;
+    @Enumerated(EnumType.STRING)
+    private StateCode recipientStateCode;
 
     @Column(name = "recipient_city")
     private String recipientCity;

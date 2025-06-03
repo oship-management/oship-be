@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.example.oshipserver.domain.order.dto.OrderItemDto;
+import org.example.oshipserver.domain.order.entity.enums.CountryCode;
+import org.example.oshipserver.domain.order.entity.enums.StateCode;
 
 public record OrderCreateRequest(
 
@@ -23,9 +25,9 @@ public record OrderCreateRequest(
     @Email @NotBlank String senderEmail,
     @NotBlank String senderPhoneNo,
     String senderMobileNo,
-    @NotBlank String senderCountryCode,
+    @NotNull  CountryCode senderCountryCode,
     @NotBlank String senderState,
-    String senderStateCode,
+    @NotNull  StateCode senderStateCode,
     @NotBlank String senderCity,
     @NotBlank String senderAddress1,
     String senderAddress2,
@@ -39,9 +41,9 @@ public record OrderCreateRequest(
     @Email @NotBlank String recipientEmail,
     @NotBlank String recipientPhoneNo,
     String recipientMobileNo,
-    @NotBlank String recipientCountryCode,
+    @NotNull  CountryCode recipientCountryCode,
     @NotBlank String recipientState,
-    String recipientStateCode,
+    @NotNull  StateCode recipientStateCode,
     @NotBlank String recipientCity,
     @NotBlank String recipientAddress1,
     String recipientAddress2,

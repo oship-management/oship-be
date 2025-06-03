@@ -19,6 +19,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
+import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
 
 @Entity
