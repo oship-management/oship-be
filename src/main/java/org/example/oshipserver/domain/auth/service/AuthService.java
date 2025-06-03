@@ -25,90 +25,90 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-private final JwtUtil jwtUtil;
-private final UserRepository userRepository;
-private final PasswordEncoder passwordEncoder;
-private final SellerRepository sellerRepository;
-private final PartnerRepository partnerRepository;
+    private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final SellerRepository sellerRepository;
+    private final PartnerRepository partnerRepository;
 
 
-@Transactional
-public Long signupSeller(SellerSignupRequest request) {
+    @Transactional
+    public Long signupSeller(SellerSignupRequest request) {
 
-    if (userRepository.existsByEmail(request.email())) {
-        throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
+        if (userRepository.existsByEmail(request.email())) {
+            throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
+        }
+
+        String encodedPassword = passwordEncoder.encode(request.password());
+
+        UserRole userRole = UserRole.of(request.userRole());
+
+        User newUser = User.builder()
+                .email(request.email())
+                .password(encodedPassword)
+                .userRole(userRole)
+                .build();
+        User savedUser = userRepository.save(newUser);
+
+        // 셀러 정보 저장
+        Seller seller = Seller.builder()
+                .userId(savedUser.getId())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .phoneNo(request.phoneNo())
+                .companyName(request.companyName())
+                .companyRegisterNo(request.companyRegisterNo())
+                .companyTelNo(request.companyTelNo())
+                .build();
+
+        sellerRepository.save(seller);
+        return savedUser.getId();
     }
 
-    String encodedPassword = passwordEncoder.encode(request.password());
+    @Transactional
+    public Long signupPartner(PartnerSignupRequest request) {
 
-    UserRole userRole = UserRole.of(request.userRole());
+        if (userRepository.existsByEmail(request.email())) {
+            throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
+        }
 
-    User newUser = User.builder()
-                       .email(request.email())
-                       .password(encodedPassword)
-                       .userRole(userRole)
-                       .build();
-    User savedUser = userRepository.save(newUser);
+        String encodedPassword = passwordEncoder.encode(request.password());
 
-    // 셀러 정보 저장
-    Seller seller = Seller.builder()
-                        .userId(savedUser.getId())
-                        .firstName(request.firstName())
-                        .lastName(request.lastName())
-                        .phoneNo(request.phoneNo())
-                        .companyName(request.companyName())
-                        .companyRegisterNo(request.companyRegisterNo())
-                        .companyTelNo(request.companyTelNo())
-                        .build();
+        UserRole userRole = UserRole.of(request.userRole());
 
-    sellerRepository.save(seller);
-    return savedUser.getId();
-}
+        User newUser = User.builder()
+                .email(request.email())
+                .password(encodedPassword)
+                .userRole(userRole)
+                .build();
+        User savedUser = userRepository.save(newUser);
 
-@Transactional
-public Long signupPartner(PartnerSignupRequest request) {
+        // 파트너 정보 저장
+        Partner partner = Partner.builder()
+                .userId(savedUser.getId())
+                .companyName(request.companyName())
+                .companyRegisterNo(request.companyRegisterNo())
+                .companyTelNo(request.companyTelNo())
+                .build();
 
-    if (userRepository.existsByEmail(request.email())) {
-        throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
+        partnerRepository.save(partner);
+
+        return savedUser.getId();
     }
 
-    String encodedPassword = passwordEncoder.encode(request.password());
+    @Transactional(readOnly = true)
+    public TokenValueObject login(LoginRequest request) {
 
-    UserRole userRole = UserRole.of(request.userRole());
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다", ErrorType.NOT_FOUND));
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new ApiException("비밀번호가 일치하지 않습니다.", ErrorType.FAIL);
+        }
 
-    User newUser = User.builder()
-                       .email(request.email())
-                       .password(encodedPassword)
-                       .userRole(userRole)
-                       .build();
-    User savedUser = userRepository.save(newUser);
-
-    // 파트너 정보 저장
-    Partner partner = Partner.builder()
-                          .userId(savedUser.getId())
-                          .companyName(request.companyName())
-                          .companyRegisterNo(request.companyRegisterNo())
-                          .companyTelNo(request.companyTelNo())
-                          .build();
-
-    partnerRepository.save(partner);
-
-    return savedUser.getId();
-}
-
-@Transactional(readOnly = true)
-public TokenValueObject login(LoginRequest request) {
-
-    User user = userRepository.findByEmail(request.email())
-                    .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다" ,ErrorType.NOT_FOUND));
-    if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-        throw new ApiException("비밀번호가 일치하지 않습니다.", ErrorType.FAIL);
+        AccessTokenVo accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
+        RefreshTokenVo refreshToken = jwtUtil.createRefreshToken(user.getId());
+        TokenValueObject token = new TokenValueObject(accessToken, refreshToken);
+        return token;
     }
-
-    AccessTokenVo accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
-    RefreshTokenVo refreshToken = jwtUtil.createRefreshToken(user.getId());
-    TokenValueObject token = new TokenValueObject(accessToken, refreshToken);
-    return token;
-}
 
 }
