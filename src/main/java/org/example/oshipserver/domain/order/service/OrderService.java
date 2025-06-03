@@ -1,7 +1,9 @@
 package org.example.oshipserver.domain.order.service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
+import java.util.Random;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
 import org.example.oshipserver.domain.order.entity.Order;
@@ -10,6 +12,7 @@ import org.example.oshipserver.domain.order.entity.OrderRecipient;
 import org.example.oshipserver.domain.order.entity.OrderSender;
 import org.example.oshipserver.domain.order.entity.RecipientAddress;
 import org.example.oshipserver.domain.order.entity.SenderAddress;
+import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
@@ -28,7 +31,8 @@ public class OrderService {
         }
 
         // Master No 생성
-        String masterNo = UUID.randomUUID().toString();
+        String masterNo = generateMasterNo(orderCreateRequest.recipientCountryCode());
+
         // 1. 주문 생성
         Order order = Order.of(orderCreateRequest, masterNo);
 
@@ -89,6 +93,16 @@ public class OrderService {
         orderRepository.save(order);
         return masterNo;
     }
+
+    // Master No 생성 메서드
+    private String generateMasterNo(CountryCode countryCode) {
+        String prefix = "OSH";
+        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+        String country = countryCode != null ? countryCode.name() : "XX";
+        int randomNumber = 1000000 + new Random().nextInt(9000000);
+        return prefix + date + country + randomNumber;
+    }
+
 }
 
 

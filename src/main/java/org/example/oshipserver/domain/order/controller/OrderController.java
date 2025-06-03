@@ -21,7 +21,7 @@ public class OrderController {
     @PostMapping
     public BaseResponse<Map<String, String>> createOrder(@Valid @RequestBody OrderCreateRequest orderCreateRequest) {
         String masterNo = orderService.createOrder(orderCreateRequest);
-        return new BaseResponse<>(200, "주문 생성이 완료되었습니다.", Map.of("oship_master_no", masterNo));
+        return new BaseResponse<>(201, "주문 생성이 완료되었습니다.", Map.of("oship_master_no", masterNo));
     }
 
 
