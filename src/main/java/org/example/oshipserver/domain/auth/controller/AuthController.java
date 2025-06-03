@@ -19,7 +19,7 @@ import static org.example.oshipserver.global.common.utils.JwtUtil.setCookieToken
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 private final AuthService authService;
 
@@ -32,19 +32,19 @@ private final String uuid = String.valueOf(UUID.randomUUID());
         return "OK-SERVER-" + uuid;
     }
 
-    @PostMapping("/sellers/v1/signup")
+    @PostMapping("/sellers/signup")
     public BaseResponse<Long> signup_seller(@RequestBody SellerSignupRequest request){
         Long userId =  authService.signupSeller(request);
         return new BaseResponse<>(201,"회원가입 성공", userId);
     }
 
-    @PostMapping("/partners/v1/signup")
+    @PostMapping("/partners/signup")
     public BaseResponse<Long> signup_partner(@RequestBody PartnerSignupRequest request){
         Long userId =  authService.signupPartner(request);
         return new BaseResponse<>(201,"회원가입 성공", userId);
     }
 
-    @PostMapping("/v1/login")
+    @PostMapping("/login")
     public BaseResponse<TokenValueObject> login(
             @RequestBody @Valid LoginRequest request,
             HttpServletResponse response) {
@@ -53,7 +53,7 @@ private final String uuid = String.valueOf(UUID.randomUUID());
         return new BaseResponse<>(201, "로그인 성공", token);
     }
 
-    @PostMapping("/v1/logout")
+    @PostMapping("/logout")
     public BaseResponse<Void> logout(
             HttpServletResponse response){
         deleteAuthCookies(response);

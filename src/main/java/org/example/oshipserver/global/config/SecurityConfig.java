@@ -22,10 +22,10 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authorize -> authorize
-                                                    .requestMatchers("/api/auth/**").permitAll()
+                                                    .requestMatchers("/api/v1/auth/**").permitAll()
                                                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                                    .requestMatchers("/api/seller").hasRole("SELLER")
-                                                    .requestMatchers("/api/partner").hasRole("PARTNER")
+                                                    .requestMatchers("/api/v1/sellers/**").hasRole("SELLER")
+                                                    .requestMatchers("/api/v1/partners/**").hasRole("PARTNER")
                                                     .anyRequest().authenticated()
 
             )
