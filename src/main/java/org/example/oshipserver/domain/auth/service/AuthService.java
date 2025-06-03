@@ -4,6 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
+import org.example.oshipserver.domain.auth.vo.AccessTokenVo;
+import org.example.oshipserver.domain.auth.vo.RefreshTokenVo;
+import org.example.oshipserver.domain.auth.vo.TokenValueObject;
 import org.example.oshipserver.domain.partner.entity.Partner;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.seller.entity.Seller;
@@ -27,6 +30,7 @@ private final UserRepository userRepository;
 private final PasswordEncoder passwordEncoder;
 private final SellerRepository sellerRepository;
 private final PartnerRepository partnerRepository;
+
 
 @Transactional
 public Long signupSeller(SellerSignupRequest request) {
@@ -93,7 +97,7 @@ public Long signupPartner(PartnerSignupRequest request) {
 }
 
 @Transactional(readOnly = true)
-public String login(LoginRequest request) {
+public TokenValueObject login(LoginRequest request) {
 
     User user = userRepository.findByEmail(request.email())
                     .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다" ,ErrorType.NOT_FOUND));
@@ -101,6 +105,10 @@ public String login(LoginRequest request) {
         throw new ApiException("비밀번호가 일치하지 않습니다.", ErrorType.FAIL);
     }
 
-    return jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
+    AccessTokenVo accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
+    RefreshTokenVo refreshToken = jwtUtil.createRefreshToken(user.getId());
+    TokenValueObject token = new TokenValueObject(accessToken, refreshToken);
+    return token;
 }
+
 }
