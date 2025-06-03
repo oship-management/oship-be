@@ -104,7 +104,7 @@ public class OrderService {
         int maxRetries = 5;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             String candidate = generateMasterNo(countryCode);
-            if (!orderRepository.existsByMasterNo(candidate)) {
+            if (!orderRepository.existsByOshipMasterNo(candidate)) {
                 return candidate;
             }
         }
