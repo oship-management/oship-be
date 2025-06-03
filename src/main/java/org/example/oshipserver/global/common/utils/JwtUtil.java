@@ -96,6 +96,24 @@ public class JwtUtil {
         response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
     }
+
+    public static void deleteAuthCookies(HttpServletResponse response) {
+        ResponseCookie deleteAccessToken = ResponseCookie.from("access_token", "")
+                .path("/")
+                .maxAge(0)  // 즉시 만료
+                .httpOnly(true)
+                .build();
+
+        ResponseCookie deleteRefreshToken = ResponseCookie.from("refresh_token", "")
+                .path("/")
+                .maxAge(0)
+                .httpOnly(true)
+                .build();
+
+        response.addHeader("Set-Cookie", deleteAccessToken.toString());
+        response.addHeader("Set-Cookie", deleteRefreshToken.toString());
+    }
+
     public String extractTokenFromCookies(HttpServletRequest request, String cookieName) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {

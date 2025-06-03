@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import static org.example.oshipserver.global.common.utils.JwtUtil.deleteAuthCookies;
 import static org.example.oshipserver.global.common.utils.JwtUtil.setCookieToken;
 
 @RestController
@@ -52,11 +53,12 @@ private final String uuid = String.valueOf(UUID.randomUUID());
         return new BaseResponse<>(201, "로그인 성공", token);
     }
 
-//    @PostMapping("/v1/logout")
-//    public BaseResponse<Void> logout(Authentication authentication){
-//        authService.logout();
-//        return new BaseResponse<>();
-//    }
+    @PostMapping("/v1/logout")
+    public BaseResponse<Void> logout(
+            HttpServletResponse response){
+        deleteAuthCookies(response);
+        return new BaseResponse<>(204, "로그아웃 성공", null);
+    }
 
 
 }
