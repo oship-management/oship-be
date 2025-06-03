@@ -2,6 +2,8 @@ package org.example.oshipserver.domain.carrier.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -43,6 +45,7 @@ public class Carrier extends BaseTimeEntity {
     private BigDecimal weightMax;
 
     @Column(length = 50, nullable = false)
+    @Enumerated(value = EnumType.STRING)
     private Services service;
 
     @Column(length = 255, nullable = false)
