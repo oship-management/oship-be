@@ -25,13 +25,18 @@ public class OrderService {
 
     public String createOrder(OrderCreateRequest orderCreateRequest) {
 
-        // 중복 주문 확인 (주문번호 기준)
-        if (orderRepository.existsByOrderNo(orderCreateRequest.orderNo())) {
-            throw new ApiException("이미 동일한 주문번호가 존재합니다: " + orderCreateRequest.orderNo(), ErrorType.DUPLICATED_ORDER);
+        /** 중복 주문 확인
+         * 동일한 seller_id 내에서는 orderNo가 유일해야 하고,
+         * seller_id가 다르면 orderNo 중복을 허용
+        **/
+        Long sellerId = orderCreateRequest.sellerId();
+
+        if (orderRepository.existsByOrderNoAndSellerId(orderCreateRequest.orderNo(), sellerId)) {
+            throw new ApiException("해당 계정에 동일한 주문번호가 존재합니다: " + orderCreateRequest.orderNo(), ErrorType.DUPLICATED_ORDER);
         }
 
-        // Master No 생성
-        String masterNo = generateMasterNo(orderCreateRequest.recipientCountryCode());
+        // 중복 피한 Master No 생성
+        String masterNo = generateUniqueMasterNo(orderCreateRequest.recipientCountryCode());
 
         // 1. 주문 생성
         Order order = Order.of(orderCreateRequest, masterNo);
@@ -94,7 +99,19 @@ public class OrderService {
         return masterNo;
     }
 
-    // Master No 생성 메서드
+    // 중복 방지 Master No 생성기
+    private String generateUniqueMasterNo(CountryCode countryCode) {
+        int maxRetries = 5;
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            String candidate = generateMasterNo(countryCode);
+            if (!orderRepository.existsByMasterNo(candidate)) {
+                return candidate;
+            }
+        }
+        throw new ApiException("MasterNo 생성 실패: 중복 회피 불가", ErrorType.FAIL);
+    }
+
+    // 기본 Master No 생성 메서드
     private String generateMasterNo(CountryCode countryCode) {
         String prefix = "OSH";
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));

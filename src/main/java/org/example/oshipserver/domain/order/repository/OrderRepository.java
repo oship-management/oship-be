@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order,Long> {
-    boolean existsByOrderNo(String orderNo);
+    boolean existsByOrderNoAndSellerId(String orderNo, Long sellerId);
+    boolean existsByMasterNo(String masterNo);
+
 }
 
