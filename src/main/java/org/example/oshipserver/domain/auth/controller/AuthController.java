@@ -31,13 +31,13 @@ private final String uuid = String.valueOf(UUID.randomUUID());
     }
 
     @PostMapping("/sellers/signup")
-    public BaseResponse<Long> signup_seller(@RequestBody SellerSignupRequest request){
+    public BaseResponse<Long> signup_seller(@RequestBody @Valid SellerSignupRequest request){
         Long userId =  authService.signupSeller(request);
         return new BaseResponse<>(201,"회원가입 성공", userId);
     }
 
     @PostMapping("/partners/signup")
-    public BaseResponse<Long> signup_partner(@RequestBody PartnerSignupRequest request){
+    public BaseResponse<Long> signup_partner(@RequestBody @Valid PartnerSignupRequest request){
         Long userId =  authService.signupPartner(request);
         return new BaseResponse<>(201,"회원가입 성공", userId);
     }
