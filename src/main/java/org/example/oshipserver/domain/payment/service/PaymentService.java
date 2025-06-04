@@ -27,7 +27,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
 
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
-        // 1. Toss 결제 승인 API 호출
+        // 1. Toss 결제 승인 API 호출 (RestTemplate 사용)
         TossPaymentConfirmResponse tossResponse = tossPaymentClient.requestPaymentConfirm(request);
 
         // 2. 중복 결제 여부 확인

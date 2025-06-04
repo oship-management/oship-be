@@ -9,6 +9,6 @@ public class TossRestTemplateConfig {
 
     @Bean
     public RestTemplate tossRestTemplate() {
-        return new RestTemplate();
+        return new RestTemplate();  // 기본 HTTP 클라이언트 생성 (토스 API 호출)
     }
 }
