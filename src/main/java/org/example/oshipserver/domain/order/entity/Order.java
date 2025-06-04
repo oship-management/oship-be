@@ -19,6 +19,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
+import org.example.oshipserver.domain.order.entity.enums.DeleterRole;
 import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
 
@@ -50,7 +51,18 @@ public class Order extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     // 상태
-    private Boolean isDeleted;
+    private boolean deleted = false;
+
+
+    @Enumerated(EnumType.STRING)
+    private DeleterRole deletedBy;
+
+    public void softDelete(DeleterRole deletedBy) {
+        this.deleted = true;
+        this.deletedBy = deletedBy;
+        this.deletedAt = LocalDateTime.now();
+    }
+
 
     @Enumerated(EnumType.STRING)
     private OrderStatus currentStatus;
@@ -91,7 +103,6 @@ public class Order extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id", nullable = false)
     private Seller seller;
-
     */
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -113,7 +124,7 @@ public class Order extends BaseTimeEntity {
         BigDecimal dimensionHeight,
         BigDecimal dimensionLength,
         LocalDateTime orderedAt,
-        Boolean isDeleted,
+        Boolean deleted,
         OrderStatus currentStatus
     ) {
         this.orderNo = orderNo;
@@ -126,8 +137,11 @@ public class Order extends BaseTimeEntity {
         this.dimensionHeight = dimensionHeight;
         this.dimensionLength = dimensionLength;
         this.orderedAt = orderedAt;
-        this.isDeleted = isDeleted;
         this.currentStatus = currentStatus;
+        // Soft delete 관련 초기값
+        this.deleted = false;
+        this.deletedBy = null;
+        this.deletedAt = null;
     }
 
 
@@ -148,7 +162,7 @@ public class Order extends BaseTimeEntity {
             .dimensionHeight(BigDecimal.valueOf(dto.dimensionHeight()))
             .dimensionLength(BigDecimal.valueOf(dto.dimensionLength()))
             .orderedAt(LocalDateTime.now())
-            .isDeleted(false)
+            .deleted(false)
             .currentStatus(OrderStatus.PENDING)
             .build();
     }
