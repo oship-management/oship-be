@@ -3,6 +3,7 @@ package org.example.oshipserver.domain.auth.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
 @Table(name = "auth_addresses")
@@ -10,6 +11,7 @@ import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@DynamicUpdate
 public class AuthAddress {
 
     @Id
@@ -51,5 +53,15 @@ public class AuthAddress {
                 .detail2(request.detail2())
                 .zipCode(request.zipCode())
                 .build();
+    }
+    public void update(AuthAddressRequest request) {
+        if (request == null) return;
+
+        if (request.country() != null) this.country = request.country();
+        if (request.city() != null) this.city = request.city();
+        if (request.state() != null) this.state = request.state();
+        if (request.detail1() != null) this.detail1 = request.detail1();
+        if (request.detail2() != null) this.detail2 = request.detail2();
+        if (request.zipCode() != null) this.zipCode = request.zipCode();
     }
 }
