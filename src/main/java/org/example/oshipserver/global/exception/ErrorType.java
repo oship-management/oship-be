@@ -12,7 +12,10 @@ public enum ErrorType{
     FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "요청 처리에 실패했습니다."),
     DB_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "요청 DB 처리가 실패하였습니다."),
     VALID_FAIL(HttpStatus.BAD_REQUEST, "유효성 검증에 실패하였습니다."),
-    NOT_FOUND(HttpStatus.NOT_FOUND, "NOT FOUND");
+    NOT_FOUND(HttpStatus.NOT_FOUND, "NOT FOUND"),
+
+    // Order 관련 에러
+    DUPLICATED_ORDER(HttpStatus.BAD_REQUEST, "이미 동일한 주문번호가 존재합니다");
 
     private final HttpStatus status;
     private final String desc;
