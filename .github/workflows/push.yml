@@ -2,7 +2,6 @@ name: PUSH-BRANCH
 
 on:
   push:
-    branches: [*]
 jobs:
   build:
     runs-on: ubuntu-22.04
