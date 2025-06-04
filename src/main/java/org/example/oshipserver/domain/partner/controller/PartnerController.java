@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.partner.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
 import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
@@ -31,7 +32,7 @@ public class PartnerController {
     @PostMapping("/withdraw")
     public BaseResponse<Void> deletePartner(
             Authentication authentication,
-            @RequestBody PartnerDeleteRequest request,
+            @RequestBody @Valid PartnerDeleteRequest request,
             HttpServletResponse response
     ){
         Long userId = Long.valueOf(authentication.getName());

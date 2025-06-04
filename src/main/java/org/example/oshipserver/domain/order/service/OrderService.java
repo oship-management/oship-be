@@ -34,7 +34,7 @@ public class OrderService {
         /** 중복 주문 확인
          * 동일한 seller_id 내에서는 orderNo가 유일해야 하고,
          * seller_id가 다르면 orderNo 중복을 허용
-        **/
+         **/
         Long sellerId = orderCreateRequest.sellerId();
 
         if (orderRepository.existsByOrderNoAndSellerId(orderCreateRequest.orderNo(), sellerId)) {
@@ -176,5 +176,3 @@ public class OrderService {
     }
 
 }
-
-

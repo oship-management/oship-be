@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.seller.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.seller.dto.request.SellerDeleteRequest;
 import org.example.oshipserver.domain.seller.dto.response.SellerInfoResponse;
@@ -29,7 +30,7 @@ public class SellerController {
     @PostMapping("/withdraw")
     public BaseResponse<Void> deleteSeller(
             Authentication authentication,
-            @RequestBody SellerDeleteRequest request,
+            @RequestBody @Valid SellerDeleteRequest request,
             HttpServletResponse response
     ){
         Long userId = Long.valueOf(authentication.getName());
