@@ -1,9 +1,8 @@
-package org.example.oshipserver.domain.shpping.entity;
+package org.example.oshipserver.domain.shipping.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.global.entity.BaseTimeEntity;

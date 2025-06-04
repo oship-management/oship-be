@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.shpping.entity;
+package org.example.oshipserver.domain.shipping.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
