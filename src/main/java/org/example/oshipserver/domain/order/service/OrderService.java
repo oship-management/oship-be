@@ -5,7 +5,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
+import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.entity.OrderItem;
 import org.example.oshipserver.domain.order.entity.OrderRecipient;
@@ -17,6 +19,8 @@ import org.example.oshipserver.domain.order.entity.enums.DeleterRole;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +70,7 @@ public class OrderService {
             .storePlatform(orderCreateRequest.storePlatform())
             .storeName(orderCreateRequest.storeName())
             .senderName(orderCreateRequest.senderName())
+            .senderCompany(orderCreateRequest.senderCompany())
             .senderEmail(orderCreateRequest.senderEmail())
             .senderPhoneNo(orderCreateRequest.senderPhoneNo())
             .address(senderAddress)
@@ -123,7 +128,7 @@ public class OrderService {
     }
 
     @Transactional
-    public void softDeleteOrder(Long orderId, DeleterRole deletedBy) {
+    public void updateOrder(Long orderId, OrderUpdateRequest request) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
@@ -131,10 +136,44 @@ public class OrderService {
             throw new ApiException("이미 삭제된 주문입니다.", ErrorType.DB_FAIL);
         }
 
-        order.softDelete(deletedBy);
+        order.updateFrom(request);
+
+        if (order.getSender() != null) {
+            order.getSender().updateFrom(request);
+        }
+
+        if (order.getRecipient() != null) {
+            order.getRecipient().updateFrom(request);
+        }
+
+        order.updateItems(request.orderItems());
     }
 
+    @Transactional
+    public void softDeleteOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
+        if (order.isDeleted()) {
+            throw new ApiException("이미 삭제된 주문입니다.", ErrorType.DB_FAIL);
+        }
+
+        // 현재 로그인 사용자 정보에서 삭제 주체 추출
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = auth.getPrincipal();
+
+        if (!(principal instanceof CustomUserDetail userDetail)) {
+            throw new ApiException("삭제자 정보가 없습니다.", ErrorType.NOT_FOUND);
+        }
+
+        DeleterRole role = switch (userDetail.getUserRole()) {
+            case SELLER -> DeleterRole.SELLER;
+            case PARTNER -> DeleterRole.PARTNER;
+            case ADMIN -> DeleterRole.ADMIN;
+        };
+
+        order.softDelete(role);
+    }
 
 }
 

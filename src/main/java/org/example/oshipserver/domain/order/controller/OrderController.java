@@ -3,13 +3,14 @@ package org.example.oshipserver.domain.order.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
-import org.example.oshipserver.domain.order.dto.request.OrderDeleteRequest;
+import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
 import org.example.oshipserver.domain.order.dto.response.OrderCreateResponse;
 import org.example.oshipserver.domain.order.service.OrderService;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,14 +35,22 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<BaseResponse<Void>> updateOrder(
+        @PathVariable Long id,
+        @Valid @RequestBody OrderUpdateRequest request
+    ) {
+        orderService.updateOrder(id, request);
+        return ResponseEntity.ok(new BaseResponse<>(200, "주문 정보가 수정되었습니다.", null));
+    }
+
     /**
      * 주문 삭제 (Soft Delete)
      */
     @DeleteMapping("/{id}")
-    public BaseResponse<Void> deleteOrder(@PathVariable final Long id,
-        @Valid @RequestBody final OrderDeleteRequest request
-    ) {
-        orderService.softDeleteOrder(id, request.deletedBy());
+    public BaseResponse<Void> deleteOrder(@PathVariable final Long id) {
+        orderService.softDeleteOrder(id);
         return new BaseResponse<>(204, "주문이 성공적으로 삭제되었습니다.", null);
     }
 
