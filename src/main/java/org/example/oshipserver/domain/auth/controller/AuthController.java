@@ -9,7 +9,6 @@ import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
 import org.example.oshipserver.domain.auth.service.AuthService;
 import org.example.oshipserver.domain.auth.vo.TokenValueObject;
 import org.example.oshipserver.global.common.response.BaseResponse;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -27,8 +26,7 @@ private final AuthService authService;
 private final String uuid = String.valueOf(UUID.randomUUID());
 
     @GetMapping("/health")
-    public String healthCheck(Authentication authentication) {
-        System.out.println(authentication.getName());
+    public String healthCheck() {
         return "OK-SERVER-" + uuid;
     }
 
