@@ -13,10 +13,12 @@ import org.example.oshipserver.domain.order.entity.OrderSender;
 import org.example.oshipserver.domain.order.entity.RecipientAddress;
 import org.example.oshipserver.domain.order.entity.SenderAddress;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
+import org.example.oshipserver.domain.order.entity.enums.DeleterRole;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -119,6 +121,20 @@ public class OrderService {
         int randomNumber = 1000000 + new Random().nextInt(9000000);
         return prefix + date + country + randomNumber;
     }
+
+    @Transactional
+    public void softDeleteOrder(Long orderId, DeleterRole deletedBy) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        if (order.isDeleted()) {
+            throw new ApiException("이미 삭제된 주문입니다.", ErrorType.DB_FAIL);
+        }
+
+        order.softDelete(deletedBy);
+    }
+
+
 
 }
 
