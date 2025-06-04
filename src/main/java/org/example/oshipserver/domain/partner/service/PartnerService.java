@@ -1,6 +1,10 @@
 package org.example.oshipserver.domain.partner.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
+import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
+import org.example.oshipserver.domain.auth.entity.AuthAddress;
+import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
 import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
 import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
@@ -20,6 +24,7 @@ public class PartnerService {
     private final PartnerRepository partnerRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthAddressRepository authAddressRepository;
 
     @Transactional(readOnly = true)
     public PartnerInfoResponse getPartnerInfo(Long userId) {
@@ -44,4 +49,13 @@ public class PartnerService {
         }
         findUser.softDelete();
     }
+
+    @Transactional
+    public AuthAddressResponse updateAddress(Long userId, AuthAddressRequest request){
+        AuthAddress findAddress = authAddressRepository.findByUserId(userId)
+                .orElseThrow(()->new ApiException("주소 정보를 찾을 수 없습니다", ErrorType.NOT_FOUND));
+        findAddress.update(request);
+        return AuthAddressResponse.from(findAddress);
+    }
+
 }
