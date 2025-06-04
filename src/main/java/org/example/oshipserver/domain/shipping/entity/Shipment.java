@@ -56,4 +56,10 @@ public class Shipment extends BaseTimeEntity {
     @Column(name = "url")
     private String awbUrl;
 
+    public static Shipment createShipment(Long orderId, Long carrierId) {
+        Shipment shipment = new Shipment();
+        shipment.orderId = orderId;
+        shipment.carrierId = carrierId;
+        return shipment;
+    }
 }
