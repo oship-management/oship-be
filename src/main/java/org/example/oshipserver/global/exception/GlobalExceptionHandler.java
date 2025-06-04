@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RequiredArgsConstructor
 @Slf4j
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

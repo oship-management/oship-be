@@ -1,23 +1,25 @@
-package org.example.oshipserver.domain.auth.entity;
+package org.example.oshipserver.domain.auth.vo;
 
-import java.util.Collection;
-import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.example.oshipserver.domain.user.entity.User;
 import org.example.oshipserver.domain.user.enums.UserRole;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
+import java.util.List;
+
 @RequiredArgsConstructor
 @Getter
 public class CustomUserDetail implements UserDetails {
-    private final User user;
+    private final String userId;
+    private final String email;
+    private final UserRole userRole;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_"+user.getUserRole()));
+        return List.of(new SimpleGrantedAuthority("ROLE_"+userRole));
     }
 
     @Override
@@ -27,18 +29,7 @@ public class CustomUserDetail implements UserDetails {
 
     @Override
     public String getUsername() {
-        return String.valueOf(user.getId());
-    }
-
-    public String getEmail(){
-        return user.getEmail();
-    }
-
-    public UserRole getRole(){
-        return user.getUserRole();
-    }
-    public Long getId(){
-        return user.getId();
+        return userId;
     }
 
 
