@@ -3,7 +3,7 @@ package org.example.oshipserver.domain.payment.dto.response;
 /**
  * Toss 단건 결제 조회 응답 전체 DTO
  */
-public record TossSinglePaymentLookupResponseDto(
+public record TossSinglePaymentLookupResponse(
     String paymentKey,
     String orderId,
     String status,
