@@ -1,14 +1,10 @@
 package org.example.oshipserver.domain.shipping.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 
 import java.time.LocalDateTime;
 
@@ -25,8 +21,9 @@ public class TrackingEvent {
     @Column(name = "order_id", nullable = false)
     private Long orderId;
 
+    @Enumerated(EnumType.STRING)  // enum을 문자열로 저장
     @Column(name = "event", nullable = false, length = 50)
-    private String event;
+    private TrackingEventEnum event;
 
     @Column(name = "description")
     private String description;
