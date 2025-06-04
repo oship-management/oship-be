@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.carrier.enums.CarrierName;
 import org.example.oshipserver.domain.carrier.enums.Services;
 import org.example.oshipserver.domain.partner.entity.Partner;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
@@ -33,7 +34,8 @@ public class Carrier extends BaseTimeEntity {
     private Partner partner;
 
     @Column(length = 255, nullable = false)
-    private String name;
+    @Enumerated(value = EnumType.STRING)
+    private CarrierName name;
 
     @Column(length = 255)
     private String description;
