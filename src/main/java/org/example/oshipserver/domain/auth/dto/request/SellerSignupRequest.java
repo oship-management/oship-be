@@ -31,5 +31,7 @@ public record SellerSignupRequest(
     @NotBlank(message = "사업자 등록번호는 필수입니다.")
     String companyRegisterNo,
 
-    String companyTelNo
+    String companyTelNo,
+
+    AuthAddressRequest address
 ) { }
