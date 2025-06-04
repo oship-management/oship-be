@@ -23,5 +23,7 @@ public record PartnerSignupRequest(
     String companyTelNo,
 
     @NotBlank(message = "사업자 등록번호는 필수입니다.")
-    String companyRegisterNo
+    String companyRegisterNo,
+
+    AuthAddressRequest address
 ) { }
