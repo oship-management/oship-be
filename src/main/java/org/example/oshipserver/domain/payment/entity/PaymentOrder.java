@@ -3,8 +3,8 @@ package org.example.oshipserver.domain.payment.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.oshipserver.domain.order.entity.Order;
-import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -37,9 +37,9 @@ public class PaymentOrder extends BaseTimeEntity {
     private PaymentStatus paymentStatus;
 
     // 결제 확정일
-    private java.time.LocalDateTime confirmedAt;
+    private LocalDateTime confirmedAt;
 
     // 결제 취소일
-    private java.time.LocalDateTime canceledAt;
+    private LocalDateTime canceledAt;
 
 }

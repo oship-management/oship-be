@@ -6,7 +6,7 @@ import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
 /**
  * 단건 결제 생성 응답 DTO (내부 응답용)
  */
-public record PaymentConfirmResponseDto(
+public record PaymentConfirmResponse(
     String orderId,           // 주문 번호
     String paymentKey,        // Toss 결제 키
     PaymentStatus status,     // 결제 상태 (enum 매핑)
@@ -20,9 +20,9 @@ public record PaymentConfirmResponseDto(
     /**
      * Toss 단건 결제 승인 응답을 내부 응답 DTO 변환
      */
-    public static PaymentConfirmResponseDto convertFromTossConfirm(
-        TossPaymentConfirmResponseDto response) {
-        return new PaymentConfirmResponseDto(
+    public static PaymentConfirmResponse convertFromTossConfirm(
+        TossPaymentConfirmResponse response) {
+        return new PaymentConfirmResponse(
             response.orderId(),
             response.paymentKey(),
             PaymentStatusMapper.fromToss(response.status()),
