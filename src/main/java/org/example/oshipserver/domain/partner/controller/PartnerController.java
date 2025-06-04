@@ -25,16 +25,17 @@ public class PartnerController {
 
 
     @GetMapping
-    public BaseResponse<PartnerInfoResponse> getPartnerInfo(
+    public ResponseEntity<BaseResponse<PartnerInfoResponse>> getPartnerInfo(
             Authentication authentication
     ){
         Long userId = Long.valueOf(authentication.getName());
-        PartnerInfoResponse response = partnerService.getPartnerInfo(userId);
-        return new BaseResponse<>(200, "조회 성공", response);
+        PartnerInfoResponse info = partnerService.getPartnerInfo(userId);
+        BaseResponse<PartnerInfoResponse> response = new BaseResponse<>(200, "조회 성공", info);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @PostMapping("/withdraw")
-    public BaseResponse<Void> deletePartner(
+    public ResponseEntity<BaseResponse<Object>> deletePartner(
             Authentication authentication,
             @RequestBody @Valid PartnerDeleteRequest request,
             HttpServletResponse response
@@ -42,7 +43,8 @@ public class PartnerController {
         Long userId = Long.valueOf(authentication.getName());
         partnerService.deletePartner(userId, request);
         deleteAuthCookies(response);
-        return new BaseResponse<>(204, "파트너 삭제 성공", null);
+        BaseResponse<Object> deleteResponse= new BaseResponse<>(204, "파트너 삭제 성공", null);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(deleteResponse);
     }
 
     @PutMapping("/addresses")
