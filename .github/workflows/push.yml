@@ -2,7 +2,7 @@ name: PUSH-BRANCH
 
 on:
   push:
-    branches: [feat/*]
+    branches: [*]
 jobs:
   build:
     runs-on: ubuntu-22.04
