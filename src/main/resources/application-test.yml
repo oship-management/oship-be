@@ -14,4 +14,8 @@ spring:
       port: 6379
 jwt:
   secret:
-    key: "vDLW2ZV+RkZIb8OM8Oq3oBqV3yZ3hUqjPlAEX1zjK3M="
+    key: ${JWT_SECRET_KEY}
+
+toss:
+  secret-key: ${TOSS_SECRET_KEY}
+
