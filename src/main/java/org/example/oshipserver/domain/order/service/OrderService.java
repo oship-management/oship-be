@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
 import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
+import org.example.oshipserver.domain.order.dto.response.OrderDetailResponse;
+import org.example.oshipserver.domain.order.dto.response.OrderListResponse;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.entity.OrderItem;
 import org.example.oshipserver.domain.order.entity.OrderRecipient;
@@ -17,8 +19,11 @@ import org.example.oshipserver.domain.order.entity.SenderAddress;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.DeleterRole;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
+import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -42,7 +47,7 @@ public class OrderService {
         }
 
         // 중복 피한 Master No 생성
-        String masterNo = generateMasterNo(orderCreateRequest.recipientCountryCode());
+        String masterNo = generateUniqueMasterNo(orderCreateRequest.recipientCountryCode());
 
         // 1. 주문 생성
         Order order = Order.of(orderCreateRequest, masterNo);
@@ -73,7 +78,7 @@ public class OrderService {
             .senderCompany(orderCreateRequest.senderCompany())
             .senderEmail(orderCreateRequest.senderEmail())
             .senderPhoneNo(orderCreateRequest.senderPhoneNo())
-            .address(senderAddress)
+            .senderAddress(senderAddress)
             .build();
         sender.assignOrder(order);
         order.assignSender(sender);
@@ -106,15 +111,55 @@ public class OrderService {
         return masterNo;
     }
 
-    private String generateMasterNo(CountryCode countryCode) {
+    private String generateUniqueMasterNo(CountryCode countryCode) {
         String prefix = "OSH";
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
-        String country = countryCode != null ? countryCode.name() : "XX";
+        String country = (countryCode != null) ? countryCode.name() : "XX";
 
-        // UUID 앞 7자리 추출 (대문자)
-        String uuidSegment = UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
+        String masterNo;
+        do {
+            String uuidSegment = UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
+            masterNo = prefix + date + country + uuidSegment;
+        } while (orderRepository.existsByOshipMasterNo(masterNo));
 
-        return prefix + date + country + uuidSegment;
+        return masterNo;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDto<OrderListResponse> getOrderList(
+        Long sellerId, String startDate, String endDate, Pageable pageable
+    ) {
+        // 날짜 파싱 (nullable 허용)
+        LocalDate start = (startDate != null)
+            ? LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE)
+            : LocalDate.of(2000, 1, 1);  // 매우 과거로 기본 설정
+
+        LocalDate end = (endDate != null)
+            ? LocalDate.parse(endDate, DateTimeFormatter.ISO_DATE)
+            : LocalDate.now();  // 오늘까지로 기본 설정
+
+        Page<Order> orders;
+
+        if (sellerId == null) {
+            // sellerId 없이 전체 조회 (날짜 조건만)
+            orders = orderRepository.findByCreatedAtBetween(
+                start.atStartOfDay(), end.plusDays(1).atStartOfDay(), pageable);
+        } else {
+            // sellerId와 날짜 조건 모두 사용
+            orders = orderRepository.findBySellerIdAndCreatedAtBetween(
+                sellerId, start.atStartOfDay(), end.plusDays(1).atStartOfDay(), pageable);
+        }
+
+        return PageResponseDto.toDto(orders.map(OrderListResponse::from));
+    }
+
+
+    @Transactional(readOnly = true)
+    public OrderDetailResponse getOrderDetail(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        return OrderDetailResponse.from(order);
     }
 
     @Transactional
