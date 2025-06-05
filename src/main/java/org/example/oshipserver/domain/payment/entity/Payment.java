@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
@@ -32,7 +33,7 @@ public class Payment extends BaseTimeEntity {
     @Column(nullable = false, unique = true)
     private String paymentNo;
 
-    // Toss에서 전달해주는 키 값
+    // Toss에서 전달해주는 고유 키
     @Column(nullable = true, unique = true)
     private String paymentKey;
 
@@ -60,20 +61,27 @@ public class Payment extends BaseTimeEntity {
     // 결제 실패 사유
     private String failReason;
 
+    @Column(nullable = false)
+    private String orderId;
+
     // 주문 여러건을 묶어서 결제
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentOrder> orders = new ArrayList<>();
 
 
-    // 정적 생성 메서드
-    public static Payment create(String paymentNo, Integer amount, String currency, PaymentMethod method) {
-        Payment payment = new Payment();
-        payment.paymentNo = paymentNo;
-        payment.amount = amount;
-        payment.currency = currency;
-        payment.method = method;
-        payment.status = PaymentStatus.WAIT;
-        return payment;
+    @Builder
+    public Payment(String paymentNo, String paymentKey, String orderId,
+        PaymentStatus status, PaymentMethod method, Integer amount,
+        String currency, LocalDateTime paidAt, String failReason) {
+        this.paymentNo = paymentNo;
+        this.paymentKey = paymentKey;
+        this.orderId = orderId;
+        this.status = status;
+        this.method = method;
+        this.amount = amount;
+        this.currency = currency;
+        this.paidAt = paidAt;
+        this.failReason = failReason;
     }
 
     public void markSuccess(String paymentKey, LocalDateTime paidAt) {

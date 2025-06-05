@@ -17,6 +17,13 @@ public enum ErrorType{
     // Order 관련 에러
     DUPLICATED_ORDER(HttpStatus.BAD_REQUEST, "이미 동일한 주문번호가 존재합니다"),
 
+    //인증/인가
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+
+    // Payment 관련 에러
+    DUPLICATED_PAYMENT(HttpStatus.BAD_REQUEST, "이미 처리된 결제입니다."),
+
     // Shipping/Barcode 관련 에러
     BARCODE_NOT_PRINTED(HttpStatus.BAD_REQUEST, "바코드가 출력되지 않았습니다."),
     AWB_ALREADY_ISSUED(HttpStatus.CONFLICT, "이미 AWB가 발행된 주문입니다."),

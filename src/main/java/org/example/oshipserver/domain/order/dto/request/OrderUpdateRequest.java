@@ -6,48 +6,44 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
-import org.example.oshipserver.domain.order.dto.OrderItemDto;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.StateCode;
 
-public record OrderCreateRequest(
-
-    // 주문 정보
+public record OrderUpdateRequest(
     @NotBlank String storePlatform,
     @NotBlank String orderNo,
     @NotBlank String storeName,
 
-    // 발송자 정보
+    // Sender
     @NotBlank String senderName,
     String senderCompany,
     @Email @NotBlank String senderEmail,
     @NotBlank String senderPhoneNo,
-    @NotNull CountryCode senderCountryCode,
+    CountryCode senderCountryCode,
     @NotBlank String senderState,
-    @NotNull  StateCode senderStateCode,
+    StateCode senderStateCode,
     @NotBlank String senderCity,
     @NotBlank String senderAddress1,
     String senderAddress2,
     @NotBlank String senderZipCode,
     String senderTaxId,
 
-    // 수취인 정보
+    // Recipient
     @NotBlank String recipientName,
     String recipientCompany,
     @Email @NotBlank String recipientEmail,
     @NotBlank String recipientPhoneNo,
-    @NotNull  CountryCode recipientCountryCode,
+    String recipientMobileNo,
+    CountryCode recipientCountryCode,
     @NotBlank String recipientState,
-    @NotNull  StateCode recipientStateCode,
+    StateCode recipientStateCode,
     @NotBlank String recipientCity,
     @NotBlank String recipientAddress1,
     String recipientAddress2,
     @NotBlank String recipientZipCode,
     String recipientTaxId,
 
-    // 배송 정보
     @NotBlank String itemContentsType,
     @Min(1) int parcelCount,
     @NotBlank String serviceType,
@@ -59,7 +55,7 @@ public record OrderCreateRequest(
     @Min(1) int dimensionHeight,
     @NotBlank String packageType,
     @NotBlank String shippingTerm,
-    @NotNull Long sellerId,
+    Long sellerId,
 
-    @NotEmpty List<@Valid OrderItemDto> orderItems
+    @NotEmpty List<@Valid OrderItemRequest> orderItems
 ) {}
