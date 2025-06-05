@@ -16,12 +16,4 @@ public class PaymentStatusMapper {
         };
     }
 
-    public static PaymentStatus fromKakao(String kakaoStatus) {
-        return switch (kakaoStatus) {
-            case "APPROVED" -> PaymentStatus.COMPLETE;
-            case "CANCELLED" -> PaymentStatus.CANCEL;
-            case "FAILED" -> PaymentStatus.FAIL;
-            default -> PaymentStatus.NONE;
-        };
-    }
 }

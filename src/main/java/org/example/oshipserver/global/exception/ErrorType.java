@@ -19,7 +19,10 @@ public enum ErrorType{
 
     //인증/인가
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
-    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다.");
+    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+
+    // Payment 관련 에러
+    DUPLICATED_PAYMENT(HttpStatus.BAD_REQUEST, "이미 처리된 결제입니다.");
 
     private final HttpStatus status;
     private final String desc;
