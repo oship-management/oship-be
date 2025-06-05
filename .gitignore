@@ -17,6 +17,10 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
+# QueryDSL Q타입 자동 생성 파일
+**/generated/
+
+
 ### IntelliJ IDEA ###
 .idea
 *.iws
@@ -40,4 +44,4 @@ out/
 application-prod.yml
 .env
 mysql/
-redis/
+redis//src/main/generated/

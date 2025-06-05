@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,6 +62,23 @@ public class GlobalExceptionHandler {
                         ErrorType.FORBIDDEN.getStatus().value(),
                         ex.getMessage()
                 ));
+    }
+
+    //외부클라이언트에러
+    @ExceptionHandler(HttpClientErrorException.class)
+    public ResponseEntity<BaseExceptionResponse> handleHttpClient(HttpClientErrorException e){
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new BaseExceptionResponse(e.getStatusCode().value(), "API 오류"));
+
+    }
+    //500 에러 처리해야댐
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<BaseExceptionResponse> handleHttpClient(RuntimeException e){
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new BaseExceptionResponse(HttpStatus.BAD_REQUEST.value(), "API 오류"));
+
     }
 
 }
