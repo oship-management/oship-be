@@ -25,7 +25,7 @@ public class TossPaymentClient { // 외부 연동 모듈
 
     // 요청 url 생성
     private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
-    private static final String TOSS_LOOKUP_URL_PREFIX = "https://api.tosspayments.com/v1/payments/orders/";
+    private static final String TOSS_LOOKUP_URL_PREFIX = "https://api.tosspayments.com/v1/payments/";
 
     /**
      * Toss 단건 결제 승인 요청
@@ -65,8 +65,8 @@ public class TossPaymentClient { // 외부 연동 모듈
     /**
      * Toss 단건 결제 조회 요청
      */
-    public TossSinglePaymentLookupResponse requestSinglePaymentLookup(String orderId) {
-        String url = TOSS_LOOKUP_URL_PREFIX + orderId;
+    public TossSinglePaymentLookupResponse requestSinglePaymentLookup(String paymentKey) {
+        String url = TOSS_LOOKUP_URL_PREFIX + paymentKey;
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Basic " +

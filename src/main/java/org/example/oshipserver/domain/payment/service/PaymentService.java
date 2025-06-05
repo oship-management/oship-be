@@ -81,7 +81,9 @@ public class PaymentService {
         Payment payment = paymentRepository.findByTossOrderId(orderId)
             .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        TossSinglePaymentLookupResponse tossResponse = tossPaymentClient.requestSinglePaymentLookup(orderId);
+        // 클라이언트에게 받아온 orderId를 통해 db에서 paymentKey를 꺼내서 toss API에 넘기기
+        TossSinglePaymentLookupResponse tossResponse =
+            tossPaymentClient.requestSinglePaymentLookup(payment.getPaymentKey());
 
         return PaymentLookupResponse.convertFromTossLookup(tossResponse);
     }
