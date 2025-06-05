@@ -1,7 +1,9 @@
 package org.example.oshipserver.domain.payment.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
 import org.example.oshipserver.client.toss.TossPaymentClient;
@@ -11,6 +13,7 @@ import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmRes
 import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
+import org.example.oshipserver.domain.payment.mapper.PaymentMethodMapper;
 import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.domain.payment.util.PaymentNoGenerator;
@@ -27,40 +30,54 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
 
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
-        // 1. Toss 결제 승인 API 호출 (RestTemplate 사용)
-        TossPaymentConfirmResponse tossResponse = tossPaymentClient.requestPaymentConfirm(request);
 
-        // 2. 중복 결제 여부 확인
-        if (paymentRepository.existsByPaymentKey(tossResponse.paymentKey())) {
+        // 1. 중복 결제 여부 확인
+        if (paymentRepository.existsByPaymentKey(request.paymentKey())) {
             throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
         }
 
-        // 3. 오늘 날짜 기준 생성된 결제 수 조회하여 시퀀스 결정 (paymentNo 생성용)
+        // 2. Toss 결제 승인 API 호출 (RestTemplate 사용)
+        TossPaymentConfirmResponse tossResponse = tossPaymentClient.requestPaymentConfirm(request);
+
+        System.out.println("결제 방식111: " + tossResponse.method());
+        try {
+            System.out.println("toss 전체 응답: " + new ObjectMapper().writeValueAsString(tossResponse));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            System.out.println("toss 응답 직렬화 실패: " + e.getMessage());
+        }
+
+        // 추후 paymentKey로 조회해 실제 결제 방식에 따라 업데이트하는 방식으로 리팩토링 예정
+        PaymentMethod method = PaymentMethod.CARD;
+//        // 3. Toss method 문자열을 enum으로 변환
+//        PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
+
+
+        // 4. 오늘 날짜 기준 생성된 결제 수 조회하여 시퀀스 결정 (paymentNo 생성용)
         LocalDate today = LocalDate.now();
         int todayCount = paymentRepository.countByCreatedAtBetween(
             today.atStartOfDay(),
             today.plusDays(1).atStartOfDay()
         );
 
-        // 4. 고유 paymentNo 생성
+        // 5. 고유 paymentNo 생성
         String paymentNo = PaymentNoGenerator.generate(today, todayCount + 1);
 
-        // 5. Toss 응답값을 Payment 엔티티로 변환하여 저장
+        // 6. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
             .paymentNo(paymentNo)
-            .orderId(request.orderId())
+            .orderId(Long.parseLong(request.orderId()))
             .paymentKey(tossResponse.paymentKey())
             .amount(tossResponse.totalAmount())
             .currency("KRW")
-            .method(PaymentMethod.CARD)
-            .paidAt(LocalDateTime.parse(tossResponse.approvedAt()))
+            .method(method)
+            .paidAt(OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime())
             .status(PaymentStatusMapper.fromToss(tossResponse.status()))
             .build();
 
         paymentRepository.save(payment);
 
-        // 6. 응답 DTO 반환
-        return PaymentConfirmResponse.convertFromTossConfirm(tossResponse);
+        // 7. 응답 DTO 반환
+        return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, method);
     }
 
 }

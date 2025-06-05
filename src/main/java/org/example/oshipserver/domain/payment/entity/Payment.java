@@ -62,7 +62,7 @@ public class Payment extends BaseTimeEntity {
     private String failReason;
 
     @Column(nullable = false)
-    private String orderId;
+    private Long orderId;
 
     // 주문 여러건을 묶어서 결제
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -70,7 +70,7 @@ public class Payment extends BaseTimeEntity {
 
 
     @Builder
-    public Payment(String paymentNo, String paymentKey, String orderId,
+    public Payment(String paymentNo, String paymentKey, Long orderId,
         PaymentStatus status, PaymentMethod method, Integer amount,
         String currency, LocalDateTime paidAt, String failReason) {
         this.paymentNo = paymentNo;
