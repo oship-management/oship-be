@@ -28,16 +28,15 @@ public class OrderSender {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 추후 seller와의 연관관계 매핑
-    private Long sellerId;
-
-    private String storePlatform;
-    private String storeName;
     private String senderName;
     private String senderCompany;
     private String senderEmail;
     private String senderPhoneNo;
 
+    private String storePlatform;
+    private String storeName;
+
+    private Long sellerId;  // 추후 seller 연관관계 대체 예정
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
@@ -45,24 +44,23 @@ public class OrderSender {
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "sender_address_id")
-    private SenderAddress address;
+    private SenderAddress senderAddress;
 
     public void assignOrder(Order order) {
         this.order = order;
     }
 
     public void updateFrom(OrderUpdateRequest req) {
-        this.storePlatform = req.storePlatform();
-        this.storeName = req.storeName();
         this.senderName = req.senderName();
         this.senderCompany = req.senderCompany();
         this.senderEmail = req.senderEmail();
         this.senderPhoneNo = req.senderPhoneNo();
+        this.storePlatform = req.storePlatform();
+        this.storeName = req.storeName();
         this.sellerId = req.sellerId();
 
-        // address가 없으면 새로 생성
-        if (this.address == null) {
-            this.address = SenderAddress.builder()
+        if (this.senderAddress == null) {
+            this.senderAddress = SenderAddress.builder()
                 .senderCountryCode(req.senderCountryCode())
                 .senderState(req.senderState())
                 .senderStateCode(req.senderStateCode())
@@ -73,8 +71,7 @@ public class OrderSender {
                 .senderTaxId(req.senderTaxId())
                 .build();
         } else {
-            this.address.updateFrom(req);
+            this.senderAddress.updateFrom(req);
         }
     }
-
 }
