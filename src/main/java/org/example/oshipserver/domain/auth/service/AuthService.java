@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
+import org.example.oshipserver.domain.auth.entity.AuthAddress;
+import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
 import org.example.oshipserver.domain.auth.vo.AccessTokenVo;
 import org.example.oshipserver.domain.auth.vo.RefreshTokenVo;
 import org.example.oshipserver.domain.auth.vo.TokenValueObject;
@@ -30,6 +32,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final SellerRepository sellerRepository;
     private final PartnerRepository partnerRepository;
+    private final AuthAddressRepository authAddressRepository;
 
 
     @Transactional
@@ -60,8 +63,9 @@ public class AuthService {
                 .companyRegisterNo(request.companyRegisterNo())
                 .companyTelNo(request.companyTelNo())
                 .build();
-
+        AuthAddress address = AuthAddress.from(request.address(), savedUser.getId());
         sellerRepository.save(seller);
+        authAddressRepository.save(address);
         return savedUser.getId();
     }
 
@@ -90,8 +94,9 @@ public class AuthService {
                 .companyRegisterNo(request.companyRegisterNo())
                 .companyTelNo(request.companyTelNo())
                 .build();
-
+        AuthAddress address = AuthAddress.from(request.address(), savedUser.getId());
         partnerRepository.save(partner);
+        authAddressRepository.save(address);
 
         return savedUser.getId();
     }
