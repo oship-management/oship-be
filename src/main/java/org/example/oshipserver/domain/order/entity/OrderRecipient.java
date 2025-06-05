@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
 
 @Entity
 @Table(name = "order_recipients")
@@ -39,6 +40,28 @@ public class OrderRecipient {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "recipient_address_id")
     private RecipientAddress recipientAddress;
+
+    public void updateFrom(OrderUpdateRequest req) {
+        this.recipientName = req.recipientName();
+        this.recipientCompany = req.recipientCompany();
+        this.recipientEmail = req.recipientEmail();
+        this.recipientPhoneNo = req.recipientPhoneNo();
+
+        if (this.recipientAddress == null) {
+            this.recipientAddress = RecipientAddress.builder()
+                .recipientCountryCode(req.recipientCountryCode())
+                .recipientState(req.recipientState())
+                .recipientStateCode(req.recipientStateCode())
+                .recipientCity(req.recipientCity())
+                .recipientAddress1(req.recipientAddress1())
+                .recipientAddress2(req.recipientAddress2())
+                .recipientZipCode(req.recipientZipCode())
+                .recipientTaxId(req.recipientTaxId())
+                .build();
+        } else {
+            this.recipientAddress.updateFrom(req);
+        }
+    }
 
     public void assignOrder(Order order) {
         this.order = order;

@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.StateCode;
 
@@ -54,4 +55,16 @@ public class SenderAddress {
 
     @Column(name = "sender_tax_id")
     private String senderTaxId;
+
+    public void updateFrom(OrderUpdateRequest req) {
+        this.senderCountryCode = req.senderCountryCode();
+        this.senderState = req.senderState();
+        this.senderStateCode = req.senderStateCode();
+        this.senderCity = req.senderCity();
+        this.senderAddress1 = req.senderAddress1();
+        this.senderAddress2 = req.senderAddress2();
+        this.senderZipCode = req.senderZipCode();
+        this.senderTaxId = req.senderTaxId();
+    }
+
 }
