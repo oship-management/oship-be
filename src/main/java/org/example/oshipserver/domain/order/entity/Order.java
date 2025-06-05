@@ -58,7 +58,6 @@ public class Order extends BaseTimeEntity {
     private BigDecimal dimensionLength;
 
     // 시간 정보
-    private LocalDateTime orderedAt;
     private LocalDateTime deletedAt;
 
     // 상태
@@ -91,9 +90,6 @@ public class Order extends BaseTimeEntity {
     private Boolean isPrintBarcode;
     private Boolean isPrintAwb;
 
-    // 운송장 출력 시각
-    private LocalDateTime awbPrintedAt;
-
     // 배송 완료 시각 (트래킹 기준)
     private LocalDateTime deliveredAt;
 
@@ -125,7 +121,6 @@ public class Order extends BaseTimeEntity {
         BigDecimal dimensionWidth,
         BigDecimal dimensionHeight,
         BigDecimal dimensionLength,
-        LocalDateTime orderedAt,
         boolean deleted,
         OrderStatus currentStatus,
         String itemContentsType,
@@ -143,7 +138,6 @@ public class Order extends BaseTimeEntity {
         this.dimensionWidth = dimensionWidth;
         this.dimensionHeight = dimensionHeight;
         this.dimensionLength = dimensionLength;
-        this.orderedAt = orderedAt;
         this.currentStatus = currentStatus;
         this.itemContentsType = itemContentsType;
         this.serviceType = serviceType;
@@ -171,7 +165,6 @@ public class Order extends BaseTimeEntity {
             .dimensionWidth(BigDecimal.valueOf(dto.dimensionWidth()))
             .dimensionHeight(BigDecimal.valueOf(dto.dimensionHeight()))
             .dimensionLength(BigDecimal.valueOf(dto.dimensionLength()))
-            .orderedAt(LocalDateTime.now())
             .deleted(false)
             .currentStatus(OrderStatus.PENDING)
             .itemContentsType(dto.itemContentsType())
