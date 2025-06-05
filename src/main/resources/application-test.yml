@@ -12,9 +12,3 @@ spring:
     redis:
       host: localhost
       port: 6379
-jwt:
-  secret:
-    key: "vDLW2ZV+RkZIb8OM8Oq3oBqV3yZ3hUqjPlAEX1zjK3M="
-
-toss:
-  secret-key: test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6
