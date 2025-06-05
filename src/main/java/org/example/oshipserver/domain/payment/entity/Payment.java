@@ -66,11 +66,11 @@ public class Payment extends BaseTimeEntity {
     // 결제 실패 사유
     private String failReason;
 
-    // 우리 서버의 내부 엔티티 (나중에 연결할 예정)
+    // 우리 서버의 내부 엔티티
     @ManyToOne(fetch = FetchType.LAZY)
     private Order order;
 
-    // 주문 여러건을 묶어서 결제
+    // 주문 여러건을 묶어서 결제 (다건 결제용)
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentOrder> orders = new ArrayList<>();
 
