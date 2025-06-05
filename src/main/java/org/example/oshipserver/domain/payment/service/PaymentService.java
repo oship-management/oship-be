@@ -58,7 +58,7 @@ public class PaymentService {
         // 6. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
             .paymentNo(paymentNo)
-            .tossOrderId(request.tossOrderId())
+            .tossOrderId(request.orderId())
             .paymentKey(tossResponse.paymentKey())
             .amount(tossResponse.totalAmount())
             .currency("KRW")

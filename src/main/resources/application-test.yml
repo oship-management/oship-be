@@ -14,8 +14,7 @@ spring:
       port: 6379
 jwt:
   secret:
-    key: ${JWT_SECRET_KEY:test-secret-key-for-test}
+    key: ${JWT_SECRET_KEY}
 
 toss:
-  secret-key: ${TOSS_SECRET_KEY:test_toss_key}
-
+  secret-key: ${TOSS_SECRET_KEY}

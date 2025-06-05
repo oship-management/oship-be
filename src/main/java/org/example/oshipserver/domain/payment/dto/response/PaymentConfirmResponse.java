@@ -8,7 +8,7 @@ import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
  * 단건 결제 생성 응답 DTO (내부 응답용)
  */
 public record PaymentConfirmResponse(
-    String tossOrderId,           // 주문 번호 (toss 응답 그대로)
+    String tossOrderId,           // 주문 번호
     String paymentKey,        // Toss 결제 키
     PaymentStatus status,     // 결제 상태 (enum 매핑)
     String approvedAt,        // 승인 완료 시간
@@ -33,7 +33,7 @@ public record PaymentConfirmResponse(
             response.totalAmount(),
             response.currency(),
             method,
-            method == PaymentMethod.SIMPLE_PAY_CARD && response.card() != null
+            method == PaymentMethod.CARD && response.card() != null
                 ? getLast4Digits(response.card().number())  // 결제방법이 카드일때만 카드4자리 보여줌
                 : null,
             response.receipt() != null ? response.receipt().url() : null
