@@ -25,19 +25,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(authorize -> authorize
-                                                    .requestMatchers("/api/v1/auth/**").permitAll()
-                                                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                                    .requestMatchers("/api/v1/sellers/**").hasRole("SELLER")
-                                                    .requestMatchers("/api/v1/partners/**").hasRole("PARTNER")
-                                                    .anyRequest().authenticated()
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/sellers/**").hasRole("SELLER")
+                        .requestMatchers("/api/v1/partners/**").hasRole("PARTNER")
+                        .requestMatchers("/api/v1/payments").hasRole("SELLER")
+                        .anyRequest().authenticated()
 
-            )
-            .sessionManagement(session -> session
-                                              .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(e->e
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(e -> e
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler));
 

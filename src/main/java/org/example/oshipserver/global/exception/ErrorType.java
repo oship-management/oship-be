@@ -23,6 +23,7 @@ public enum ErrorType{
 
     // Payment 관련 에러
     DUPLICATED_PAYMENT(HttpStatus.BAD_REQUEST, "이미 처리된 결제입니다."),
+    INVALID_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 방식입니다."),
 
     // Shipping/Barcode 관련 에러
     BARCODE_NOT_PRINTED(HttpStatus.BAD_REQUEST, "바코드가 출력되지 않았습니다."),
