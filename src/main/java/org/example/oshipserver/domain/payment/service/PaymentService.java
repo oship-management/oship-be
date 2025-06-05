@@ -39,17 +39,10 @@ public class PaymentService {
         // 2. Toss 결제 승인 API 호출 (RestTemplate 사용)
         TossPaymentConfirmResponse tossResponse = tossPaymentClient.requestPaymentConfirm(request);
 
-        System.out.println("결제 방식111: " + tossResponse.method());
-        try {
-            System.out.println("toss 전체 응답: " + new ObjectMapper().writeValueAsString(tossResponse));
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            System.out.println("toss 응답 직렬화 실패: " + e.getMessage());
-        }
-
         // 추후 paymentKey로 조회해 실제 결제 방식에 따라 업데이트하는 방식으로 리팩토링 예정
         PaymentMethod method = PaymentMethod.CARD;
-//        // 3. Toss method 문자열을 enum으로 변환
-//        PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
+        // // 3. Toss method 문자열을 enum으로 변환
+        //PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
 
         // 4. 오늘 날짜 기준 생성된 결제 수 조회하여 시퀀스 결정 (paymentNo 생성용)
@@ -65,7 +58,7 @@ public class PaymentService {
         // 6. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
             .paymentNo(paymentNo)
-            .orderId(Long.parseLong(request.orderId()))
+            .tossOrderId(request.tossOrderId())
             .paymentKey(tossResponse.paymentKey())
             .amount(tossResponse.totalAmount())
             .currency("KRW")

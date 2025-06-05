@@ -35,7 +35,7 @@ public class TossPaymentClient { // 외부 연동 모듈
         // 요청 바디 구성
         Map<String, Object> body = Map.of(
             "paymentKey", request.paymentKey(),
-            "orderId", request.orderId(),
+            "orderId", request.tossOrderId(),
             "amount", request.amount(),
             "currency", "KRW"
         );

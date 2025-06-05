@@ -7,7 +7,7 @@ import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
  * 결제 단건 조회 응답 DTO (내부 응답용)
  */
 public record PaymentLookupResponse(
-    String orderId,
+    String tossOrderId,
     String paymentKey,
     PaymentStatus paymentStatus,
     String paidAt,

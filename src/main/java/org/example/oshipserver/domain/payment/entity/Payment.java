@@ -61,8 +61,12 @@ public class Payment extends BaseTimeEntity {
     // 결제 실패 사유
     private String failReason;
 
+    // Toss에서 임의로 받아온 orderId
     @Column(nullable = false)
-    private Long orderId;
+    private String tossOrderId;
+
+    // 우리 서버의 Order엔티티의 pk (나중에 연결할 예정)
+    // private Long orderId;
 
     // 주문 여러건을 묶어서 결제
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -70,12 +74,12 @@ public class Payment extends BaseTimeEntity {
 
 
     @Builder
-    public Payment(String paymentNo, String paymentKey, Long orderId,
+    public Payment(String paymentNo, String paymentKey, String tossOrderId,
         PaymentStatus status, PaymentMethod method, Integer amount,
         String currency, LocalDateTime paidAt, String failReason) {
         this.paymentNo = paymentNo;
         this.paymentKey = paymentKey;
-        this.orderId = orderId;
+        this.tossOrderId = tossOrderId;
         this.status = status;
         this.method = method;
         this.amount = amount;

@@ -8,7 +8,7 @@ import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
  * 단건 결제 생성 응답 DTO (내부 응답용)
  */
 public record PaymentConfirmResponse(
-    String orderId,           // 주문 번호
+    String tossOrderId,           // 주문 번호 (toss 응답 그대로)
     String paymentKey,        // Toss 결제 키
     PaymentStatus status,     // 결제 상태 (enum 매핑)
     String approvedAt,        // 승인 완료 시간
