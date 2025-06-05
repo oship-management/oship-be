@@ -3,7 +3,7 @@ package org.example.oshipserver.domain.order.service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Random;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
@@ -42,7 +42,7 @@ public class OrderService {
         }
 
         // 중복 피한 Master No 생성
-        String masterNo = generateUniqueMasterNo(orderCreateRequest.recipientCountryCode());
+        String masterNo = generateMasterNo(orderCreateRequest.recipientCountryCode());
 
         // 1. 주문 생성
         Order order = Order.of(orderCreateRequest, masterNo);
@@ -106,25 +106,15 @@ public class OrderService {
         return masterNo;
     }
 
-    // 중복 방지 Master No 생성기
-    private String generateUniqueMasterNo(CountryCode countryCode) {
-        int maxRetries = 5;
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            String candidate = generateMasterNo(countryCode);
-            if (!orderRepository.existsByOshipMasterNo(candidate)) {
-                return candidate;
-            }
-        }
-        throw new ApiException("MasterNo 생성 실패: 중복 회피 불가", ErrorType.FAIL);
-    }
-
-    // 기본 Master No 생성 메서드
     private String generateMasterNo(CountryCode countryCode) {
         String prefix = "OSH";
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
         String country = countryCode != null ? countryCode.name() : "XX";
-        int randomNumber = 1000000 + new Random().nextInt(9000000);
-        return prefix + date + country + randomNumber;
+
+        // UUID 앞 7자리 추출 (대문자)
+        String uuidSegment = UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
+
+        return prefix + date + country + uuidSegment;
     }
 
     @Transactional
