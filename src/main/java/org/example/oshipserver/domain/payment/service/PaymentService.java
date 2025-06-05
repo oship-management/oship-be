@@ -9,7 +9,9 @@ import lombok.Builder;
 import org.example.oshipserver.client.toss.TossPaymentClient;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.TossSinglePaymentLookupResponse;
 import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
@@ -29,6 +31,7 @@ public class PaymentService {
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRepository paymentRepository;
 
+    // 단건 결제 생성 API
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
         // 1. 중복 결제 여부 확인
@@ -71,6 +74,16 @@ public class PaymentService {
 
         // 7. 응답 DTO 반환
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, method);
+    }
+
+    // 단건 결제 조회 API (orderId)
+    public PaymentLookupResponse getPaymentByOrderId(String orderId) {
+        Payment payment = paymentRepository.findByTossOrderId(orderId)
+            .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        TossSinglePaymentLookupResponse tossResponse = tossPaymentClient.requestSinglePaymentLookup(orderId);
+
+        return PaymentLookupResponse.convertFromTossLookup(tossResponse);
     }
 
 }
