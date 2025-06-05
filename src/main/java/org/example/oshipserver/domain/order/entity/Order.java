@@ -2,6 +2,7 @@ package org.example.oshipserver.domain.order.entity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -14,18 +15,29 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
+import org.example.oshipserver.domain.order.dto.request.OrderItemRequest;
+import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
+import org.example.oshipserver.domain.order.entity.enums.DeleterRole;
 import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
+import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "orders")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 public class Order extends BaseTimeEntity {
 
     @Id
@@ -50,7 +62,11 @@ public class Order extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     // 상태
-    private Boolean isDeleted;
+    private boolean deleted = false;
+
+    @Enumerated(EnumType.STRING)
+    @CreatedBy // 삭제 주체 자동 주입
+    private DeleterRole deletedBy;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus currentStatus;
@@ -59,6 +75,17 @@ public class Order extends BaseTimeEntity {
     private String oshipMasterNo;
     private String lastTrackingEvent;
 
+    // 물품 종류
+    private String itemContentsType;
+
+    // 배송비 정책
+    private String serviceType;
+
+    // 포장 방식
+    private String packageType;
+
+    // 통관 조건
+    private String shippingTerm;
 
     // 바코드/운송장 출력 여부
     private Boolean isPrintBarcode;
@@ -81,25 +108,11 @@ public class Order extends BaseTimeEntity {
     private Long parterId;
     private Long sellerId;
 
-    /*
-    추후 Partner와 Seller 추가 시 연관관계 설정
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "partner_id", nullable = false)
-    private Partner partner;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seller_id", nullable = false)
-    private Seller seller;
-
-    */
-
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private OrderSender sender;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private OrderRecipient recipient;
-
 
     @Builder
     private Order(
@@ -113,8 +126,13 @@ public class Order extends BaseTimeEntity {
         BigDecimal dimensionHeight,
         BigDecimal dimensionLength,
         LocalDateTime orderedAt,
-        Boolean isDeleted,
-        OrderStatus currentStatus
+        boolean deleted,
+        OrderStatus currentStatus,
+        String itemContentsType,
+        String serviceType,
+        String packageType,
+        String shippingTerm,
+        Long sellerId
     ) {
         this.orderNo = orderNo;
         this.oshipMasterNo = oshipMasterNo;
@@ -126,10 +144,16 @@ public class Order extends BaseTimeEntity {
         this.dimensionHeight = dimensionHeight;
         this.dimensionLength = dimensionLength;
         this.orderedAt = orderedAt;
-        this.isDeleted = isDeleted;
         this.currentStatus = currentStatus;
+        this.itemContentsType = itemContentsType;
+        this.serviceType = serviceType;
+        this.packageType = packageType;
+        this.shippingTerm = shippingTerm;
+        this.sellerId = sellerId;
+        this.deleted = false;
+        this.deletedBy = null;
+        this.deletedAt = null;
     }
-
 
     /**
      * 주문 생성 팩토리 메서드 (DTO 기반)
@@ -148,11 +172,15 @@ public class Order extends BaseTimeEntity {
             .dimensionHeight(BigDecimal.valueOf(dto.dimensionHeight()))
             .dimensionLength(BigDecimal.valueOf(dto.dimensionLength()))
             .orderedAt(LocalDateTime.now())
-            .isDeleted(false)
+            .deleted(false)
             .currentStatus(OrderStatus.PENDING)
+            .itemContentsType(dto.itemContentsType())
+            .serviceType(dto.serviceType())
+            .packageType(dto.packageType())
+            .shippingTerm(dto.shippingTerm())
+            .sellerId(dto.sellerId())
             .build();
     }
-
 
     /**
      * 주문 상품 목록 추가
@@ -168,6 +196,47 @@ public class Order extends BaseTimeEntity {
 
     public void assignRecipient(OrderRecipient recipient) {
         this.recipient = recipient;
+    }
+
+    public void softDelete(DeleterRole deletedBy) {
+        this.deleted = true;
+        this.deletedBy = deletedBy;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    // 주문 정보 갱신
+    public void updateFrom(OrderUpdateRequest req) {
+        this.orderNo = req.orderNo();
+        this.parcelCount = req.parcelCount();
+        this.shipmentActualWeight = BigDecimal.valueOf(req.shipmentActualWeight());
+        this.shipmentVolumeWeight = BigDecimal.valueOf(req.shipmentVolumeWeight());
+        this.weightUnit = req.weightUnit();
+        this.dimensionWidth = BigDecimal.valueOf(req.dimensionWidth());
+        this.dimensionHeight = BigDecimal.valueOf(req.dimensionHeight());
+        this.dimensionLength = BigDecimal.valueOf(req.dimensionLength());
+        this.itemContentsType = req.itemContentsType();
+        this.serviceType = req.serviceType();
+        this.packageType = req.packageType();
+        this.shippingTerm = req.shippingTerm();
+    }
+
+    public void updateItems(List<OrderItemRequest> updatedRequests) {
+        Map<Long, OrderItem> existingItemMap = this.orderItems.stream()
+            .collect(Collectors.toMap(OrderItem::getId, Function.identity()));
+
+        for (OrderItemRequest req : updatedRequests) {
+            Long id = req.id();
+
+            if (id == null || !existingItemMap.containsKey(id)) {
+                throw new ApiException("수정할 수 없는 주문 항목입니다: id=" + id, ErrorType.NOT_FOUND);
+            }
+            existingItemMap.get(id).updateFrom(req);
+        }
+    }
+
+    // 주문이 삭제되었는지 확인
+    public boolean isDeleted() {
+        return this.deleted;
     }
 
 }

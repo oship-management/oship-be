@@ -1,14 +1,21 @@
 package org.example.oshipserver.domain.order.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.domain.order.dto.OrderItemDto;
+import org.example.oshipserver.domain.order.dto.request.OrderItemRequest;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
-
-import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
@@ -59,6 +66,18 @@ public class OrderItem extends BaseTimeEntity {
             .hsCode(dto.itemHSCode())
             .originCountryCode(dto.itemOriginCountryCode())
             .build();
+    }
+
+
+    public void updateFrom(OrderItemRequest req) {
+        this.name = req.itemName();
+        this.quantity = req.itemQuantity();
+        this.unitValue = BigDecimal.valueOf(req.itemUnitValue());
+        this.valueCurrency = req.itemValueCurrency();
+        this.weight = BigDecimal.valueOf(req.itemWeight());
+        this.weightUnit = req.weightUnit();
+        this.hsCode = req.itemHSCode();
+        this.originCountryCode = req.itemOriginCountryCode();
     }
 
     /**

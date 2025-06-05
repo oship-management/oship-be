@@ -15,7 +15,11 @@ public enum ErrorType{
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT FOUND"),
 
     // Order 관련 에러
-    DUPLICATED_ORDER(HttpStatus.BAD_REQUEST, "이미 동일한 주문번호가 존재합니다");
+    DUPLICATED_ORDER(HttpStatus.BAD_REQUEST, "이미 동일한 주문번호가 존재합니다"),
+
+    //인증/인가
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다.");
 
     private final HttpStatus status;
     private final String desc;

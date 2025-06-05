@@ -1,8 +1,6 @@
 package org.example.oshipserver.global.common.utils;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
@@ -125,24 +123,11 @@ public class JwtUtil {
         return null;
     }
 
-    public Claims extractClaims(String token) {
+    public Jwt<JwsHeader, Claims> validateToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token); // 유효성 검사됨 (signature, 만료일 등)
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+                .parseClaimsJws(token);
     }
 
 }

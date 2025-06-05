@@ -2,7 +2,6 @@ name: PUSH-BRANCH
 
 on:
   push:
-    branches: [feat/*]
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -14,6 +13,16 @@ jobs:
         with:
           java-version: 17
           distribution: 'temurin'
+
+      - name: gradle-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
 
       - name: Build with Gradle
