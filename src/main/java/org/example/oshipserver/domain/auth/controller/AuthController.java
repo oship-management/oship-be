@@ -9,6 +9,8 @@ import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
 import org.example.oshipserver.domain.auth.service.AuthService;
 import org.example.oshipserver.domain.auth.vo.TokenValueObject;
 import org.example.oshipserver.global.common.response.BaseResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -31,31 +33,33 @@ private final String uuid = String.valueOf(UUID.randomUUID());
     }
 
     @PostMapping("/sellers/signup")
-    public BaseResponse<Long> signup_seller(@RequestBody @Valid SellerSignupRequest request){
+    public ResponseEntity<BaseResponse<Long>> signup_seller(@RequestBody @Valid SellerSignupRequest request){
         Long userId =  authService.signupSeller(request);
-        return new BaseResponse<>(201,"회원가입 성공", userId);
+        BaseResponse<Long> response = new BaseResponse<>(201,"회원가입 성공", userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/partners/signup")
-    public BaseResponse<Long> signup_partner(@RequestBody @Valid PartnerSignupRequest request){
+    public ResponseEntity<BaseResponse<Long>> signup_partner(@RequestBody @Valid PartnerSignupRequest request){
         Long userId =  authService.signupPartner(request);
-        return new BaseResponse<>(201,"회원가입 성공", userId);
+        BaseResponse<Long> response = new BaseResponse<>(201,"회원가입 성공", userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public BaseResponse<TokenValueObject> login(
+    public ResponseEntity<TokenValueObject> login(
             @RequestBody @Valid LoginRequest request,
             HttpServletResponse response) {
         TokenValueObject token = authService.login(request);
         setCookieToken(response, token);
-        return new BaseResponse<>(201, "로그인 성공", token);
+        return ResponseEntity.status(HttpStatus.CREATED).body(token);
     }
 
     @PostMapping("/logout")
-    public BaseResponse<Void> logout(
+    public ResponseEntity<Void> logout(
             HttpServletResponse response){
         deleteAuthCookies(response);
-        return new BaseResponse<>(204, "로그아웃 성공", null);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
 

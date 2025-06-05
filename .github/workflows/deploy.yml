@@ -7,6 +7,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
 
     steps:
       - uses: actions/checkout@v3

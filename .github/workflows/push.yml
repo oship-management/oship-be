@@ -5,7 +5,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
