@@ -6,7 +6,9 @@ import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
 import org.example.oshipserver.domain.shipping.dto.response.AwbResponse;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
+import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final OrderRepository orderRepository;
+    private final TrackingEventHandler trackingEventHandler;
 
     public Long createShipment(Long orderId, Long carrierId) {
         // 주문 존재 여부 확인
@@ -68,7 +71,14 @@ public class ShipmentService {
         // 6. 저장
         shipmentRepository.save(shipment);
 
-        // 7. 응답 데이터 생성 (Builder 패턴 사용)
+        // 7. AWB 생성 트래킹 이벤트 추가
+        trackingEventHandler.handleTrackingEvent(
+            order.getId(),
+            TrackingEventEnum.AWB_CREATED,
+            ""
+        );
+
+        // 8. 응답 데이터 생성 (Builder 패턴 사용)
         AwbResponse.MeasurementData measurements = AwbResponse.MeasurementData.builder()
             .width(request.width())
             .height(request.height())
