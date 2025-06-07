@@ -1,10 +1,13 @@
+
 package org.example.oshipserver.domain.shipping.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
+import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
@@ -12,13 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class BarcodeService {
 
     private final OrderRepository orderRepository;
     private final ShipmentRepository shipmentRepository;
+    private final TrackingEventHandler trackingEventHandler;
 
-    public Long validateBarcode(String barcode, Long carrierId) {
+    public Long validateBarcode(String barcode) {
         // 1. 바코드에서 MasterNo 추출
         String masterNo = extractMasterNoFromBarcode(barcode);
 
@@ -38,17 +42,41 @@ public class BarcodeService {
         Shipment shipment = shipmentRepository.findByOrderId(order.getId())
             .orElseThrow(() -> new ApiException("배송 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        // 6. 배송업체 일치 여부 확인
-        if (!shipment.getCarrierId().equals(carrierId)) {
-            throw new ApiException("배송업체가 일치하지 않습니다.", ErrorType.CARRIER_MISMATCH);
-        }
-
-        // 7. AWB 발행 여부 확인
+        // 6. AWB 발행 여부 확인
         if (shipment.getAwbUrl() != null && !shipment.getAwbUrl().isEmpty()) {
             throw new ApiException("이미 AWB가 발행된 주문입니다.", ErrorType.AWB_ALREADY_ISSUED);
         }
 
+        // 7. 바코드 스캔 성공 트래킹 이벤트 추가
+        trackingEventHandler.handleTrackingEvent(
+            order.getId(),
+            TrackingEventEnum.CENTER_ARRIVED,
+            ""
+        );
+
         return shipment.getId();
+    }
+
+    @Transactional
+    public void markBarcodePrinted(Long orderId) {
+        // 1. 주문 존재 여부 확인
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
+
+        // 2. 이미 바코드가 생성되었는지 확인
+        if (order.getIsPrintBarcode() != null && order.getIsPrintBarcode()) {
+            throw new ApiException("이미 바코드가 생성된 주문입니다.", ErrorType.DUPLICATED_ORDER);
+        }
+
+        // 3. 바코드 생성 완료 처리
+        order.markBarcodeGenerated();
+
+        // 4. 바코드 생성 트래킹 이벤트 추가
+        trackingEventHandler.handleTrackingEvent(
+            orderId,
+            TrackingEventEnum.LABEL_CREATED,
+            ""
+        );
     }
 
     private String extractMasterNoFromBarcode(String barcode) {

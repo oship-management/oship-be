@@ -1,13 +1,14 @@
 package org.example.oshipserver.domain.shipping.service;
 
-import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
 import org.example.oshipserver.domain.shipping.dto.response.AwbResponse;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
+import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,12 @@ public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final OrderRepository orderRepository;
+    private final TrackingEventHandler trackingEventHandler;
 
     public Long createShipment(Long orderId, Long carrierId) {
         // 주문 존재 여부 확인
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
 
         // 이미 배송이 생성되어 있는지 확인
         if (shipmentRepository.existsByOrderId(orderId)) {
@@ -56,9 +58,9 @@ public class ShipmentService {
 
         // 4. 측정 정보 업데이트
         shipment.updateMeasurements(
-            BigDecimal.valueOf(request.width()),
-            BigDecimal.valueOf(request.height()),
-            BigDecimal.valueOf(request.length()),
+            request.width(),
+            request.height(),
+            request.length(),
             request.grossWeight()
         );
 
@@ -69,7 +71,14 @@ public class ShipmentService {
         // 6. 저장
         shipmentRepository.save(shipment);
 
-        // 7. 응답 데이터 생성 (Builder 패턴 사용)
+        // 7. AWB 생성 트래킹 이벤트 추가
+        trackingEventHandler.handleTrackingEvent(
+            order.getId(),
+            TrackingEventEnum.AWB_CREATED,
+            ""
+        );
+
+        // 8. 응답 데이터 생성 (Builder 패턴 사용)
         AwbResponse.MeasurementData measurements = AwbResponse.MeasurementData.builder()
             .width(request.width())
             .height(request.height())

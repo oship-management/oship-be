@@ -17,9 +17,9 @@ public record AwbResponse(
 
     @Builder
     public record MeasurementData(
-        int width,
-        int height,
-        int length,
+        BigDecimal width,
+        BigDecimal height,
+        BigDecimal length,
         BigDecimal grossWeight
     ) {}
 }
