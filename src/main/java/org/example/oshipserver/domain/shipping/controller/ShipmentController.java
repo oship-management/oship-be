@@ -23,8 +23,8 @@ public class ShipmentController {
 
     @PostMapping("/orders/{orderId}/carriers/{carrierId}")
     public BaseResponse<ShipmentCreateResponse> createShipment(
-            @PathVariable Long orderId,
-            @PathVariable Long carrierId) {
+        @PathVariable("orderId") Long orderId,
+        @PathVariable("carrierId") Long carrierId) {
 
         Long shipmentId = shipmentService.createShipment(orderId, carrierId);
         return new BaseResponse<>(201, "주문배송사연결성공", new ShipmentCreateResponse(shipmentId));
