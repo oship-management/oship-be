@@ -1,6 +1,5 @@
 package org.example.oshipserver.domain.shipping.service;
 
-import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
@@ -24,7 +23,7 @@ public class ShipmentService {
     public Long createShipment(Long orderId, Long carrierId) {
         // 주문 존재 여부 확인
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
 
         // 이미 배송이 생성되어 있는지 확인
         if (shipmentRepository.existsByOrderId(orderId)) {
@@ -56,9 +55,9 @@ public class ShipmentService {
 
         // 4. 측정 정보 업데이트
         shipment.updateMeasurements(
-            BigDecimal.valueOf(request.width()),
-            BigDecimal.valueOf(request.height()),
-            BigDecimal.valueOf(request.length()),
+            request.width(),
+            request.height(),
+            request.length(),
             request.grossWeight()
         );
 
