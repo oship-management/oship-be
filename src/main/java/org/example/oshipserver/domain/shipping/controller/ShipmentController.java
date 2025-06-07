@@ -32,12 +32,12 @@ public class ShipmentController {
 
     @PatchMapping("/shipment/{shipmentId}")
     public BaseResponse<AwbResponse> updateShipmentMeasure(
-        @PathVariable Long shipmentId,
+        @PathVariable("shipmentId") Long shipmentId,
         @Valid @RequestBody ShipmentMeasureRequest request) {
 
         AwbResponse response = shipmentService.updateMeasureAndGenerateAwb(shipmentId, request);
 
-        return new BaseResponse<>(20000, "AWB발급성공", response);
+        return new BaseResponse<>(201, "AWB발급성공", response);
     }
 
 }
