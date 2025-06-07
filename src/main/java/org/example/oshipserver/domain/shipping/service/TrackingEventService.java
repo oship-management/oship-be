@@ -1,10 +1,12 @@
 package org.example.oshipserver.domain.shipping.service;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.dto.request.TrackingEventCreateRequest;
 import org.example.oshipserver.domain.shipping.dto.response.TrackingEventCreateResponse;
+import org.example.oshipserver.domain.shipping.dto.response.TrackingEventResponse;
 import org.example.oshipserver.domain.shipping.entity.TrackingEvent;
 import org.example.oshipserver.domain.shipping.repository.TrackingEventRepository;
 import org.example.oshipserver.global.exception.ApiException;
@@ -46,5 +48,27 @@ public class TrackingEventService {
             .description(savedEvent.getDescription())
             .createdAt(savedEvent.getCreatedAt())
             .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrackingEventResponse> getTrackingEvents(Long orderId) {
+        // 1. 주문 존재 여부 확인
+        orderRepository.findById(orderId)
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
+
+        // 2. 트래킹 이벤트 조회 (생성일시 역순)
+        List<TrackingEvent> events = trackingEventRepository.findByOrderIdOrderByCreatedAtDesc(orderId);
+
+        // 3. 응답 DTO 변환
+        return events.stream()
+            .map(event -> TrackingEventResponse.builder()
+                .id(event.getId())
+                .orderId(event.getOrderId())
+                .event(event.getEvent())
+                .eventDescription(event.getEvent().getDesc())  // enum의 desc 값
+                .description(event.getDescription())
+                .createdAt(event.getCreatedAt())
+                .build())
+            .toList();
     }
 }
