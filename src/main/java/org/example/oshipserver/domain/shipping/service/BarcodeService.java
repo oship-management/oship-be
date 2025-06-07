@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class BarcodeService {
 
     private final OrderRepository orderRepository;
@@ -55,6 +55,28 @@ public class BarcodeService {
         );
 
         return shipment.getId();
+    }
+
+    @Transactional
+    public void markBarcodePrinted(Long orderId) {
+        // 1. 주문 존재 여부 확인
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
+
+        // 2. 이미 바코드가 생성되었는지 확인
+        if (order.getIsPrintBarcode() != null && order.getIsPrintBarcode()) {
+            throw new ApiException("이미 바코드가 생성된 주문입니다.", ErrorType.DUPLICATED_ORDER);
+        }
+
+        // 3. 바코드 생성 완료 처리
+        order.markBarcodeGenerated();
+
+        // 4. 바코드 생성 트래킹 이벤트 추가
+        trackingEventHandler.handleTrackingEvent(
+            orderId,
+            TrackingEventEnum.LABEL_CREATED,
+            ""
+        );
     }
 
     private String extractMasterNoFromBarcode(String barcode) {
