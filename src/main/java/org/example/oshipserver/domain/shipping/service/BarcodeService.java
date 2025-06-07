@@ -5,7 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
+import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ public class BarcodeService {
 
     private final OrderRepository orderRepository;
     private final ShipmentRepository shipmentRepository;
+    private final TrackingEventHandler trackingEventHandler;
 
     public Long validateBarcode(String barcode) {
         // 1. 바코드에서 MasterNo 추출
@@ -43,6 +46,13 @@ public class BarcodeService {
         if (shipment.getAwbUrl() != null && !shipment.getAwbUrl().isEmpty()) {
             throw new ApiException("이미 AWB가 발행된 주문입니다.", ErrorType.AWB_ALREADY_ISSUED);
         }
+
+        // 7. 바코드 스캔 성공 트래킹 이벤트 추가
+        trackingEventHandler.handleTrackingEvent(
+            order.getId(),
+            TrackingEventEnum.CENTER_ARRIVED,
+            ""
+        );
 
         return shipment.getId();
     }
