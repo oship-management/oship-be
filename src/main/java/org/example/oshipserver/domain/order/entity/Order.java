@@ -87,8 +87,8 @@ public class Order extends BaseTimeEntity {
     private String shippingTerm;
 
     // 바코드/운송장 출력 여부
-    private Boolean isPrintBarcode;
-    private Boolean isPrintAwb;
+    private Boolean isPrintBarcode = false;
+    private Boolean isPrintAwb = false;
 
     // 배송 완료 시각 (트래킹 기준)
     private LocalDateTime deliveredAt;
