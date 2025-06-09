@@ -17,6 +17,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TossPaymentClient { // 외부 연동 모듈
 
+    private final IdempotentRestClient idempotentRestClient;
+
     @Qualifier("tossRestTemplate")
     private final RestTemplate restTemplate;
 
@@ -28,17 +30,9 @@ public class TossPaymentClient { // 외부 연동 모듈
     private static final String TOSS_LOOKUP_URL_PREFIX = "https://api.tosspayments.com/v1/payments/";
 
     /**
-     * Toss 단건 결제 승인 요청
+     * Toss 단건 결제 승인 요청 (멱등성 키 포함)
      */
-    public TossPaymentConfirmResponse requestPaymentConfirm(PaymentConfirmRequest request) {
-        // 인증 헤더 구성
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Basic " +
-            Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes())
-        );
-
-        // 요청 바디 구성
+    public TossPaymentConfirmResponse requestPaymentConfirm(PaymentConfirmRequest request, String idempotencyKey) {
         Map<String, Object> body = Map.of(
             "paymentKey", request.paymentKey(),
             "orderId", request.orderId(),
@@ -46,19 +40,12 @@ public class TossPaymentClient { // 외부 연동 모듈
             "currency", "KRW"
         );
 
-        // 바디와 헤더를 하나로 묶은 HTTP 요청 객체
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-        // RestTemplate으로 POST 요청
-        ResponseEntity<TossPaymentConfirmResponse> response = restTemplate.exchange(
-            TOSS_CONFIRM_URL,  // 재사용성을 위해 상수로 선언
-            HttpMethod.POST,
-            entity,
-            TossPaymentConfirmResponse.class
+        return idempotentRestClient.postForIdempotent(
+            TOSS_CONFIRM_URL,
+            body,
+            TossPaymentConfirmResponse.class,
+            idempotencyKey
         );
-
-        // 응답 추출(토스 서버 응답을 TossPaymentConfirmResponse로 역직렬화)
-        return response.getBody();
     }
 
 
