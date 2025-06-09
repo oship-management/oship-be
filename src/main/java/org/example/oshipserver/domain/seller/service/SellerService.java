@@ -5,6 +5,7 @@ import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
 import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
+import org.example.oshipserver.domain.auth.repository.RefreshTokenRepository;
 import org.example.oshipserver.domain.seller.dto.request.SellerDeleteRequest;
 import org.example.oshipserver.domain.seller.dto.response.SellerInfoResponse;
 import org.example.oshipserver.domain.seller.repository.SellerRepository;
@@ -24,6 +25,7 @@ public class SellerService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthAddressRepository authAddressRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Transactional(readOnly = true)
     public SellerInfoResponse getSellerInfo(Long userId){
@@ -46,6 +48,7 @@ public class SellerService {
         if (!passwordEncoder.matches(request.password(), findUser.getPassword())) {
             throw new ApiException("비밀번호가 틀렸습니다", ErrorType.VALID_FAIL);
         }
+        refreshTokenRepository.deleteRefreshToken(findUser.getId());
         findUser.softDelete();
     }
 
