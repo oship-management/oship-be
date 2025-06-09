@@ -6,9 +6,9 @@ import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
 import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
+import org.example.oshipserver.domain.auth.repository.RefreshTokenRepository;
 import org.example.oshipserver.domain.auth.vo.AccessTokenVo;
 import org.example.oshipserver.domain.auth.vo.RefreshTokenVo;
-import org.example.oshipserver.domain.auth.vo.TokenValueObject;
 import org.example.oshipserver.domain.partner.entity.Partner;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.seller.entity.Seller;
@@ -33,6 +33,7 @@ public class AuthService {
     private final SellerRepository sellerRepository;
     private final PartnerRepository partnerRepository;
     private final AuthAddressRepository authAddressRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
 
     @Transactional
@@ -102,7 +103,7 @@ public class AuthService {
     }
 
     @Transactional
-    public TokenValueObject login(LoginRequest request) {
+    public AccessTokenVo login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다", ErrorType.NOT_FOUND));
@@ -112,8 +113,18 @@ public class AuthService {
         user.setLastLoginAt();
         AccessTokenVo accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
         RefreshTokenVo refreshToken = jwtUtil.createRefreshToken(user.getId());
-        TokenValueObject token = new TokenValueObject(accessToken, refreshToken);
-        return token;
+        //이 리프레쉬토큰을 레디스에 저장해야댐
+        refreshTokenRepository.saveRefreshToken(
+                user.getId(),
+                refreshToken.getRefreshToken(),
+                refreshToken.getExpiredAt().getTime() - System.currentTimeMillis()
+        );
+        return accessToken;
+    }
+
+    @Transactional
+    public void logout(Long userId){
+        refreshTokenRepository.deleteRefreshToken(userId);
     }
 
 }

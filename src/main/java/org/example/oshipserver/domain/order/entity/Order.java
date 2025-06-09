@@ -151,7 +151,8 @@ public class Order extends BaseTimeEntity {
 
     /**
      * 주문 생성 팩토리 메서드 (DTO 기반)
-     * @param dto 주문 요청 DTO
+     *
+     * @param dto      주문 요청 DTO
      * @param masterNo 외부 식별자
      */
     public static Order of(OrderCreateRequest dto, String masterNo) {
@@ -232,4 +233,24 @@ public class Order extends BaseTimeEntity {
         return this.deleted;
     }
 
+    /**
+     * 마지막 트래킹 이벤트 업데이트
+     */
+    public void updateLastTrackingEvent(String eventName) {
+        this.lastTrackingEvent = eventName;
+    }
+
+    /**
+     * 바코드 생성 완료 처리
+     */
+    public void markBarcodeGenerated() {
+        this.isPrintBarcode = true;
+    }
+
+    /**
+     * AWB 생성 완료 처리
+     */
+    public void markAwbGenerated() {
+        this.isPrintAwb = true;
+    }
 }

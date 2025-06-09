@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.payment.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.awt.font.TextHitInfo;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -20,8 +21,10 @@ import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.domain.payment.util.PaymentNoGenerator;
 import org.example.oshipserver.global.exception.ErrorType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.example.oshipserver.global.exception.ApiException;
+import org.springframework.web.client.HttpClientErrorException;
 
 
 @Service
@@ -31,32 +34,39 @@ public class PaymentService {
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRepository paymentRepository;
 
-    // 단건 결제 생성 API
+    // 단건 결제 승인 요청 (멱등성 키 적용)
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
-        // 1. 중복 결제 여부 확인
+        // 1. DB 기준 중복 확인
         if (paymentRepository.existsByPaymentKey(request.paymentKey())) {
             throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
         }
 
-        // 2. Toss 결제 승인 API 호출 (RestTemplate 사용)
-        TossPaymentConfirmResponse tossResponse = tossPaymentClient.requestPaymentConfirm(request);
-
-        // 추후 paymentKey로 조회해 실제 결제 방식에 따라 업데이트하는 방식으로 리팩토링 예정
-        PaymentMethod method = PaymentMethod.CARD;
-        // // 3. Toss method 문자열을 enum으로 변환
-        //PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
-
-
-        // 4. 오늘 날짜 기준 생성된 결제 수 조회하여 시퀀스 결정 (paymentNo 생성용)
+        // 2. 오늘 날짜 기준 생성된 결제 수 조회하여 시퀀스 결정 (paymnentNo 생성용)
         LocalDate today = LocalDate.now();
         int todayCount = paymentRepository.countByCreatedAtBetween(
             today.atStartOfDay(),
             today.plusDays(1).atStartOfDay()
         );
 
-        // 5. 고유 paymentNo 생성
+        // 3. 고유 paymentNo 생성 >> 멱등성 키로 활용
         String paymentNo = PaymentNoGenerator.generate(today, todayCount + 1);
+
+        // 4. RestTemplate를 사용하여 Toss 결제 승인 API 호출
+        // Toss 응답 기준, 이미 처리된 요청에 대하여 409 에러
+        TossPaymentConfirmResponse tossResponse;
+        try {
+            tossResponse = tossPaymentClient.requestPaymentConfirm(request, paymentNo);
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.CONFLICT) {
+                throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
+            }
+            throw e;
+        }
+
+        // 5. 실제 결제 방식 추후 매핑 예정
+        PaymentMethod method = PaymentMethod.CARD;
+        // PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
         // 6. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
