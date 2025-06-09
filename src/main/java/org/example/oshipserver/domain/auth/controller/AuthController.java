@@ -1,13 +1,11 @@
 package org.example.oshipserver.domain.auth.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
 import org.example.oshipserver.domain.auth.service.AuthService;
-import org.example.oshipserver.domain.auth.vo.AccessTokenVo;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +13,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
-
-import static org.example.oshipserver.global.common.utils.JwtUtil.deleteAuthCookies;
-import static org.example.oshipserver.global.common.utils.JwtUtil.setCookieToken;
 
 @RestController
 @RequiredArgsConstructor
@@ -48,23 +43,26 @@ private final String uuid = String.valueOf(UUID.randomUUID());
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AccessTokenVo> login(
-            @RequestBody @Valid LoginRequest request,
-            HttpServletResponse response) {
-        AccessTokenVo token = authService.login(request);
-        setCookieToken(response, token);
-        return ResponseEntity.status(HttpStatus.CREATED).body(token);
+    public ResponseEntity<String> login(
+            @RequestBody @Valid LoginRequest request) {
+        String accessToken = authService.login(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(accessToken);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
-            HttpServletResponse response,
-            Authentication authentication){
+    public ResponseEntity<Void> logout(Authentication authentication){
         Long userId = Long.valueOf(authentication.getName());
-        deleteAuthCookies(response);
         authService.logout(userId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
+
+    @PostMapping("/refresh")
+    public String refreshToken(Authentication authentication){
+        Long userId = Long.valueOf(authentication.getName());
+        //토큰발급
+        return authService.createToken(userId);
+    }
+
 
 
 }

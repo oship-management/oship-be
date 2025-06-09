@@ -7,7 +7,6 @@ import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
 import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
 import org.example.oshipserver.domain.auth.repository.RefreshTokenRepository;
-import org.example.oshipserver.domain.auth.vo.AccessTokenVo;
 import org.example.oshipserver.domain.auth.vo.RefreshTokenVo;
 import org.example.oshipserver.domain.partner.entity.Partner;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
@@ -103,7 +102,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AccessTokenVo login(LoginRequest request) {
+    public String login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다", ErrorType.NOT_FOUND));
@@ -111,7 +110,7 @@ public class AuthService {
             throw new ApiException("비밀번호가 일치하지 않습니다.", ErrorType.FAIL);
         }
         user.setLastLoginAt();
-        AccessTokenVo accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
+        String accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
         RefreshTokenVo refreshToken = jwtUtil.createRefreshToken(user.getId());
         //이 리프레쉬토큰을 레디스에 저장해야댐
         refreshTokenRepository.saveRefreshToken(
@@ -122,9 +121,18 @@ public class AuthService {
         return accessToken;
     }
 
+    //로그아웃 리프레시토큰 레디스에서 삭제
     @Transactional
-    public void logout(Long userId){
+    public void logout(Long userId) {
         refreshTokenRepository.deleteRefreshToken(userId);
+    }
+
+    //토큰을 발급하는 함수
+    @Transactional(readOnly = true)
+    public String createToken(Long userId) {
+        User findUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        return jwtUtil.createToken(findUser.getId(), findUser.getEmail(), findUser.getUserRole());
     }
 
 }
