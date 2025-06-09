@@ -1,3 +1,4 @@
+
 package org.example.oshipserver.domain.shipping.service;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ public class BarcodeService {
     private final OrderRepository orderRepository;
     private final ShipmentRepository shipmentRepository;
 
-    public Long validateBarcode(String barcode, Long carrierId) {
+    public Long validateBarcode(String barcode) {
         // 1. 바코드에서 MasterNo 추출
         String masterNo = extractMasterNoFromBarcode(barcode);
 
@@ -38,12 +39,7 @@ public class BarcodeService {
         Shipment shipment = shipmentRepository.findByOrderId(order.getId())
             .orElseThrow(() -> new ApiException("배송 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        // 6. 배송업체 일치 여부 확인
-        if (!shipment.getCarrierId().equals(carrierId)) {
-            throw new ApiException("배송업체가 일치하지 않습니다.", ErrorType.CARRIER_MISMATCH);
-        }
-
-        // 7. AWB 발행 여부 확인
+        // 6. AWB 발행 여부 확인
         if (shipment.getAwbUrl() != null && !shipment.getAwbUrl().isEmpty()) {
             throw new ApiException("이미 AWB가 발행된 주문입니다.", ErrorType.AWB_ALREADY_ISSUED);
         }
