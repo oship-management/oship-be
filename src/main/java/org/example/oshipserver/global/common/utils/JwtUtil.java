@@ -3,15 +3,10 @@ package org.example.oshipserver.global.common.utils;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.example.oshipserver.domain.auth.vo.AccessTokenVo;
 import org.example.oshipserver.domain.auth.vo.RefreshTokenVo;
 import org.example.oshipserver.domain.user.enums.UserRole;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -35,87 +30,49 @@ public class JwtUtil {
         key = Keys.hmacShaKeyFor(bytes);
     }
 
-    public AccessTokenVo createToken(Long userId, String email, UserRole userRole) {
+    //accesstoken 발급
+    public String createToken(Long userId, String email, UserRole userRole) {
         Date now = new Date();
         Date expireAt = new Date(now.getTime() + TOKEN_TIME);
 
-        String accessToken =
-                Jwts.builder()
-                        .setSubject(String.valueOf(userId))
-                        .claim("email", email)
-                        .claim("userRole", userRole)
-                        .setExpiration(new Date(now.getTime() + TOKEN_TIME))
-                        .setIssuedAt(now)
-                        .signWith(key, signatureAlgorithm)
-                        .compact();
-        return new AccessTokenVo(accessToken, expireAt);
+        String accessToken = Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .claim("email", email)
+                .claim("userRole", userRole)
+                .setExpiration(expireAt)
+                .setIssuedAt(now)
+                .signWith(key, signatureAlgorithm)
+                .compact();
+        return accessToken;
     }
 
+    //refreshtoken 발급
     public RefreshTokenVo createRefreshToken(Long userId) {
         Date now = new Date();
         Date expireAt = new Date(now.getTime() + REFRESH_TIME);
 
-        String refreshToken =
-                Jwts.builder()
-                        .setSubject(String.valueOf(userId))
-                        .setIssuedAt(now)
-                        .setExpiration(new Date(now.getTime() + REFRESH_TIME))
-                        .signWith(key, signatureAlgorithm)
-                        .compact();
+        String refreshToken = Jwts.builder()
+                .setSubject(String.valueOf(userId))
+                .setIssuedAt(now)
+                .setExpiration(expireAt)
+                .signWith(key, signatureAlgorithm).compact();
         return new RefreshTokenVo(refreshToken, expireAt);
     }
 
-    public static void setCookieToken(HttpServletResponse response, AccessTokenVo accessTokenVo){
-        long now = System.currentTimeMillis();
-
-        long accessTokenMaxAge = (accessTokenVo.getExpiredAt().getTime() - now) / 1000;
-
-        ResponseCookie accessTokenCookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE, accessTokenVo.getAccessToken())
-                .path("/")
-                .httpOnly(true)
-                .secure(true) // HTTPS 환경일 경우 true
-                .sameSite("Strict")
-                .maxAge(accessTokenMaxAge)
-                .build();
-
-
-        response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+    public String extractTokenFromHeader(HttpServletRequest request) {
+        return request.getHeader("Authorization"); // null일 수도 있음
     }
 
-    public static void deleteAuthCookies(HttpServletResponse response) {
-        ResponseCookie deleteAccessToken = ResponseCookie.from("access_token", "")
-                .path("/")
-                .maxAge(0)  // 즉시 만료
-                .httpOnly(true)
-                .build();
 
-        response.addHeader("Set-Cookie", deleteAccessToken.toString());
-    }
-
-    public String extractTokenFromCookies(HttpServletRequest request, String cookieName) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if (cookie.getName().equals(cookieName)) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
-
+    //토큰 검증
     public Jwt<JwsHeader, Claims> validateToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token);
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
     }
 
+    //리프레시 토큰 검증
     public boolean isRefreshTokenValid(String refreshToken) {
         try {
-            Jws<Claims> claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(refreshToken);
+            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(refreshToken);
 
             // 만료 여부는 parse 과정에서 자동 확인됨
             return true;
