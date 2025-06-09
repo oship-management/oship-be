@@ -35,8 +35,7 @@ public class SellerController {
             @RequestBody @Valid SellerDeleteRequest request){
         Long userId = Long.valueOf(authentication.getName());
         sellerService.deleteSeller(userId, request);
-        BaseResponse<Object> deleteResponse = new BaseResponse<>(204, "셀러 삭제 성공", null);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(deleteResponse);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @PutMapping("/addresses")

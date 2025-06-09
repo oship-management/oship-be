@@ -6,6 +6,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.oshipserver.domain.auth.vo.RefreshTokenVo;
 import org.example.oshipserver.domain.user.enums.UserRole;
+import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +19,6 @@ import java.util.Date;
 public class JwtUtil {
     private static final long TOKEN_TIME = 1000L * 60 * 15; // 3분
     private static final long REFRESH_TIME = 1000L * 60 * 60 * 12; // 12시간
-    private static final String ACCESS_TOKEN_COOKIE = "access_token";
 
     @Value("${jwt.secret.key}")
     private String secretKey;
@@ -60,20 +61,33 @@ public class JwtUtil {
     }
 
     public String extractTokenFromHeader(HttpServletRequest request) {
-        return request.getHeader("Authorization"); // null일 수도 있음
+        return request.getHeader("Authorization");
     }
 
-
-    //토큰 검증
-    public Jwt<JwsHeader, Claims> validateToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+    public Claims validateToken(String token) {
+        try {
+            // 토큰 파싱 및 검증 (서명 확인, 만료일 확인 포함)
+            return Jwts.parserBuilder()
+                    .setSigningKey(key) // key는 JWT 생성 시 사용한 secret key
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            // 토큰 만료
+            throw new ApiException("Access token expired", ErrorType.TOKEN_EXPIRED);
+        } catch (SignatureException e) {
+            // 서명 오류 (위조된 토큰)
+            throw new ApiException("Invalid token signature", ErrorType.UNAUTHORIZED);
+        } catch (JwtException e) {
+            // 그 외 JWT 관련 오류
+            throw new ApiException("Invalid token", ErrorType.UNAUTHORIZED);
+        }
     }
 
     //리프레시 토큰 검증
     public boolean isRefreshTokenValid(String refreshToken) {
         try {
             Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(refreshToken);
-
             // 만료 여부는 parse 과정에서 자동 확인됨
             return true;
         } catch (ExpiredJwtException e) {
