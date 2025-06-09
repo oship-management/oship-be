@@ -1,6 +1,13 @@
 package org.example.oshipserver.domain.order.controller;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.order.aop.OrderExecutionLog;
 import org.example.oshipserver.domain.order.dto.OrderItemDto;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
 import org.example.oshipserver.domain.order.dto.request.OrderExcelRequest;
@@ -12,11 +19,11 @@ import org.example.oshipserver.domain.order.util.ExcelOrderParser;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -32,6 +39,7 @@ public class OrderExcelUploadController {
      * @param file Multipart 엑셀 파일 (헤더 + 데이터)
      * @return 생성된 주문의 masterNo 목록을 응답
      */
+    @OrderExecutionLog
     @PostMapping("/upload")
     public ResponseEntity<BaseResponse<List<OrderCreateResponse>>> uploadOrderExcel(@RequestParam("file") MultipartFile file) {
         List<OrderExcelRequest> dtos = excelOrderParser.parse(file);
@@ -39,15 +47,28 @@ public class OrderExcelUploadController {
         Map<String, List<OrderExcelRequest>> grouped = dtos.stream()
             .collect(Collectors.groupingBy(OrderExcelRequest::orderNo));
 
-        List<OrderCreateResponse> responses = grouped.values().stream()
-            .map(this::toOrderCreateRequest)
-            .map(orderService::createOrder)
-            .map(OrderCreateResponse::new)
+        // 병렬 처리를 위한 ExecutorService
+        ExecutorService executor = Executors.newFixedThreadPool(10); // 동시 10개 처리
+
+        // CompletableFuture로 병렬 처리
+        List<CompletableFuture<OrderCreateResponse>> futures = grouped.values().stream()
+            .map(group -> CompletableFuture.supplyAsync(() -> {
+                OrderCreateRequest request = toOrderCreateRequest(group);
+                return new OrderCreateResponse(orderService.createOrder(request));
+            }, executor))
             .toList();
+
+        // 모든 작업이 완료될 때까지 기다림
+        List<OrderCreateResponse> responses = futures.stream()
+            .map(CompletableFuture::join)
+            .toList();
+
+        executor.shutdown();
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(new BaseResponse<>(201, "엑셀 업로드 주문 생성 완료", responses));
     }
+
 
 
     /**

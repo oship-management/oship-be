@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.order.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -16,6 +17,7 @@ import lombok.NoArgsConstructor;
 import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.StateCode;
+import org.example.oshipserver.domain.order.entity.enums.StateCodeConverter;
 
 @Entity
 @Table(name = "recipient_addresses")
@@ -37,7 +39,7 @@ public class RecipientAddress {
     private String recipientState;
 
     @Column(name = "recipient_state_code")
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = StateCodeConverter.class)
     private StateCode recipientStateCode;
 
     @Column(name = "recipient_city")

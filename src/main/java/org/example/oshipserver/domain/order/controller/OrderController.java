@@ -2,6 +2,7 @@ package org.example.oshipserver.domain.order.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.order.aop.OrderExecutionLog;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
 import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
 import org.example.oshipserver.domain.order.dto.response.OrderCreateResponse;
@@ -30,6 +31,7 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    @OrderExecutionLog
     @PostMapping
     public ResponseEntity<BaseResponse<OrderCreateResponse>> createOrder(
         @Valid @RequestBody OrderCreateRequest orderCreateRequest
