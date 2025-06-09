@@ -44,4 +44,5 @@ out/
 application-prod.yml
 .env
 mysql/
-redis//src/main/generated/
+redis/
+/src/main/generated/
