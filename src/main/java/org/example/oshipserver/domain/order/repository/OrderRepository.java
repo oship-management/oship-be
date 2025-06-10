@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.order.repository;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,5 +14,7 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
     boolean existsByOshipMasterNo(String masterNo);
     Page<Order> findBySellerIdAndCreatedAtBetween(Long sellerId, LocalDateTime start, LocalDateTime end, Pageable pageable);
     Page<Order> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
+
+    Optional<Order> findByOshipMasterNo(String masterNo);
 }
 

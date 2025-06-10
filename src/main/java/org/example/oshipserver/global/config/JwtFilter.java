@@ -30,20 +30,17 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
 
-        String jwt = jwtUtil.extractTokenFromCookies(request, "access_token");
-        if(jwt != null){ //토큰이 있다면?
+        String jwt = jwtUtil.extractTokenFromHeader(request);
+        if(jwt != null && jwt.startsWith("Bearer ")){ //토큰이 있다면?
             try {
-                Claims claims = jwtUtil.validateToken(jwt).getBody();
+                jwt = jwt.substring(7);
+                Claims claims = jwtUtil.validateToken(jwt);
                 String userId = claims.getSubject();
                 String email = claims.get("email", String.class);
-                String roleStr = claims.get("userRole", String.class);
-                UserRole userRole = UserRole.of(roleStr);
+                UserRole userRole = UserRole.of(claims.get("userRole", String.class));
                 UserDetails userDetails = new CustomUserDetail(userId,email,userRole);
                 Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, jwt, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            }
-            catch (io.jsonwebtoken.ExpiredJwtException e){//토큰 유효기간 만료
-                //토큰재발급 2차 구현
             }
             catch (Exception e) {
                 SecurityContextHolder.clearContext();

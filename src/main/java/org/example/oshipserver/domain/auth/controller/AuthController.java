@@ -1,22 +1,20 @@
 package org.example.oshipserver.domain.auth.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
+import org.example.oshipserver.domain.auth.dto.response.TokenResponse;
 import org.example.oshipserver.domain.auth.service.AuthService;
-import org.example.oshipserver.domain.auth.vo.TokenValueObject;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
-
-import static org.example.oshipserver.global.common.utils.JwtUtil.deleteAuthCookies;
-import static org.example.oshipserver.global.common.utils.JwtUtil.setCookieToken;
 
 @RestController
 @RequiredArgsConstructor
@@ -47,20 +45,26 @@ private final String uuid = String.valueOf(UUID.randomUUID());
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenValueObject> login(
-            @RequestBody @Valid LoginRequest request,
-            HttpServletResponse response) {
-        TokenValueObject token = authService.login(request);
-        setCookieToken(response, token);
-        return ResponseEntity.status(HttpStatus.CREATED).body(token);
+    public ResponseEntity<BaseResponse<TokenResponse>> login(
+            @RequestBody @Valid LoginRequest request) {
+        TokenResponse accessToken = authService.login(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(201, "로그인 성공", accessToken));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(
-            HttpServletResponse response){
-        deleteAuthCookies(response);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    public ResponseEntity<BaseResponse<String>> logout(Authentication authentication){
+        Long userId = Long.valueOf(authentication.getName());
+        authService.logout(userId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new BaseResponse<>(204, "로그아웃 성공", null));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<BaseResponse<TokenResponse>> refreshToken(HttpServletRequest request){
+        //레디스를 통해서 알아서 발급을 해줘야하나?..?
+        TokenResponse accessToken = authService.refreshToken(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(201, "토큰 재발급", accessToken));
+    }
+
 
 
 }

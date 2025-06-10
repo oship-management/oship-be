@@ -3,6 +3,7 @@ package org.example.oshipserver.domain.shipping.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
@@ -56,10 +57,53 @@ public class Shipment extends BaseTimeEntity {
     @Column(name = "url")
     private String awbUrl;
 
+    @Builder
+    private Shipment(
+        Long orderId,
+        Long carrierId,
+        BigDecimal chargeValue,
+        String carrierTrackingNo,
+        BigDecimal width,
+        BigDecimal height,
+        BigDecimal length,
+        BigDecimal grossWeight,
+        BigDecimal volumeWeight,
+        BigDecimal chargeWeight,
+        String apiData,
+        String awbUrl
+    ) {
+        this.orderId = orderId;
+        this.carrierId = carrierId;
+        this.chargeValue = chargeValue;
+        this.carrierTrackingNo = carrierTrackingNo;
+        this.width = width;
+        this.height = height;
+        this.length = length;
+        this.grossWeight = grossWeight;
+        this.volumeWeight = volumeWeight;
+        this.chargeWeight = chargeWeight;
+        this.apiData = apiData;
+        this.awbUrl = awbUrl;
+    }
+
+    // 정적 팩토리 메서드 (기존 방식 유지)
     public static Shipment createShipment(Long orderId, Long carrierId) {
-        Shipment shipment = new Shipment();
-        shipment.orderId = orderId;
-        shipment.carrierId = carrierId;
-        return shipment;
+        return Shipment.builder()
+            .orderId(orderId)
+            .carrierId(carrierId)
+            .build();
+    }
+
+    // 측정 정보 업데이트 메서드
+    public void updateMeasurements(BigDecimal width, BigDecimal height, BigDecimal length, BigDecimal grossWeight) {
+        this.width = width;
+        this.height = height;
+        this.length = length;
+        this.grossWeight = grossWeight;
+    }
+
+    // AWB URL 업데이트 메서드
+    public void updateAwbUrl(String awbUrl) {
+        this.awbUrl = awbUrl;
     }
 }

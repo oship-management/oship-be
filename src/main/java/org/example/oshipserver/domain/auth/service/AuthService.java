@@ -1,14 +1,16 @@
 package org.example.oshipserver.domain.auth.service;
 
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
+import org.example.oshipserver.domain.auth.dto.response.TokenResponse;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
 import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
-import org.example.oshipserver.domain.auth.vo.AccessTokenVo;
+import org.example.oshipserver.domain.auth.repository.RefreshTokenRepository;
 import org.example.oshipserver.domain.auth.vo.RefreshTokenVo;
-import org.example.oshipserver.domain.auth.vo.TokenValueObject;
 import org.example.oshipserver.domain.partner.entity.Partner;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.seller.entity.Seller;
@@ -33,6 +35,7 @@ public class AuthService {
     private final SellerRepository sellerRepository;
     private final PartnerRepository partnerRepository;
     private final AuthAddressRepository authAddressRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
 
     @Transactional
@@ -102,7 +105,7 @@ public class AuthService {
     }
 
     @Transactional
-    public TokenValueObject login(LoginRequest request) {
+    public TokenResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다", ErrorType.NOT_FOUND));
@@ -110,10 +113,37 @@ public class AuthService {
             throw new ApiException("비밀번호가 일치하지 않습니다.", ErrorType.FAIL);
         }
         user.setLastLoginAt();
-        AccessTokenVo accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
+        String accessToken = jwtUtil.createToken(user.getId(), user.getEmail(), user.getUserRole());
         RefreshTokenVo refreshToken = jwtUtil.createRefreshToken(user.getId());
-        TokenValueObject token = new TokenValueObject(accessToken, refreshToken);
-        return token;
+        //이 리프레쉬토큰을 레디스에 저장해야댐
+        refreshTokenRepository.saveRefreshToken(
+                user.getId(),
+                refreshToken.getRefreshToken(),
+                refreshToken.getExpiredAt().getTime() - System.currentTimeMillis()
+        );
+        return new TokenResponse(accessToken);
+    }
+
+    //로그아웃 리프레시토큰 레디스에서 삭제
+    @Transactional
+    public void logout(Long userId) {
+        refreshTokenRepository.deleteRefreshToken(userId);
+    }
+
+    //토큰을 발급하는 함수
+    @Transactional(readOnly = true)
+    public TokenResponse refreshToken(HttpServletRequest request) {
+        String jwt = jwtUtil.extractTokenFromHeader(request);
+        Claims claims = jwtUtil.validateToken(jwt);
+        Long userId = Long.valueOf(claims.getSubject());
+        User findUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        String refreshToken = refreshTokenRepository.getRefreshToken(userId);
+        if(!jwtUtil.isRefreshTokenValid(refreshToken)){
+            throw new ApiException("유효하지 않은 리프레시 토큰", ErrorType.FAIL);
+        }
+        String accessToken = jwtUtil.createToken(findUser.getId(), findUser.getEmail(), findUser.getUserRole());
+        return new TokenResponse(accessToken);
     }
 
 }
