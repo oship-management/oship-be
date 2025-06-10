@@ -5,6 +5,7 @@ import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
 import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
+import org.example.oshipserver.domain.auth.repository.RefreshTokenRepository;
 import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
 import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
@@ -25,6 +26,7 @@ public class PartnerService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthAddressRepository authAddressRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Transactional(readOnly = true)
     public PartnerInfoResponse getPartnerInfo(Long userId) {
@@ -47,6 +49,7 @@ public class PartnerService {
         if (!passwordEncoder.matches(request.password(), findUser.getPassword())) {
             throw new ApiException("비밀번호가 틀렸습니다", ErrorType.VALID_FAIL);
         }
+        refreshTokenRepository.deleteRefreshToken(findUser.getId());
         findUser.softDelete();
     }
 
