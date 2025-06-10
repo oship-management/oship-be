@@ -9,15 +9,15 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.carrier.dto.CarrierRateDto;
 import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
-import org.example.oshipserver.domain.order.dto.OrderInfoDto;
-import org.example.oshipserver.domain.order.service.OrderInfoService;
+import org.example.oshipserver.domain.order.dto.OrderRateResponseDto;
+import org.example.oshipserver.domain.order.service.OrderRateService;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class CarrierService {
 
-    private final OrderInfoService orderInfoService;
+    private final OrderRateService orderRateService;
     private final CarrierRepository carrierRepository;
 
     /*
@@ -43,7 +43,7 @@ public class CarrierService {
         String partnerName,
         Long carrierId,
         String carrierName,
-        OrderInfoDto orderInfo,
+        OrderRateResponseDto orderInfo,
         BigDecimal amount
     ) {
 
@@ -51,7 +51,7 @@ public class CarrierService {
 
     public List<CarrierRateDto.PartnerResponse> getCarrierRatesForOrder(List<Long> orderIds) {
 
-        List<OrderInfoDto> orderInfos = orderInfoService.getOrderInfos(orderIds);
+        List<OrderRateResponseDto> orderInfos = orderRateService.getOrderInfos(orderIds);
 
         List<Flat> flats = orderInfos.stream()
             .flatMap(orderInfo -> {
