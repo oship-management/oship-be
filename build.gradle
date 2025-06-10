@@ -38,7 +38,7 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:mysql'
-
+	testImplementation 'org.testcontainers:testcontainers'
 	// bcrypt
 	implementation 'at.favre.lib:bcrypt:0.10.2'
 
