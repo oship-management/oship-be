@@ -1,7 +1,7 @@
 package org.example.oshipserver.domain.payment.dto.request;
 
 /**
- * 결제 승인 요청 DTO (Toss 결제 승인 API 요청용)
+ * 단건 결제 승인 요청 DTO (Toss 결제 승인 API 요청용)
  */
 public record PaymentConfirmRequest(
     String paymentKey,   // Toss에서 전달해주는 결제 고유 키
