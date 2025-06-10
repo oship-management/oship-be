@@ -14,14 +14,14 @@ import org.springframework.stereotype.Repository;
 public interface CarrierRepository extends JpaRepository<Carrier, Long> {
 
     @Query("""
-        SELECT new org.example.oshipserver.domain.carrier.dto.CarrierRateDto$Amount(c, cr.amount)
+        SELECT new org.example.oshipserver.domain.carrier.dto.CarrierRateDto$Amount(c, cr.amount, cr.id)
         FROM Carrier c
         JOIN CarrierCountry cc        ON cc.carrier = c
         JOIN CarrierRateCharge cr     ON cr.carrier = c
-        WHERE cc.countryCode LIKE :countryCode
-            AND c.weightMin < :weight
+        WHERE c.weightMin < :weight
             AND c.weightMax > :weight
             AND cr.expired > :expired
+            AND cc.countryCode = :countryCode
     """)
     List<CarrierRateDto.Amount> findCarrierAmountDtoByCountryAndWeightAndNotExpired(
         @Param("countryCode") String countryCode,
