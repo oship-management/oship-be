@@ -18,8 +18,8 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
         FROM Carrier c
         JOIN CarrierCountry cc        ON cc.carrier = c
         JOIN CarrierRateCharge cr     ON cr.carrier = c
-        WHERE c.weightMin < :weight
-            AND c.weightMax > :weight
+        WHERE c.weightMin <= :weight
+            AND c.weightMax >= :weight
             AND cr.expired > :expired
             AND cc.countryCode = :countryCode
     """)
