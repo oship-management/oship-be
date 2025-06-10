@@ -13,6 +13,5 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
     boolean existsByOshipMasterNo(String masterNo);
     Page<Order> findBySellerIdAndCreatedAtBetween(Long sellerId, LocalDateTime start, LocalDateTime end, Pageable pageable);
     Page<Order> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
-
 }
 

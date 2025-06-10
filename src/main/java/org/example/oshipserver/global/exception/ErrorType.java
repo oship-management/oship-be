@@ -23,7 +23,8 @@ public enum ErrorType{
 
     // Payment 관련 에러
     DUPLICATED_PAYMENT(HttpStatus.BAD_REQUEST, "이미 처리된 결제입니다."),
-    INVALID_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 방식입니다.");
+    INVALID_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 방식입니다."),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 주문 ID 형식입니다.");
 
     private final HttpStatus status;
     private final String desc;
