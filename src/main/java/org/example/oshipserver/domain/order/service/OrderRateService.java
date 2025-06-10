@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.oshipserver.domain.order.dto.OrderInfoDto;
+import org.example.oshipserver.domain.order.dto.OrderRateResponseDto;
 import org.example.oshipserver.domain.order.entity.OrderRecipient;
 import org.example.oshipserver.domain.order.repository.OrderRecipientRepository;
 import org.springframework.stereotype.Service;
@@ -12,17 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class OrderInfoService {
+public class OrderRateService {
 
     private final OrderRecipientRepository orderRecipientRepository;
 
     @Transactional(readOnly = true)
-    public List<OrderInfoDto> getOrderInfos(List<Long> orderIds) {
+    public List<OrderRateResponseDto> getOrderInfos(List<Long> orderIds) {
 
         List<OrderRecipient> recipients = orderRecipientRepository.findByOrderIdIn(orderIds);
 
         return recipients.stream()
-            .map(recipient -> OrderInfoDto.builder()
+            .map(recipient -> OrderRateResponseDto.builder()
                 .orderId(recipient.getOrder().getId())
                 .weight(calculateWeight(recipient.getOrder().getShipmentActualWeight(), recipient.getOrder().getShipmentVolumeWeight()))
                 .countryCode(recipient.getRecipientAddress().getRecipientCountryCode())
