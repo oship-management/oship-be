@@ -1,6 +1,5 @@
 package org.example.oshipserver.domain.partner.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
@@ -13,8 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import static org.example.oshipserver.global.common.utils.JwtUtil.deleteAuthCookies;
 
 @RestController
 @RequestMapping("/api/v1/partners")
@@ -37,12 +34,9 @@ public class PartnerController {
     @PostMapping("/withdraw")
     public ResponseEntity<BaseResponse<Object>> deletePartner(
             Authentication authentication,
-            @RequestBody @Valid PartnerDeleteRequest request,
-            HttpServletResponse response
-    ){
+            @RequestBody @Valid PartnerDeleteRequest request){
         Long userId = Long.valueOf(authentication.getName());
         partnerService.deletePartner(userId, request);
-        deleteAuthCookies(response);
         BaseResponse<Object> deleteResponse= new BaseResponse<>(204, "파트너 삭제 성공", null);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(deleteResponse);
     }
