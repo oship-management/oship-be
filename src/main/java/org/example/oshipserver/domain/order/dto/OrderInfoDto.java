@@ -5,8 +5,8 @@ import lombok.Builder;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 
 public record OrderInfoDto(
-    BigDecimal shipmentActualWeight,
-    BigDecimal shipmentVolumeWeight,
+    Long orderId,
+    BigDecimal weight,
     CountryCode countryCode) {
 
     @Builder
