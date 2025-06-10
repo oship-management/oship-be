@@ -17,8 +17,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TossPaymentClient { // 외부 연동 모듈
 
+    // 공통 멱등성 요청 로직을 가진 컴포넌트
     private final IdempotentRestClient idempotentRestClient;
 
+    // RestTemplate 빈
     @Qualifier("tossRestTemplate")
     private final RestTemplate restTemplate;
 
@@ -30,7 +32,7 @@ public class TossPaymentClient { // 외부 연동 모듈
     private static final String TOSS_LOOKUP_URL_PREFIX = "https://api.tosspayments.com/v1/payments/";
 
     /**
-     * Toss 단건 결제 승인 요청 (멱등성 키 포함)
+     * Toss 결제 승인 요청
      */
     public TossPaymentConfirmResponse requestPaymentConfirm(PaymentConfirmRequest request, String idempotencyKey) {
         Map<String, Object> body = Map.of(
@@ -40,6 +42,7 @@ public class TossPaymentClient { // 외부 연동 모듈
             "currency", "KRW"
         );
 
+        // 공통 멱등성 클라이언트를 통해 post 요청
         return idempotentRestClient.postForIdempotent(
             TOSS_CONFIRM_URL,
             body,
@@ -55,13 +58,16 @@ public class TossPaymentClient { // 외부 연동 모듈
     public TossSinglePaymentLookupResponse requestSinglePaymentLookup(String paymentKey) {
         String url = TOSS_LOOKUP_URL_PREFIX + paymentKey;
 
+        // Authorization 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Basic " +
             Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes())
         );
 
+        // GET 요청을 위한 HttpEntity 생성
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
+        // RestTemplate을 통해 toss api에 get 요청
         ResponseEntity<TossSinglePaymentLookupResponse> response = restTemplate.exchange(
             url,  // url을 동적으로 조립
             HttpMethod.GET,

@@ -1,7 +1,9 @@
 package org.example.oshipserver.domain.payment.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
+import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.service.PaymentService;
@@ -23,6 +25,17 @@ public class PaymentController {
         @RequestBody PaymentConfirmRequest request
     ) {
         PaymentConfirmResponse response = paymentService.confirmPayment(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 다건 결제 승인 처리 (Toss 연동)
+     */
+    @PostMapping("/multi")
+    public ResponseEntity<MultiPaymentConfirmResponse> confirmMultiPayment(
+        @RequestBody MultiPaymentConfirmRequest request
+    ) {
+        MultiPaymentConfirmResponse response = paymentService.confirmMultiPayment(request);
         return ResponseEntity.ok(response);
     }
 

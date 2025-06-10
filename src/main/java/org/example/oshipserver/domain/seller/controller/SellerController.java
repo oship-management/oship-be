@@ -1,6 +1,5 @@
 package org.example.oshipserver.domain.seller.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
@@ -13,8 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import static org.example.oshipserver.global.common.utils.JwtUtil.deleteAuthCookies;
 
 @RestController
 @RequestMapping("/api/v1/sellers")
@@ -35,14 +32,10 @@ public class SellerController {
     @PostMapping("/withdraw")
     public ResponseEntity<BaseResponse<Object>> deleteSeller(
             Authentication authentication,
-            @RequestBody @Valid SellerDeleteRequest request,
-            HttpServletResponse response
-    ){
+            @RequestBody @Valid SellerDeleteRequest request){
         Long userId = Long.valueOf(authentication.getName());
         sellerService.deleteSeller(userId, request);
-        deleteAuthCookies(response);
-        BaseResponse<Object> deleteResponse = new BaseResponse<>(204, "셀러 삭제 성공", null);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(deleteResponse);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @PutMapping("/addresses")
