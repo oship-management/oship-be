@@ -35,7 +35,7 @@ public class SellerService {
     }
 
     @Transactional
-    public void deleteSeller(Long userId, SellerDeleteRequest request){
+    public void deleteSeller(Long userId, SellerDeleteRequest request, String accessToken){
         System.out.println(request.password() + " " + request.passwordValid());
         User findUser = userRepository.findById(userId)
                 .orElseThrow(()->new ApiException("셀러 조회 실패", ErrorType.NOT_FOUND));
@@ -48,6 +48,7 @@ public class SellerService {
         if (!passwordEncoder.matches(request.password(), findUser.getPassword())) {
             throw new ApiException("비밀번호가 틀렸습니다", ErrorType.VALID_FAIL);
         }
+        refreshTokenRepository.addBlackList(accessToken);
         refreshTokenRepository.deleteRefreshToken(findUser.getId());
         findUser.softDelete();
     }

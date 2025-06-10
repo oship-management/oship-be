@@ -13,6 +13,7 @@ public class RefreshTokenRepositoryImpl implements RefreshTokenRepository{
     private final StringRedisTemplate redisTemplate;
 
     private static final String PREFIX = "token:";
+    private static final String BLACKLIST_PREFIX = "blacklist:";
 
     @Override
     public void saveRefreshToken(Long userId, String refreshToken, long expirationMillis) {
@@ -28,5 +29,16 @@ public class RefreshTokenRepositoryImpl implements RefreshTokenRepository{
     @Override
     public void deleteRefreshToken(Long userId) {
         redisTemplate.delete(PREFIX + userId);
+    }
+
+    @Override
+    public void addBlackList(String accessToken) {
+        String key = BLACKLIST_PREFIX + accessToken;
+        redisTemplate.opsForValue().set(key, "blacklisted", 15, TimeUnit.MINUTES);
+    }
+
+    @Override
+    public boolean isBlacklisted(String accessToken) {
+        return redisTemplate.hasKey(BLACKLIST_PREFIX + accessToken);
     }
 }

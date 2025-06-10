@@ -126,7 +126,8 @@ public class AuthService {
 
     //로그아웃 리프레시토큰 레디스에서 삭제
     @Transactional
-    public void logout(Long userId) {
+    public void logout(Long userId, String accessToken) {
+        refreshTokenRepository.addBlackList(accessToken);
         refreshTokenRepository.deleteRefreshToken(userId);
     }
 

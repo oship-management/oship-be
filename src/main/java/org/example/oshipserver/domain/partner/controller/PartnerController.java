@@ -36,7 +36,7 @@ public class PartnerController {
             Authentication authentication,
             @RequestBody @Valid PartnerDeleteRequest request){
         Long userId = Long.valueOf(authentication.getName());
-        partnerService.deletePartner(userId, request);
+        partnerService.deletePartner(userId, request,authentication.getPrincipal().toString());
         BaseResponse<Object> deleteResponse= new BaseResponse<>(204, "파트너 삭제 성공", null);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(deleteResponse);
     }
