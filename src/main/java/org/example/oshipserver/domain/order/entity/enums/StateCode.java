@@ -1,10 +1,11 @@
 package org.example.oshipserver.domain.order.entity.enums;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
@@ -163,9 +164,50 @@ public enum StateCode {
     private final String stateName;
     private final CountryCode countryCode;
 
+    /**
+     * 주어진 국가 코드와 주 코드로 StateCode enum 찾음.
+     * 만약 code가 null이거나 빈 문자열이면 Optional.empty()를 반환하여
+     * 유효하지 않은 값으로 처리하지 않고 무시되도록 함.
+     */
     public static Optional<StateCode> from(CountryCode countryCode, String code) {
+        // 빈 문자열이나 null이면 매핑하지 않음 (DB에서는 null로 저장됨)
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+
         return Arrays.stream(StateCode.values())
-            .filter(state -> state.getCountryCode() == countryCode && state.getCode().equalsIgnoreCase(code))
+            .filter(state -> state.getCountryCode() == countryCode
+                && state.getCode().equalsIgnoreCase(code))
             .findFirst();
     }
+
+
+    /**
+     * JSON 역직렬화 시 빈 문자열("") 혹은 null을 안전하게 처리하기 위한 커스텀 파서
+     * ex) JSON에서 "CA" 같은 문자열이 들어오면 해당 code와 일치하는 StateCode enum으로 매핑
+     *     빈 문자열이나 null이 들어오면 null 반환 → 에러 방지
+     */
+    @JsonCreator
+    public static StateCode fromJson(String value) {
+        if (value == null || value.isBlank()) return null; // 빈 문자열 또는 null이면 null 반환
+
+        for (StateCode stateCode : values()) {
+            // code 값이 일치하는 enum을 찾는다 (대소문자 구분 없이)
+            if (stateCode.getCode().equalsIgnoreCase(value)) {
+                return stateCode;
+            }
+        }
+        return null; // 해당하는 enum이 없으면 null 반환
+    }
+
+    /**
+     * JSON 직렬화 시 enum 전체 이름이 아니라 code 값만 응답에 사용되도록 지정
+     * ex) StateCode.CA_US → "CA"
+     */
+    @JsonValue
+    public String toJson() {
+        return this.code;
+    }
+
+
 }
