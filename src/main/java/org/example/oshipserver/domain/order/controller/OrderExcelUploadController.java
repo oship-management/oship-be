@@ -30,6 +30,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class OrderExcelUploadController {
 
+    private static final int ORDER_UPLOAD_THREAD_POOL_SIZE = 10; // 주문 처리용 스레드 풀 개수
+
     private final ExcelOrderParser excelOrderParser;
     private final OrderService orderService;
 
@@ -48,7 +50,7 @@ public class OrderExcelUploadController {
             .collect(Collectors.groupingBy(OrderExcelRequest::orderNo));
 
         // 병렬 처리를 위한 ExecutorService
-        ExecutorService executor = Executors.newFixedThreadPool(10); // 동시 10개 처리
+        ExecutorService executor = Executors.newFixedThreadPool(ORDER_UPLOAD_THREAD_POOL_SIZE);
 
         // CompletableFuture로 병렬 처리
         List<CompletableFuture<OrderCreateResponse>> futures = grouped.values().stream()
@@ -68,8 +70,6 @@ public class OrderExcelUploadController {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(new BaseResponse<>(201, "엑셀 업로드 주문 생성 완료", responses));
     }
-
-
 
     /**
      * 같은 orderNo를 가진 여러 줄의 엑셀 데이터를 단일 주문 요청 객체로 변환
