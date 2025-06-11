@@ -148,9 +148,11 @@ public class PaymentService {
     }
 
 
-    // 단건 결제 조회 API (orderId)
-    public PaymentLookupResponse getPaymentByOrderId(String orderId) {
-        Payment payment = paymentRepository.findByTossOrderId(orderId)
+    // tossOrderId로 결제 조회(toss 기준의 결제 단위 조회)
+    // 단건 조회 또는 다건(대표 orderId) 조회
+    @Transactional(readOnly = true)
+    public PaymentLookupResponse getPaymentByTossOrderId(String tossOrderId) {
+        Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
             .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
         // 클라이언트에게 받아온 orderId를 통해 db에서 paymentKey를 꺼내서 toss API에 넘기기

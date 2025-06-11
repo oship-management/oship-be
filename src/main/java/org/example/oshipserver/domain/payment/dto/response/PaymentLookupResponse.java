@@ -18,7 +18,7 @@ public record PaymentLookupResponse(
 ) {
 
     /**
-     * Toss 단건 결제 조회 응답을 내부 응답 DTO 변환
+     * Toss 기준 단건 결제 조회 응답을 내부 응답 DTO로 변환
      */
     public static PaymentLookupResponse convertFromTossLookup(
         TossSinglePaymentLookupResponse response) {

@@ -40,11 +40,11 @@ public class PaymentController {
     }
 
     /**
-     * 단건 결제 조회 (orderId)
+     * Toss 기준 결제 조회
      */
-    @GetMapping("/orders/{orderId}")
-    public ResponseEntity<PaymentLookupResponse> getPaymentByOrderId(@PathVariable String orderId) {
-        PaymentLookupResponse response = paymentService.getPaymentByOrderId(orderId);
+    @GetMapping("/orders/{tossOrderId}")
+    public ResponseEntity<PaymentLookupResponse> getPaymentByTossOrderId(@PathVariable String tossOrderId) {
+        PaymentLookupResponse response = paymentService.getPaymentByTossOrderId(tossOrderId);
         return ResponseEntity.ok(response);
     }
 
