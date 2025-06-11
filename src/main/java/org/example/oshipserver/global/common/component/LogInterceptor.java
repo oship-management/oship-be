@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.global.common.response.LogInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -23,6 +25,8 @@ public class LogInterceptor implements HandlerInterceptor {
     private final ObjectMapper objectMapper;
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = authentication.getPrincipal().equals("anonymousUser") ? null : Long.valueOf(authentication.getName());
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String uri = request.getRequestURI();
         String queryString = request.getQueryString();
@@ -31,6 +35,7 @@ public class LogInterceptor implements HandlerInterceptor {
         }
         LogInfo logInfo = LogInfo.builder()
                 .date(date)
+                .userId(userId)
                 .method(request.getMethod())
                 .uri(uri)
                 .userAgent(request.getHeader("User-Agent"))

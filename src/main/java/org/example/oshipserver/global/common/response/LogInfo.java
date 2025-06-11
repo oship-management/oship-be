@@ -11,6 +11,7 @@ import lombok.Setter;
 public class LogInfo {
 
     private final String date;
+    private Long userId;
     private final String method;
     private final String uri;
     private final String ip;
