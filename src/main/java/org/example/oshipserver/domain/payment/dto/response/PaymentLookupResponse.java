@@ -1,5 +1,8 @@
 package org.example.oshipserver.domain.payment.dto.response;
 
+import java.util.List;
+import org.example.oshipserver.domain.order.entity.Order;
+import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
 
@@ -19,6 +22,7 @@ public record PaymentLookupResponse(
 
     /**
      * Toss 기준 단건 결제 조회 응답을 내부 응답 DTO로 변환
+     * toss에 직접 조회 요청했을 때 사용
      */
     public static PaymentLookupResponse convertFromTossLookup(
         TossSinglePaymentLookupResponse response) {
@@ -43,4 +47,18 @@ public record PaymentLookupResponse(
         }
         return null;
     }
+
+    public static PaymentLookupResponse fromPaymentAndOrders(Payment payment, List<Order> orders) {
+        return new PaymentLookupResponse(
+            payment.getTossOrderId(),
+            payment.getPaymentKey(),
+            payment.getStatus(),
+            payment.getPaidAt().toString(),
+            payment.getAmount(),
+            payment.getCurrency(),
+            payment.getCardLast4Digits(),
+            payment.getReceiptUrl()
+        );
+    }
+
 }

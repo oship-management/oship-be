@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
 import org.example.oshipserver.client.toss.TossPaymentClient;
+import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
@@ -89,6 +90,9 @@ public class PaymentService {
             .status(PaymentStatusMapper.fromToss(tossResponse.status()))
             .build();
 
+        payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        payment.setReceiptUrl(tossResponse.receipt().url());
+
         paymentRepository.save(payment);
 
         // 7. 응답 DTO 반환
@@ -116,8 +120,8 @@ public class PaymentService {
             tossResponse = tossPaymentClient.requestPaymentConfirm(
                 new PaymentConfirmRequest(
                     request.paymentKey(),
-                    request.orders().get(0).orderId(),
-                    request.orders().stream().mapToInt(MultiPaymentConfirmRequest.MultiOrderRequest::amount).sum()
+                    request.orders().get(0).orderId(),  // 첫번째 orderId를 대표 orderId로 (토스에서 하나만 받음)
+                    request.orders().stream().mapToInt(MultiPaymentConfirmRequest.MultiOrderRequest::amount).sum()  // 총금액
                 ),
                 paymentNo
             );
@@ -140,6 +144,9 @@ public class PaymentService {
             .status(PaymentStatusMapper.fromToss(tossResponse.status()))
             .build();
 
+        payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        payment.setReceiptUrl(tossResponse.receipt().url());
+
         paymentRepository.save(payment);
 
         // 5. 요청으로 들어온 각 주문의 orderId만 리스트로 추출하여 응답dto로 변환
@@ -151,29 +158,38 @@ public class PaymentService {
     }
 
 
-    // tossOrderId로 결제 조회(toss 기준의 결제 단위 조회)
-    // 단건 조회 또는 다건(대표 orderId) 조회
+    /**
+     * Toss 기준 결제 조회 (결제상태 확인용)
+     * tossOrderId로 단건 조회 또는 다건 조회(대표 orderId)
+     */
     @Transactional(readOnly = true)
     public PaymentLookupResponse getPaymentByTossOrderId(String tossOrderId) {
         Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
             .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        // 클라이언트에게 받아온 orderId를 통해 db에서 paymentKey를 꺼내서 toss API에 넘기기
-        TossSinglePaymentLookupResponse tossResponse =
-            tossPaymentClient.requestSinglePaymentLookup(payment.getPaymentKey());
+        List<Order> orders = payment.getOrders();  // 연결된 주문 목록 조회
 
-        return PaymentLookupResponse.convertFromTossLookup(tossResponse);
+        return PaymentLookupResponse.fromPaymentAndOrders(payment, orders);
     }
 
-    // tossOrderId로 다건 결제 조회
-    // tossOrderId 기준으로 결제 정보를 가져와서 해당 결제에 연결된 모든 주문를 리스트로 반환
+    /**
+     * Toss 기준 결제 조회 (주문 확인용)
+     * -> 해당 payment에 연결된 모든 order를 주문리스트로 반환
+     */
     @Transactional(readOnly = true)
     public List<PaymentOrderListResponse> getOrdersByTossOrderId(String tossOrderId) {
+        // 결제 정보 조회
         Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
             .orElseThrow(() -> new ApiException("해당 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment(payment);
+        // 2. 결제에 연결된 모든 주문 조회
+        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
 
+        if (paymentOrders.isEmpty()) {
+            throw new ApiException("해당 결제에 연결된 주문이 없습니다.", ErrorType.NOT_FOUND);
+        }
+
+        // 3. 주문 리스트를 DTO로 변환
         return paymentOrders.stream()
             .map(po -> PaymentOrderListResponse.from(po.getOrder()))
             .toList();
@@ -220,4 +236,12 @@ public class PaymentService {
             })
             .toList();
     }
+
+    private String getLast4Digits(String cardNumber) {
+        if (cardNumber != null && cardNumber.length() >= 4) {
+            return cardNumber.substring(cardNumber.length() - 4);
+        }
+        return null;
+    }
+
 }
