@@ -8,9 +8,12 @@ import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.carrier.dto.CarrierRateDto;
+import org.example.oshipserver.domain.carrier.entity.Carrier;
 import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.order.dto.OrderRateResponseDto;
 import org.example.oshipserver.domain.order.service.OrderRateService;
+import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -49,81 +52,98 @@ public class CarrierService {
 
     }
 
-    public List<CarrierRateDto.PartnerResponse> getCarrierRatesForOrder(List<Long> orderIds) {
+    public List<CarrierRateDto.CarrierResponse> getCarrierRatesForOrder(List<Long> orderIds) {
 
+        // 1) orderInfos 조회
         List<OrderRateResponseDto> orderInfos = orderRateService.getOrderInfos(orderIds);
 
+        // 2) Flat 리스트 생성
         List<Flat> flats = orderInfos.stream()
             .flatMap(orderInfo -> {
-                // orderInfo 하나에 대해 이 주문을 처리 가능한 carriers를 조회
-                return carrierRepository
-                    .findCarrierAmountDtoByCountryAndWeightAndNotExpired(
-                        orderInfo.countryCode().toString(),
-                        orderInfo.weight(),
-                        LocalDateTime.now()
-                    )
-                    .stream()
-                    .map(carAmt -> new Flat(
-                        carAmt.carrier().getPartner().getId(),
-                        carAmt.carrier().getPartner().getCompanyName(),
-                        carAmt.carrier().getId(),
-                        carAmt.carrier().getName().toString(),
-                        orderInfo,
-                        carAmt.amount().multiply(orderInfo.weight())
-                    ));
+                String country = orderInfo.countryCode().toString();
+                BigDecimal weight = orderInfo.weight();
+                LocalDateTime now = LocalDateTime.now();
+
+                // 2-1) 해당 주문 무게·국가로 운송사 조회
+                List<Carrier> carriers = carrierRepository
+                    .findCarrierByCountryAndWeight(country, weight);
+
+                if(carriers.isEmpty()){
+                    throw new ApiException("운송 가능한 운송사가 없습니다.", ErrorType.INVALID_PARAMETER);
+                }
+
+                // 2-2) 운송사별 요금 조회 및 Flat 매핑
+                return carriers.stream().flatMap(carrier -> {
+                    List<CarrierRateDto.Amount> amounts = carrierRepository
+                        .findCarrierAmountDtoByCarrierIdAndWeightAndNotExpired(
+                            weight, now, carrier.getId()
+                        );
+
+                    if(amounts.isEmpty()){
+                        throw new ApiException("운송 가능한 운송사가 없습니다.", ErrorType.INVALID_PARAMETER);
+                    }
+
+                    return amounts.stream()
+                        .map(crAmt -> new Flat(
+                            carrier.getPartner().getId(),
+                            carrier.getPartner().getCompanyName(),
+                            carrier.getId(),
+                            carrier.getName().toString(),
+                            orderInfo,
+                            crAmt.amount()
+                        ));
+                });
             })
             .toList();
 
-        // 2) partnerId 기준으로 그룹핑
-        Map<Long, List<Flat>> byPartner = flats.stream()
-            .collect(Collectors.groupingBy(Flat::partnerId));
+        // 3) carrierId 기준 그룹핑 → CarrierResponse 생성
+        Map<Long, List<Flat>> byCarrier = flats.stream()
+            .collect(Collectors.groupingBy(Flat::carrierId));
 
-        // 3) 파트너별 DTO 생성
-        List<CarrierRateDto.PartnerResponse> result = byPartner.entrySet().stream()
-            .map(partnerEntry -> {
-                Long partnerId   = partnerEntry.getKey();
-                List<Flat> pList = partnerEntry.getValue();
-                String partnerName = pList.get(0).partnerName();
+        return byCarrier.entrySet().stream()
+            .map(carEntry -> {
+                Long carrierId     = carEntry.getKey();
+                List<Flat> cList   = carEntry.getValue();
+                String carrierName = cList.get(0).carrierName();
+                Long   partnerId   = cList.get(0).partnerId();
+                String partnerName = cList.get(0).partnerName();
 
-                // 3-1) 이 파트너 안에서 carrierId별로 그룹핑
-                Map<Long, List<Flat>> byCarrier = pList.stream()
-                    .collect(Collectors.groupingBy(Flat::carrierId));
+                // 3-1) orderId별로 중복 제거 및 합산
+                Map<Long, List<Flat>> byOrder = cList.stream()
+                    .collect(Collectors.groupingBy(f -> f.orderInfo().orderId()));
 
-                // 3-2) CarrierRateDto.CarrierResponse DTO 생성
-                List<CarrierRateDto.CarrierResponse> carrierDtos = byCarrier.entrySet().stream()
-                    .map(carEntry -> {
-                        Long carrierId   = carEntry.getKey();
-                        List<Flat> cList = carEntry.getValue();
-                        String carrierName = cList.get(0).carrierName();
-
-                        // 주문별로 CarrierRateDto.OrderResponse 모으기
-                        List<CarrierRateDto.OrderResponse> orders = cList.stream()
-                            .map(f -> new CarrierRateDto.OrderResponse(
-                                f.orderInfo().orderId(),
-                                f.orderInfo().weight().doubleValue(),
-                                f.orderInfo().countryCode().toString(),
-                                f.amount()
-                            ))
-                            .toList();
-
-                        // 이 carrier 전체 금액 합계 계산
-                        BigDecimal carrierTotal = orders.stream()
-                            .map(CarrierRateDto.OrderResponse::amount)
+                List<CarrierRateDto.OrderResponse> orders = byOrder.entrySet().stream()
+                    .map(orderEntry -> {
+                        Long orderId    = orderEntry.getKey();
+                        OrderRateResponseDto info = orderEntry.getValue().get(0).orderInfo();
+                        // 주문 내 여러 금액이 있다면 합산
+                        BigDecimal orderTotal = orderEntry.getValue().stream()
+                            .map(Flat::amount)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                        return new CarrierRateDto.CarrierResponse(carrierId, carrierName, carrierTotal, orders);
+                        return new CarrierRateDto.OrderResponse(
+                            orderId,
+                            info.weight().doubleValue(),
+                            info.countryCode().toString(),
+                            orderTotal
+                        );
                     })
                     .toList();
 
-                // 3-3) 파트너 전체 금액 합계 계산
-                BigDecimal partnerTotal = carrierDtos.stream()
-                    .map(CarrierRateDto.CarrierResponse::totalAmount)
+                // 3-2) Carrier 전체 합계
+                BigDecimal carrierTotal = orders.stream()
+                    .map(CarrierRateDto.OrderResponse::amount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                return new CarrierRateDto.PartnerResponse(partnerId, partnerName, partnerTotal, carrierDtos);
+                return new CarrierRateDto.CarrierResponse(
+                    carrierId,
+                    carrierName,
+                    partnerId,
+                    partnerName,
+                    carrierTotal,
+                    orders
+                );
             })
             .toList();
-
-        return result;
     }
 }
