@@ -135,7 +135,8 @@ public class AuthService {
     @Transactional(readOnly = true)
     public TokenResponse refreshToken(HttpServletRequest request) {
         String jwt = jwtUtil.extractTokenFromHeader(request);
-        Claims claims = jwtUtil.validateToken(jwt);
+        jwt = jwt.substring(7);
+        Claims claims = jwtUtil.getClaims(jwt);
         Long userId = Long.valueOf(claims.getSubject());
         User findUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다.", ErrorType.NOT_FOUND));

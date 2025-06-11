@@ -99,4 +99,20 @@ public class JwtUtil {
         }
     }
 
+    public Claims getClaims(String accessToken){
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(accessToken)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            // 토큰은 만료되었지만, Claims는 추출 가능
+            return e.getClaims();
+        } catch (JwtException e) {
+            // 서명 불일치나 기타 파싱 실패 등
+            throw new ApiException("유효하지 않은 토큰입니다.", ErrorType.UNAUTHORIZED);
+        }
+    }
+
 }
