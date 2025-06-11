@@ -1,8 +1,9 @@
 package org.example.oshipserver.global.common.component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.global.common.response.LogInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,16 +15,17 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Component
-@Slf4j
+@RequiredArgsConstructor
 public class LogInterceptor implements HandlerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(LogInterceptor.class);
     private final ThreadLocal<LogInfo> logInfoThreadLocal = new ThreadLocal<>();
+    private final ObjectMapper objectMapper;
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String startTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         LogInfo logInfo = LogInfo.builder()
-                .startTime(startTime)
+                .date(date)
                 .method(request.getMethod())
                 .uri(request.getRequestURI())
                 .userAgent(request.getHeader("User-Agent"))
@@ -44,14 +46,9 @@ public class LogInterceptor implements HandlerInterceptor {
         LogInfo logInfo = logInfoThreadLocal.get();
         logInfoThreadLocal.remove();
         long duration = System.currentTimeMillis() - logInfo.getDuration();
-        log.info("DATE : {}, METHOD : {}, URI : {} , USER-AGENT : {} , IP : {} , STATUS : {} , DURATION : {}ms",
-                logInfo.getStartTime(),
-                logInfo.getMethod(),
-                logInfo.getUri(),
-                logInfo.getUserAgent(),
-                logInfo.getIp(),
-                response.getStatus(),
-                duration);
+        logInfo.setDuration(duration);
+        logInfo.setStatus(response.getStatus());
+        logger.info(objectMapper.writeValueAsString(logInfo));
         HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
     }
 }
