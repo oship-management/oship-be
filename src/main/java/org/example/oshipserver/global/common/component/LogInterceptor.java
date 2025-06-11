@@ -43,12 +43,15 @@ public class LogInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        LogInfo logInfo = logInfoThreadLocal.get();
-        logInfoThreadLocal.remove();
-        long duration = System.currentTimeMillis() - logInfo.getDuration();
-        logInfo.setDuration(duration);
-        logInfo.setStatus(response.getStatus());
-        logger.info(objectMapper.writeValueAsString(logInfo));
-        HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
+        try {
+            LogInfo logInfo = logInfoThreadLocal.get();
+            long duration = System.currentTimeMillis() - logInfo.getDuration();
+            logInfo.setDuration(duration);
+            logInfo.setStatus(response.getStatus());
+            logger.info(objectMapper.writeValueAsString(logInfo));
+        }finally {
+            logInfoThreadLocal.remove();
+            HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
+        }
     }
 }
