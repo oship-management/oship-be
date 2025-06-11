@@ -19,10 +19,12 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
         JOIN CarrierCountry cc        ON cc.carrier = c
         WHERE c.weightMin <= :weight
             AND c.weightMax >= :weight
+            AND c.expired > :now
             AND cc.countryCode = :countryCode
     """)
     List<Carrier> findCarrierByCountryAndWeight(
         @Param("countryCode") String countryCode,
+        @Param("now") LocalDateTime now,
         @Param("weight") BigDecimal weight
     );
 
@@ -31,12 +33,10 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
         FROM Carrier c
         JOIN CarrierRateCharge cr        ON cr.carrier = c
         WHERE cr.weight = :weight
-            AND cr.expired > :now
             AND c.id = :carrierId
     """)
     List<CarrierRateDto.Amount> findCarrierAmountDtoByCarrierIdAndWeightAndNotExpired(
         @Param("weight") BigDecimal weight,
-        @Param("now") LocalDateTime now,
         @Param("carrierId") Long carrierId
     );
 }
