@@ -7,33 +7,6 @@ import org.example.oshipserver.domain.carrier.entity.Carrier;
 
 public class CarrierRateDto {
 
-//    @Builder
-//    public static record getResponse(
-//        double kg,
-//        String countryCode,
-//        Partner partner
-//    ) { }
-//
-//    @Builder
-//    public static record Partner(
-//        Long partnerId,
-//        String partnerName,
-//        Long carrierId,
-//        String carrierName,
-//        BigDecimal amount
-//    ) { }
-
-    /**
-     * 파트너별 응답
-     */
-    @Builder
-    public record PartnerResponse(
-        Long partnerId,
-        String partnerName,
-        BigDecimal totalAmount,
-        List<CarrierResponse> carriers
-    ) { }
-
     /**
      * 운송사별 응답
      */
@@ -41,6 +14,8 @@ public class CarrierRateDto {
     public record CarrierResponse(
         Long carrierId,
         String carrierName,
+        Long partnerId,
+        String partnerName,
         BigDecimal totalAmount,
         List<OrderResponse> orders
     ) { }
