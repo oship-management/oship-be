@@ -3,6 +3,7 @@ package org.example.oshipserver.domain.payment.repository;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.example.oshipserver.domain.payment.entity.Payment;
+import org.example.oshipserver.domain.payment.entity.PaymentOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {

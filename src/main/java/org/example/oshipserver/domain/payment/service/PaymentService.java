@@ -14,6 +14,7 @@ import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossSinglePaymentLookupResponse;
 import org.example.oshipserver.domain.payment.entity.Payment;
@@ -22,6 +23,7 @@ import org.example.oshipserver.domain.payment.entity.PaymentOrder;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.domain.payment.mapper.PaymentMethodMapper;
 import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
+import org.example.oshipserver.domain.payment.repository.PaymentOrderRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.domain.payment.util.PaymentNoGenerator;
 import org.example.oshipserver.global.exception.ErrorType;
@@ -38,6 +40,7 @@ public class PaymentService {
 
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRepository paymentRepository;
+    private final PaymentOrderRepository paymentOrderRepository;
 
 
     // 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
@@ -162,4 +165,59 @@ public class PaymentService {
         return PaymentLookupResponse.convertFromTossLookup(tossResponse);
     }
 
+    // tossOrderId로 다건 결제 조회
+    // tossOrderId 기준으로 결제 정보를 가져와서 해당 결제에 연결된 모든 주문를 리스트로 반환
+    @Transactional(readOnly = true)
+    public List<PaymentOrderListResponse> getOrdersByTossOrderId(String tossOrderId) {
+        Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
+            .orElseThrow(() -> new ApiException("해당 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment(payment);
+
+        return paymentOrders.stream()
+            .map(po -> PaymentOrderListResponse.from(po.getOrder()))
+            .toList();
+    }
+
+
+    // 내부 orderId(Long) 기준으로 해당 주문에 연결된 결제 조회
+    @Transactional(readOnly = true)
+    public PaymentLookupResponse getPaymentByOrderId(Long orderId) {
+        PaymentOrder paymentOrder = paymentOrderRepository.findByOrder_Id(orderId)
+            .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        Payment payment = paymentOrder.getPayment();
+
+        TossSinglePaymentLookupResponse tossResponse =
+            tossPaymentClient.requestSinglePaymentLookup(payment.getPaymentKey());
+
+        return PaymentLookupResponse.convertFromTossLookup(tossResponse);
+    }
+
+    // 하나의 orderId에 연결된 모든 결제 조회 (확장용)
+    @Transactional(readOnly = true)
+    public List<PaymentLookupResponse> getAllPaymentsByOrderId(Long orderId) {
+        // 1. 해당 주문에 연결된 모든 PaymentOrder 조회
+        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByOrder_Id(orderId);
+
+        if (paymentOrders.isEmpty()) {
+            throw new ApiException("해당 주문의 결제 이력이 없습니다.", ErrorType.NOT_FOUND);
+        }
+
+        // 2. Payment 중복 제거 후 paymentKey만 추출
+        List<String> paymentKeys = paymentOrders.stream()
+            .map(po -> po.getPayment().getPaymentKey())
+            .distinct()
+            .toList();
+
+        // 3. 각 paymentKey로 Toss API 조회 후 DTO 변환
+        return paymentKeys.stream()
+            .map(paymentKey -> {
+                TossSinglePaymentLookupResponse tossResponse =
+                    tossPaymentClient.requestSinglePaymentLookup(paymentKey);
+
+                return PaymentLookupResponse.convertFromTossLookup(tossResponse);
+            })
+            .toList();
+    }
 }

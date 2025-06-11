@@ -17,12 +17,12 @@ public class PaymentOrder extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 주문 여러 건을 하나의 결제에 묶기 위한 중간 테이블
+    // 결제와 연결 : 주문 여러 건을 하나의 결제에 묶기 위한 중간 테이블
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id", nullable = false)
     private Payment payment;
 
-    // 여러 개의 PaymentOrder는 하나의 Order를 가리킴 (승인 부분취소용)
+    // 주문과 연결 : 하나의 주문이 여러 PaymentOrder로 나뉠 수 있음 (부분결제, 부분취소, 재결제 등)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
