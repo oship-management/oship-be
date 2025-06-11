@@ -24,10 +24,15 @@ public class LogInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String uri = request.getRequestURI();
+        String queryString = request.getQueryString();
+        if (queryString != null) {
+            uri += "?" + queryString;
+        }
         LogInfo logInfo = LogInfo.builder()
                 .date(date)
                 .method(request.getMethod())
-                .uri(request.getRequestURI())
+                .uri(uri)
                 .userAgent(request.getHeader("User-Agent"))
                 .ip(request.getRemoteAddr())
                 .duration(System.currentTimeMillis())
