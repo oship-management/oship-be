@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.auth.repository.RefreshTokenRepository;
 import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.global.common.response.BaseExceptionResponse;
@@ -26,14 +27,20 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper;
+    private final RefreshTokenRepository refreshTokenRepository;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
 
         String jwt = jwtUtil.extractTokenFromHeader(request);
         if(jwt != null && jwt.startsWith("Bearer ")){ //토큰이 있다면?
+
             try {
                 jwt = jwt.substring(7);
+                if(refreshTokenRepository.isBlacklisted(jwt)){
+                    throw new RuntimeException();
+                }
                 Claims claims = jwtUtil.validateToken(jwt);
                 String userId = claims.getSubject();
                 String email = claims.get("email", String.class);

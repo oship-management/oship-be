@@ -34,7 +34,7 @@ public class SellerController {
             Authentication authentication,
             @RequestBody @Valid SellerDeleteRequest request){
         Long userId = Long.valueOf(authentication.getName());
-        sellerService.deleteSeller(userId, request);
+        sellerService.deleteSeller(userId, request, authentication.getCredentials().toString());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
