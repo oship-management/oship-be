@@ -20,7 +20,7 @@ public class CarrierController {
     private final CarrierService carrierService;
 
     @GetMapping("/rates")
-    public ResponseEntity<BaseResponse<List<CarrierRateDto.PartnerResponse>>> getRates(
+    public ResponseEntity<BaseResponse<List<CarrierRateDto.CarrierResponse>>> getRates(
         @RequestParam List<Long> orderIds) {
         return ResponseEntity.status(HttpStatus.OK).body(new BaseResponse<>(HttpStatus.OK.value(), "성공", carrierService.getCarrierRatesForOrder(orderIds)));
     }
