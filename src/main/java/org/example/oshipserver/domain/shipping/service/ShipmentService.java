@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.shipping.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.client.fedex.FedexClient;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
@@ -22,6 +23,7 @@ public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final OrderRepository orderRepository;
     private final TrackingEventHandler trackingEventHandler;
+    private final FedexClient fedexClient;
 
     public Long createShipment(Long orderId, Long carrierId) {
         // 주문 존재 여부 확인
@@ -64,8 +66,8 @@ public class ShipmentService {
             request.grossWeight()
         );
 
-        // 5. AWB URL 생성 (하드코딩)
-        String awbUrl = "FEDEX_LABEL_URL";
+        // 5. AWB URL 생성
+        String awbUrl = fedexClient.requestAwbLabelUrl(shipment, order, request);
         shipment.updateAwbUrl(awbUrl);
 
         // 6. 저장
@@ -78,7 +80,10 @@ public class ShipmentService {
             ""
         );
 
-        // 8. 응답 데이터 생성 (Builder 패턴 사용)
+        // 8. OrderTable AWB 생성 완료 처리
+        order.markAwbGenerated();
+
+        // 9. 응답 데이터 생성 (Builder 패턴 사용)
         AwbResponse.MeasurementData measurements = AwbResponse.MeasurementData.builder()
             .width(request.width())
             .height(request.height())

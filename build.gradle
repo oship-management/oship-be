@@ -58,6 +58,9 @@ dependencies {
 
 	// excel
 	implementation 'org.apache.poi:poi-ooxml:5.2.3'
+
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
+
 }
 
 tasks.named('test') {
