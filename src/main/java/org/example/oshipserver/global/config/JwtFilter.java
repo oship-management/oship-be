@@ -34,6 +34,10 @@ public class JwtFilter extends OncePerRequestFilter {
         FilterChain filterChain) throws ServletException, IOException {
 
         String jwt = jwtUtil.extractTokenFromHeader(request);
+        if(request.getRequestURI().equals("/api/v1/auth/refresh")){
+            filterChain.doFilter(request, response);
+            return;
+        }
         if(jwt != null && jwt.startsWith("Bearer ")){ //토큰이 있다면?
 
             try {
