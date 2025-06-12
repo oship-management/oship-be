@@ -68,20 +68,12 @@ public class CarrierService {
                 List<Carrier> carriers = carrierRepository
                     .findCarrierByCountryAndWeight(country, now, weight);
 
-                if(carriers.isEmpty()){
-                    throw new ApiException("운송 가능한 운송사가 없습니다.", ErrorType.INVALID_PARAMETER);
-                }
-
                 // 2-2) 운송사별 요금 조회 및 Flat 매핑
                 return carriers.stream().flatMap(carrier -> {
                     List<CarrierRateDto.Amount> amounts = carrierRepository
                         .findCarrierAmountDtoByCarrierIdAndWeightAndNotExpired(
                             weight, carrier.getId()
                         );
-
-                    if(amounts.isEmpty()){
-                        throw new ApiException("운송 가능한 운송사가 없습니다.", ErrorType.INVALID_PARAMETER);
-                    }
 
                     return amounts.stream()
                         .map(crAmt -> new Flat(
@@ -100,7 +92,7 @@ public class CarrierService {
         Map<Long, List<Flat>> byCarrier = flats.stream()
             .collect(Collectors.groupingBy(Flat::carrierId));
 
-        return byCarrier.entrySet().stream()
+        List<CarrierRateDto.CarrierResponse> carrierResponses = byCarrier.entrySet().stream()
             .map(carEntry -> {
                 Long carrierId     = carEntry.getKey();
                 List<Flat> cList   = carEntry.getValue();
@@ -145,5 +137,11 @@ public class CarrierService {
                 );
             })
             .toList();
+
+        if(carrierResponses.isEmpty()){
+            throw new ApiException("운송 가능한 운송사가 없습니다.", ErrorType.INVALID_PARAMETER);
+        }
+
+        return carrierResponses;
     }
 }
