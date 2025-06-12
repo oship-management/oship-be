@@ -51,8 +51,21 @@ public class Carrier extends BaseTimeEntity {
     @Enumerated(value = EnumType.STRING)
     private Services service;
 
-    @Column(length = 255, nullable = false)
+    @Column(length = 2000, nullable = false)
     private String token;
+
+    @Column
+    private String apiKey;
+
+    @Column
+    private String secretKey;
+
+    @Column(length = 50)
+    private String accountNumber;
+
+    public void updateToken(String accessToken) {
+        this.token = accessToken;
+    }
 
     @Column(nullable = false)
     private LocalDateTime expired;
