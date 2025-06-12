@@ -62,17 +62,18 @@ public class PaymentController {
 
 
     /**
-     * Toss 결제 취소 요청 (전체 취소)
+     * Toss 결제 취소 요청 (전체/부분 취소)
      */
     @PostMapping("/{paymentKey}/cancel")
     public ResponseEntity<String> cancelPayment(
         @PathVariable String paymentKey,
         @RequestBody PaymentCancelRequest request
     ) {
-        paymentService.cancelPayment(paymentKey, request.cancelReason());
-        return ResponseEntity.ok("결제가 성공적으로 취소되었습니다.");
+        paymentService.cancelPayment(paymentKey, request.cancelReason(), request.cancelAmount());
+        return ResponseEntity.ok(
+            request.cancelAmount() == null ? "결제가 성공적으로 취소되었습니다." : "부분 결제가 성공적으로 취소되었습니다."
+        );
     }
-
 
     /**
      * 내부 주문 기준 결제 조회
