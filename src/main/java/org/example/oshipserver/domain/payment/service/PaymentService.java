@@ -21,11 +21,13 @@ import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListRespo
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossSinglePaymentLookupResponse;
 import org.example.oshipserver.domain.payment.entity.Payment;
+import org.example.oshipserver.domain.payment.entity.PaymentCancelHistory;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
 import org.example.oshipserver.domain.payment.entity.PaymentOrder;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.domain.payment.mapper.PaymentMethodMapper;
 import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
+import org.example.oshipserver.domain.payment.repository.PaymentCancelHistoryRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentOrderRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.domain.payment.util.PaymentNoGenerator;
@@ -45,6 +47,7 @@ public class PaymentService {
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRepository paymentRepository;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final PaymentCancelHistoryRepository paymentCancelHistoryRepository;
     private final OrderRepository orderRepository;
 
 
@@ -262,7 +265,7 @@ public class PaymentService {
             payment.cancel();
             paymentRepository.save(payment);
 
-            // 연결된 주문 상태도 함께 변경
+            // 주문 상태도 함께 변경
             List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
             for (PaymentOrder paymentOrder : orders) {
                 paymentOrder.cancel();
@@ -270,7 +273,11 @@ public class PaymentService {
         } else {
             // 부분 취소
             payment.partialCancel(cancelAmount, cancelReason);
-            paymentRepository.save(payment);  // 상태 반영
+            paymentRepository.save(payment);
+
+            //  부분 취소 이력 저장
+            PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason);
+            paymentCancelHistoryRepository.save(history);
         }
     }
 
