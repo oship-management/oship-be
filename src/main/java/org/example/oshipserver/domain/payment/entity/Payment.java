@@ -72,8 +72,33 @@ public class Payment extends BaseTimeEntity {
 
     // 주문 여러건을 묶어서 결제 (다건 결제용)
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PaymentOrder> orders = new ArrayList<>();
+    private List<PaymentOrder> paymentOrders = new ArrayList<>();
 
+    // 직접 매핑된 주문 리스트만 추출
+    public List<Order> getOrders() {
+        return paymentOrders.stream()
+            .map(PaymentOrder::getOrder)
+            .toList();
+    }
+
+    private String cardLast4Digits;
+    private String receiptUrl;
+
+    public String getCardLast4Digits() {
+        return cardLast4Digits;
+    }
+
+    public String getReceiptUrl() {
+        return receiptUrl;
+    }
+
+    public void setCardLast4Digits(String cardLast4Digits) {
+        this.cardLast4Digits = cardLast4Digits;
+    }
+
+    public void setReceiptUrl(String receiptUrl) {
+        this.receiptUrl = receiptUrl;
+    }
 
     @Builder
     public Payment(String paymentNo, String paymentKey, String tossOrderId,
@@ -90,10 +115,12 @@ public class Payment extends BaseTimeEntity {
         this.failReason = failReason;
     }
 
-    public void markSuccess(String paymentKey, LocalDateTime paidAt) {
+    public void markSuccess(String paymentKey, LocalDateTime paidAt, String cardLast4Digits, String receiptUrl) {
         this.paymentKey = paymentKey;
         this.status = PaymentStatus.COMPLETE;
         this.paidAt = paidAt;
+        this.cardLast4Digits = cardLast4Digits;
+        this.receiptUrl = receiptUrl;
     }
 
     public void markFailed(String reason) {

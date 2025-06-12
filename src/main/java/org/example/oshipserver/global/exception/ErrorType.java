@@ -31,7 +31,11 @@ public enum ErrorType{
     AWB_ALREADY_ISSUED(HttpStatus.CONFLICT, "이미 AWB가 발행된 주문입니다."),
     CARRIER_MISMATCH(HttpStatus.BAD_REQUEST, "배송업체가 일치하지 않습니다."),
     INVALID_BOX_NUMBER(HttpStatus.BAD_REQUEST, "유효하지 않은 박스 번호입니다."),
-    INVALID_BARCODE_FORMAT(HttpStatus.BAD_REQUEST, "유효하지 않은 바코드 형식입니다.");
+    INVALID_BARCODE_FORMAT(HttpStatus.BAD_REQUEST, "유효하지 않은 바코드 형식입니다."),
+
+    // FEDEX API 호출 에러
+    EXTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "토큰 인증에 실패하였습니다."),
+    FEDEX_BAD_REQUEST(HttpStatus.BAD_REQUEST, "FEDEX API 스펙에 맞지 않는 값이 존재합니다");
 
     private final HttpStatus status;
     private final String desc;
