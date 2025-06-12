@@ -4,9 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.example.oshipserver.global.common.response.LogInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.example.oshipserver.domain.log.service.LogService;
+import org.example.oshipserver.domain.log.vo.LogInfo;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -19,10 +18,9 @@ import java.time.format.DateTimeFormatter;
 @Component
 @RequiredArgsConstructor
 public class LogInterceptor implements HandlerInterceptor {
-
-    private static final Logger logger = LoggerFactory.getLogger(LogInterceptor.class);
     private final ThreadLocal<LogInfo> logInfoThreadLocal = new ThreadLocal<>();
     private final ObjectMapper objectMapper;
+    private final LogService logService;
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -58,7 +56,8 @@ public class LogInterceptor implements HandlerInterceptor {
             long duration = System.currentTimeMillis() - logInfo.getDuration();
             logInfo.setDuration(duration);
             logInfo.setStatus(response.getStatus());
-            logger.info(objectMapper.writeValueAsString(logInfo));
+            String log = objectMapper.writeValueAsString(logInfo);
+            logService.sendLogToRedis(log);
         }finally {
             logInfoThreadLocal.remove();
             HandlerInterceptor.super.afterCompletion(request, response, handler, ex);

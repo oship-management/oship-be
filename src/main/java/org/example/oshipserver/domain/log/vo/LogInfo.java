@@ -1,4 +1,4 @@
-package org.example.oshipserver.global.common.response;
+package org.example.oshipserver.domain.log.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
