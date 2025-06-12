@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.dto.OrderRateResponseDto;
 import org.example.oshipserver.domain.order.entity.OrderRecipient;
 import org.example.oshipserver.domain.order.repository.OrderRecipientRepository;
+import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,10 @@ public class OrderRateService {
     public List<OrderRateResponseDto> getOrderInfos(List<Long> orderIds) {
 
         List<OrderRecipient> recipients = orderRecipientRepository.findByOrderIdIn(orderIds);
+
+        if(recipients.isEmpty()){
+            throw new ApiException("해당 orderId에 관한 주문 정보가 없습니다.", ErrorType.INVALID_PARAMETER);
+        }
 
         return recipients.stream()
             .map(recipient -> OrderRateResponseDto.builder()

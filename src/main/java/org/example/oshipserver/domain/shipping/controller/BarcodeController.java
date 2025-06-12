@@ -35,7 +35,7 @@ public class BarcodeController {
 
         barcodeService.markBarcodePrinted(orderId);
 
-        return new BaseResponse<>(200, "바코드 프린트 상태가 업데이트되었습니다.",
+        return new BaseResponse<>(201, "바코드 프린트 상태가 업데이트되었습니다.",
             new BarcodePrintResponse(orderId, true));
     }
 }

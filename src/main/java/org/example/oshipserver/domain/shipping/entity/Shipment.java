@@ -51,10 +51,10 @@ public class Shipment extends BaseTimeEntity {
     private BigDecimal chargeWeight;
 
     // API 관련 정보
-    @Column(name = "data")
+    @Column(name = "data", length = 1000)
     private String apiData;
 
-    @Column(name = "url")
+    @Column(name = "url", length = 500)
     private String awbUrl;
 
     @Builder
@@ -103,7 +103,8 @@ public class Shipment extends BaseTimeEntity {
     }
 
     // AWB URL 업데이트 메서드
-    public void updateAwbUrl(String awbUrl) {
+    public void updateAwb(String awbUrl, String carrierTrackingNo) {
         this.awbUrl = awbUrl;
+        this.carrierTrackingNo = carrierTrackingNo;
     }
 }

@@ -20,7 +20,7 @@ public record PaymentConfirmResponse(
 ) {
 
     /**
-     * Toss 단건 결제 승인 응답을 내부 응답 DTO 변환
+     * Toss 기준 단건 결제 승인 응답을 내부 응답 DTO로 변환
      */
     public static PaymentConfirmResponse convertFromTossConfirm(
         TossPaymentConfirmResponse response,

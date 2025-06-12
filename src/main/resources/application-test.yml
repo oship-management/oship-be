@@ -18,3 +18,7 @@ jwt:
 
 toss:
   secret-key:  ${TOSS_SECRET_KEY}
+
+fedex:
+  api:
+    url:  ${FEDEX_API_URL}
