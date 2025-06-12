@@ -3,6 +3,6 @@ logging:
     path: ./logs          # 로그 디렉터리 경로 (상대경로)
     name: app.log         # 파일명 (절대경로 대신 상대경로에 파일명만 지정)
   pattern:
-    file: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   level:
     org.springframework.security: ERROR

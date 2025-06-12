@@ -1,8 +1,9 @@
 <configuration>
 
-    <springProperty scope="context" name="LOG_PATTERN" source="logging.pattern.file" defaultValue="%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n"/>
     <springProperty scope="context" name="LOG_PATH" source="logging.file.path" defaultValue="./logs"/>
     <springProperty scope="context" name="LOG_FILE_NAME" source="logging.file.name" defaultValue="app.log"/>
+    <springProperty scope="context" name="LOG_PATTERN" source="logging.pattern.file"
+                    defaultValue="%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"/>
 
     <timestamp key="ToDay" datePattern="yyyyMMdd" />
 
