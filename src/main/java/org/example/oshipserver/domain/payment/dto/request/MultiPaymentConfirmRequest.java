@@ -7,8 +7,9 @@ import java.util.List;
  */
 public record MultiPaymentConfirmRequest(
     String paymentKey,
+    String tossOrderId,
     List<MultiOrderRequest> orders,
     String currency
 ) {
-    public record MultiOrderRequest(String orderId, Integer amount) {}
+    public record MultiOrderRequest(Long orderId, Integer amount) {}
 }
