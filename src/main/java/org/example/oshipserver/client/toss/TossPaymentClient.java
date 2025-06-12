@@ -1,5 +1,6 @@
 package org.example.oshipserver.client.toss;
 
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
@@ -77,4 +78,22 @@ public class TossPaymentClient { // 외부 연동 모듈
 
         return response.getBody();
     }
+
+    /**
+     * Toss 취소 요청
+     */
+    public void requestCancel(String paymentKey, String cancelReason) {
+        String url = "https://api.tosspayments.com/v1/payments/" + paymentKey + "/cancel";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Basic " +
+            Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8)));
+
+        Map<String, String> body = Map.of("cancelReason", cancelReason);
+        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
+
+        restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);  // Toss 응답 바디 없어도 OK
+    }
+
 }

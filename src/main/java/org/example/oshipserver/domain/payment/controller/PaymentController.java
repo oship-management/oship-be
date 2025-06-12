@@ -3,6 +3,7 @@ package org.example.oshipserver.domain.payment.controller;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
+import org.example.oshipserver.domain.payment.dto.request.PaymentCancelRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
@@ -57,6 +58,19 @@ public class PaymentController {
     public ResponseEntity<List<PaymentOrderListResponse>> getOrdersByTossOrderId(@PathVariable String tossOrderId) {
         List<PaymentOrderListResponse> response = paymentService.getOrdersByTossOrderId(tossOrderId);
         return ResponseEntity.ok(response);
+    }
+
+
+    /**
+     * Toss 결제 취소 요청 (전체 취소)
+     */
+    @PostMapping("/{paymentKey}/cancel")
+    public ResponseEntity<Void> cancelPayment(
+        @PathVariable String paymentKey,
+        @RequestBody PaymentCancelRequest request
+    ) {
+        paymentService.cancelPayment(paymentKey, request.cancelReason());
+        return ResponseEntity.ok().build();
     }
 
 

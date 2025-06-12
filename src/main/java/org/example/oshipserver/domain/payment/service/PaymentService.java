@@ -50,7 +50,7 @@ public class PaymentService {
     // 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
-        // 1. DB 기준 중복 확인
+        // 1. DB 기준 중복 확인 (동시성 보장x)
         if (paymentRepository.existsByPaymentKey(request.paymentKey())) {
             throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
         }
@@ -238,6 +238,30 @@ public class PaymentService {
         return paymentOrders.stream()
             .map(po -> PaymentOrderListResponse.from(po.getOrder()))
             .toList();
+    }
+
+    /**
+     * Toss 취소 요청 (전체 취소)
+     * @param paymentKey
+     * @param cancelReason
+     */
+    @Transactional
+    public void cancelPayment(String paymentKey, String cancelReason) {
+        Payment payment = paymentRepository.findByPaymentKey(paymentKey)
+            .orElseThrow(() -> new ApiException("결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        // Toss에 결제 취소 요청
+        tossPaymentClient.requestCancel(paymentKey, cancelReason);
+
+        // 상태 변경
+        payment.cancel();  // 상태: CANCEL
+        paymentRepository.save(payment);
+
+        // 연결된 PaymentOrder 상태도 같이 변경
+        List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
+        for (PaymentOrder po : orders) {
+            po.cancel();  // 상태: CANCEL, 취소시간
+        }
     }
 
 
