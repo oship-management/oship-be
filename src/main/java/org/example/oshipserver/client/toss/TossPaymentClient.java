@@ -37,7 +37,7 @@ public class TossPaymentClient { // 외부 연동 모듈
     public TossPaymentConfirmResponse requestPaymentConfirm(PaymentConfirmRequest request, String idempotencyKey) {
         Map<String, Object> body = Map.of(
             "paymentKey", request.paymentKey(),
-            "orderId", request.orderId(),
+            "orderId", request.tossOrderId(),
             "amount", request.amount(),
             "currency", "KRW"
         );
