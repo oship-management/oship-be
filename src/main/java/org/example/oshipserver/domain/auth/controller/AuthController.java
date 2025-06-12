@@ -54,7 +54,7 @@ private final String uuid = String.valueOf(UUID.randomUUID());
     @PostMapping("/logout")
     public ResponseEntity<BaseResponse<String>> logout(Authentication authentication){
         Long userId = Long.valueOf(authentication.getName());
-        authService.logout(userId);
+        authService.logout(userId,authentication.getCredentials().toString());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new BaseResponse<>(204, "로그아웃 성공", null));
     }
 

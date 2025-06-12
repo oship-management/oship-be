@@ -31,12 +31,11 @@ public class PartnerService {
     @Transactional(readOnly = true)
     public PartnerInfoResponse getPartnerInfo(Long userId) {
 
-        PartnerInfoResponse response = partnerRepository.findPartnerInfoByUserId(userId)
+        return partnerRepository.findPartnerInfoByUserId(userId)
                 .orElseThrow(() -> new ApiException("파트너 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
-        return response;
     }
     @Transactional
-    public void deletePartner(Long userId, PartnerDeleteRequest request){
+    public void deletePartner(Long userId, PartnerDeleteRequest request, String accessToken){
         System.out.println(request.password() + " " + request.passwordValid());
         User findUser = userRepository.findById(userId)
                 .orElseThrow(()->new ApiException("파트너 조회 실패", ErrorType.NOT_FOUND));
@@ -49,6 +48,7 @@ public class PartnerService {
         if (!passwordEncoder.matches(request.password(), findUser.getPassword())) {
             throw new ApiException("비밀번호가 틀렸습니다", ErrorType.VALID_FAIL);
         }
+        refreshTokenRepository.addBlackList(accessToken);
         refreshTokenRepository.deleteRefreshToken(findUser.getId());
         findUser.softDelete();
     }

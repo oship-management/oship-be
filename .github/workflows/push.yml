@@ -8,6 +8,7 @@ jobs:
     env:
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
+      FEDEX_API_URL: ${{secrets.FEDEX_API_URL}}
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
