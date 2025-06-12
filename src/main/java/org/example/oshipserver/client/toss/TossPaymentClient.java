@@ -1,5 +1,8 @@
 package org.example.oshipserver.client.toss;
 
+import jakarta.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
@@ -30,6 +33,7 @@ public class TossPaymentClient { // 외부 연동 모듈
     // 요청 url 생성
     private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
     private static final String TOSS_LOOKUP_URL_PREFIX = "https://api.tosspayments.com/v1/payments/";
+    private static final String TOSS_CANCEL_URL_PREFIX = "https://api.tosspayments.com/v1/payments/";
 
     /**
      * Toss 결제 승인 요청
@@ -77,4 +81,29 @@ public class TossPaymentClient { // 외부 연동 모듈
 
         return response.getBody();
     }
+
+    /**
+     * Toss 결제 취소 요청
+     */
+    public void requestCancel(String paymentKey, String cancelReason, @Nullable Integer cancelAmount) {
+        String url = TOSS_CANCEL_URL_PREFIX + paymentKey + "/cancel";
+
+        // 헤더 구성
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Basic " +
+            Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8)));
+
+        // 요청 바디 구성
+        Map<String, Object> body = new HashMap<>();
+        body.put("cancelReason", cancelReason);
+        if (cancelAmount != null) {
+            body.put("cancelAmount", cancelAmount);
+        }
+
+        // Toss로 POST 요청 실행
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        restTemplate.exchange(url, HttpMethod.POST, entity, Void.class); // Toss가 우리 서버에 주는 응답바디 없음
+    }
+
 }

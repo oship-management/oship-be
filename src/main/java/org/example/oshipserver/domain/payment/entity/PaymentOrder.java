@@ -42,4 +42,10 @@ public class PaymentOrder extends BaseTimeEntity {
     // 결제 취소일
     private LocalDateTime canceledAt;
 
+    public void cancel() {
+        this.paymentStatus = PaymentStatus.CANCEL;
+        this.canceledAt = LocalDateTime.now();
+    }
+
+
 }
