@@ -103,7 +103,8 @@ public class Shipment extends BaseTimeEntity {
     }
 
     // AWB URL 업데이트 메서드
-    public void updateAwbUrl(String awbUrl) {
+    public void updateAwb(String awbUrl, String carrierTrackingNo) {
         this.awbUrl = awbUrl;
+        this.carrierTrackingNo = carrierTrackingNo;
     }
 }

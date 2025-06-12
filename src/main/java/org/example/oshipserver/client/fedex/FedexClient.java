@@ -87,7 +87,7 @@ public class FedexClient { // 외부 연동 모듈
     /**
      * FedEx AWB 라벨 URL 요청
      */
-    public String requestAwbLabelUrl(
+    public FedexShipmentResponse requestAwbLabelUrl(
         Shipment shipment,
         Order order,
         ShipmentMeasureRequest shipmentMeasureRequest
@@ -158,19 +158,24 @@ public class FedexClient { // 외부 연동 모듈
                 );
             }
 
-            // 라벨 URL 추출
             JsonNode root = objectMapper.readTree(response.getBody());
-            JsonNode documents = root.at("/output/transactionShipments/0/pieceResponses/0/packageDocuments");
 
+            // 라벨 URL 추출
+            JsonNode documents = root.at("/output/transactionShipments/0/pieceResponses/0/packageDocuments");
             String url1 = documents.get(0).get("url").asText();
             String url2 = documents.get(1).get("url").asText();
             String labelUrl = url1 + "," + url2;
 
-            if (labelUrl == null || labelUrl.isBlank()) {
-                throw new ApiException("FedEx 라벨 URL을 찾을 수 없습니다.", ErrorType.EXTERNAL_SERVER_ERROR);
-            }
+            // 트래킹 번호 및 배송일 추출
+            String carrierTrackingNo = root.at("/output/transactionShipments/0/masterTrackingNumber").asText();
+            String shipDate = root.at("/output/transactionShipments/0/shipDatestamp").asText();
 
-            return labelUrl;
+            // 응답 레코드 생성 및 반환
+            return FedexShipmentResponse.builder()
+                .carrierTrackingNo(carrierTrackingNo)
+                .labelUrl(labelUrl)
+                .shipDate(shipDate)
+                .build();
 
         } catch (Exception e) {
             throw new ApiException("FedEx ERROR: " + e.getMessage(), ErrorType.FEDEX_BAD_REQUEST);

@@ -2,6 +2,7 @@ package org.example.oshipserver.domain.shipping.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.client.fedex.FedexClient;
+import org.example.oshipserver.client.fedex.FedexShipmentResponse;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
@@ -67,8 +68,8 @@ public class ShipmentService {
         );
 
         // 5. AWB URL 생성
-        String awbUrl = fedexClient.requestAwbLabelUrl(shipment, order, request);
-        shipment.updateAwbUrl(awbUrl);
+        FedexShipmentResponse fedexResponse = fedexClient.requestAwbLabelUrl(shipment, order, request);
+        shipment.updateAwb(fedexResponse.labelUrl(), fedexResponse.carrierTrackingNo());
 
         // 6. 저장
         shipmentRepository.save(shipment);
@@ -94,7 +95,7 @@ public class ShipmentService {
         AwbResponse.ShipmentData shipmentData = AwbResponse.ShipmentData.builder()
             .shipmentId(shipmentId)
             .masterNo(order.getOshipMasterNo())
-            .url(awbUrl)
+            .url(fedexResponse.labelUrl())
             .measurements(measurements)
             .build();
 
