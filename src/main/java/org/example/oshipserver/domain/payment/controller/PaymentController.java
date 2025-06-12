@@ -65,12 +65,12 @@ public class PaymentController {
      * Toss 결제 취소 요청 (전체 취소)
      */
     @PostMapping("/{paymentKey}/cancel")
-    public ResponseEntity<Void> cancelPayment(
+    public ResponseEntity<String> cancelPayment(
         @PathVariable String paymentKey,
         @RequestBody PaymentCancelRequest request
     ) {
         paymentService.cancelPayment(paymentKey, request.cancelReason());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("결제가 성공적으로 취소되었습니다.");
     }
 
 
