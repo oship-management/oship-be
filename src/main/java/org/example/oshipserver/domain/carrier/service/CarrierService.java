@@ -66,7 +66,7 @@ public class CarrierService {
 
                 // 2-1) 해당 주문 무게·국가로 운송사 조회
                 List<Carrier> carriers = carrierRepository
-                    .findCarrierByCountryAndWeight(country, weight);
+                    .findCarrierByCountryAndWeight(country, now, weight);
 
                 if(carriers.isEmpty()){
                     throw new ApiException("운송 가능한 운송사가 없습니다.", ErrorType.INVALID_PARAMETER);
@@ -76,7 +76,7 @@ public class CarrierService {
                 return carriers.stream().flatMap(carrier -> {
                     List<CarrierRateDto.Amount> amounts = carrierRepository
                         .findCarrierAmountDtoByCarrierIdAndWeightAndNotExpired(
-                            weight, now, carrier.getId()
+                            weight, carrier.getId()
                         );
 
                     if(amounts.isEmpty()){

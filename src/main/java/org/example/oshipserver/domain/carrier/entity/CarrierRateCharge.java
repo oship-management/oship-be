@@ -39,6 +39,4 @@ public class CarrierRateCharge extends BaseTimeEntity {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(nullable = false)
-    private LocalDateTime expired;
 }
