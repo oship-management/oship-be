@@ -133,17 +133,15 @@ public class Payment extends BaseTimeEntity {
     }
 
     public void partialCancel(int cancelAmount, String cancelReason) {
-        // 추후 로직 확장을 위해 로그 출력 또는 상태 업데이트
         // 전체 금액보다 많을 수 없도록 제어할 수도 있음
         if (cancelAmount <= 0 || cancelAmount > this.amount) {
             throw new IllegalArgumentException("부분 취소 금액이 유효하지 않습니다.");
         }
 
-        // 예시로 로그 출력 정도만 — 나중에 PaymentStatus.PARTIAL_CANCELED 등 도입 가능
-        System.out.println("부분 취소 처리됨: " + cancelAmount + "원 / 사유: " + cancelReason);
+        // 부분 취소 상태로 변경
+        this.status = PaymentStatus.PARTIAL_CANCEL;
 
-        // 필요 시 상태나 금액 업데이트
-        // this.amount -= cancelAmount;  // 이런 식으로 하면 전체 취소 금액 남기려는 경우 적절치 않음
+        // 추후 이력 관리나 누적 취소 금액 관리로 확장 예정
     }
 
 }

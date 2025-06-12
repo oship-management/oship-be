@@ -270,7 +270,7 @@ public class PaymentService {
         } else {
             // 부분 취소
             payment.partialCancel(cancelAmount, cancelReason);
-            // (선택) 부분취소 이력 저장 로직 추가 가능
+            paymentRepository.save(payment);  // 상태 반영
         }
     }
 
