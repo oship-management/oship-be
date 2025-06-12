@@ -247,20 +247,21 @@ public class PaymentService {
      */
     @Transactional
     public void cancelPayment(String paymentKey, String cancelReason) {
+        // 1. 결제 조회
         Payment payment = paymentRepository.findByPaymentKey(paymentKey)
             .orElseThrow(() -> new ApiException("결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        // Toss에 결제 취소 요청
+        // 2. Toss API에 취소 요청
         tossPaymentClient.requestCancel(paymentKey, cancelReason);
 
-        // 상태 변경
-        payment.cancel();  // 상태: CANCEL
+        // 3. PaymentStatus 변경 및 db에도 동기화
+        payment.cancel();
         paymentRepository.save(payment);
 
-        // 연결된 PaymentOrder 상태도 같이 변경
+        // 중간테이블(PaymentOrder)을 통해, 연결된 주문들의 상태도 같이 변경
         List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
-        for (PaymentOrder po : orders) {
-            po.cancel();  // 상태: CANCEL, 취소시간
+        for (PaymentOrder paymentOrder : orders) {
+            paymentOrder.cancel();  // 결제상태, 취소시간 변경
         }
     }
 

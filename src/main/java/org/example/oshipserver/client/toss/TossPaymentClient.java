@@ -85,15 +85,18 @@ public class TossPaymentClient { // 외부 연동 모듈
     public void requestCancel(String paymentKey, String cancelReason) {
         String url = "https://api.tosspayments.com/v1/payments/" + paymentKey + "/cancel";
 
+        // 헤더 구성
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Basic " +
             Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8)));
 
+        // 요청 바디 구성
         Map<String, String> body = Map.of("cancelReason", cancelReason);
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
 
-        restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);  // Toss 응답 바디 없어도 OK
+        // Toss로 POST 요청 실행
+        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
+        restTemplate.exchange(url, HttpMethod.POST, entity, Void.class); // Toss가 우리 서버에 주는 응답바디 없음
     }
 
 }
