@@ -46,3 +46,5 @@ application-prod.yml
 mysql/
 redis/
 /src/main/generated/
+#로그파일
+/logs
