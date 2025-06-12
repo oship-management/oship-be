@@ -13,6 +13,7 @@ import org.example.oshipserver.domain.order.dto.response.OrderStatsResponse;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -52,6 +53,17 @@ public class OrderStatsService {
             getDailyOrderCount(orders)
         );
     }
+
+    /**
+     * v2: 캐시 적용된 월별 통계 조회 API
+     * 캐시 키 예: seller:dashboard:123:202406
+     */
+    @Cacheable(value = "sellerStats", key = "'seller:dashboard:' + #sellerId + ':' + #monthStr.replace('-', '')")
+    public OrderStatsResponse getMonthlyStatsV2(Long sellerId, String monthStr) {
+        return getMonthlyStats(sellerId, monthStr);
+    }
+
+
 
     /**
      * 주문 상태별 건수를 계산
