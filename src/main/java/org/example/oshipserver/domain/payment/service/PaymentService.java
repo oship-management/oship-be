@@ -271,14 +271,18 @@ public class PaymentService {
             payment.cancel();
             paymentRepository.save(payment);
 
-            // 주문 상태도 함께 변경
+            // 전체취소일때는 주문 상태도 함께 변경
             List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
             for (PaymentOrder paymentOrder : orders) {
                 paymentOrder.cancel();
             }
+
+            // 취소 이력 저장
+            PaymentCancelHistory history = PaymentCancelHistory.create(payment, payment.getAmount(), cancelReason);
+            paymentCancelHistoryRepository.save(history);
         } else {
             // 부분 취소
-            payment.partialCancel(cancelAmount, cancelReason);
+            payment.partialCancel(cancelAmount, cancelReason);  // 결제상태만 변경 (주문상태는 그대로 둠)
             paymentRepository.save(payment);
 
             //  부분 취소 이력 저장
