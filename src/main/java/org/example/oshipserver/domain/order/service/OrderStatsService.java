@@ -1,5 +1,8 @@
 package org.example.oshipserver.domain.order.service;
 
+import static org.example.oshipserver.global.config.RedisCacheConfig.CURRENT_MONTH_CACHE;
+import static org.example.oshipserver.global.config.RedisCacheConfig.PAST_MONTH_CACHE;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +18,7 @@ import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+
 
 @Service
 @RequiredArgsConstructor
@@ -55,15 +59,85 @@ public class OrderStatsService {
     }
 
     /**
-     * v2: 캐시 적용된 월별 통계 조회 API
-     * 캐시 키 예: seller:dashboard:123:202406
+     *  [v2] 캐시 적용된 월별 통계 API
+     *
+     * - 현재 월: 캐시 사용하지 않고 매번 DB 조회
+     * - 과거 월: 변동이 없으므로 캐시 적용
+     *
      */
-    @Cacheable(value = "sellerStats", key = "'seller:dashboard:' + #sellerId + ':' + #monthStr.replace('-', '')")
     public OrderStatsResponse getMonthlyStatsV2(Long sellerId, String monthStr) {
+        if (isCurrentMonth(monthStr)) {
+            // 현재 월은 캐싱하지 않고 항상 fresh하게 조회
+            return getMonthlyStats(sellerId, monthStr);
+        } else {
+            // 과거 월은 캐시를 적용하여 조회
+            return getCachedMonthlyStats(sellerId, monthStr);
+        }
+    }
+
+
+    /**
+     * [v3] Redis 캐시 기반 월별 통계 API
+     *
+     * - 현재 월: 실시간 조회
+     * - 과거 월: Redis 캐시 사용
+     */
+    public OrderStatsResponse getMonthlyStatsV3(Long sellerId, String monthStr) {
+        if (isCurrentMonth(monthStr)) {
+            return getCachedCurrentMonthStatsFromRedis(sellerId, monthStr);
+        }
+        else {
+            return getCachedMonthlyStatsFromRedis(sellerId, monthStr); // 과거 월은 Redis 캐시 사용
+        }
+    }
+
+    /**
+     * 현재 월 Redis 캐시 적용 (TTL: 5분)
+     */
+    @Cacheable(
+        value = CURRENT_MONTH_CACHE,
+        key = "T(org.example.oshipserver.global.common.utils.CacheKeyUtil).getRedisCurrentMonthStatsKey(#sellerId)"
+    )
+    public OrderStatsResponse getCachedCurrentMonthStatsFromRedis(Long sellerId, String monthStr) {
+        return getMonthlyStats(sellerId, monthStr);
+    }
+
+    /**
+     * 과거 월 Redis 캐시 적용 (TTL: 7일)
+     */
+    @Cacheable(
+        value = PAST_MONTH_CACHE,
+        key = "T(org.example.oshipserver.global.common.utils.CacheKeyUtil).getRedisPastMonthStatsKey(#sellerId, #monthStr)"
+    )
+    public OrderStatsResponse getCachedMonthlyStatsFromRedis(Long sellerId, String monthStr) {
         return getMonthlyStats(sellerId, monthStr);
     }
 
 
+    /**
+     * 캐시가 적용된 과거 월 통계 조회
+     *
+     * - Caffeine 등 로컬 캐시 사용
+     */
+    @Cacheable(
+        value = "sellerStats",
+        key = "T(org.example.oshipserver.global.common.utils.CacheKeyUtil).getLocalMonthlyStatsKey(#sellerId, #monthStr)"
+    )
+    public OrderStatsResponse getCachedMonthlyStats(Long sellerId, String monthStr) {
+        return getMonthlyStats(sellerId, monthStr);
+    }
+
+    /**
+     *  현재 월인지 판단
+     *
+     * @param monthStr "yyyy-MM" 형식의 입력 문자열
+     * @return true: 현재 월, false: 과거 월
+     */
+    private boolean isCurrentMonth(String monthStr) {
+        YearMonth now = YearMonth.now();
+        YearMonth input = YearMonth.parse(monthStr);
+        return now.equals(input);
+    }
 
     /**
      * 주문 상태별 건수를 계산

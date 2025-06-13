@@ -32,8 +32,18 @@ public class OrderStatsController {
         @RequestParam String month
     ) {
         OrderStatsResponse response = orderStatsService.getMonthlyStatsV2(sellerId, month);
-        return ResponseEntity.ok(new BaseResponse<>(200, "셀러 주문 통계 조회 성공 (v2 - 캐시 적용)", response));
+        return ResponseEntity.ok(new BaseResponse<>(200, "셀러 주문 통계 조회 성공 (v2 - Local 캐시 적용)", response));
     }
+
+    @GetMapping("/v3/seller-stats/monthly")
+    public ResponseEntity<BaseResponse<OrderStatsResponse>> getMonthlyStatsV3(
+        @RequestParam Long sellerId,
+        @RequestParam String month
+    ) {
+        OrderStatsResponse response = orderStatsService.getMonthlyStatsV3(sellerId, month);
+        return ResponseEntity.ok(new BaseResponse<>(200, "셀러 주문 통계 조회 성공 (v3 - Redis 캐시 적용)", response));
+    }
+
 
 }
 
