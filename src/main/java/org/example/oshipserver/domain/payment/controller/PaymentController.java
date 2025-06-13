@@ -6,6 +6,7 @@ import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmReq
 import org.example.oshipserver.domain.payment.dto.request.PaymentCancelRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
@@ -76,8 +77,17 @@ public class PaymentController {
     }
 
     /**
-     * 내부 주문 기준 결제 조회
+     * Toss 결제 취소 이력 조회
      */
+    @GetMapping("/{paymentKey}/cancel-history")
+    public ResponseEntity<List<PaymentCancelHistoryResponse>> getCancelHistory(
+        @PathVariable String paymentKey
+    ) {
+        List<PaymentCancelHistoryResponse> histories = paymentService.getCancelHistory(paymentKey);
+        return ResponseEntity.ok(histories);
+    }
+
+    // 내부 주문 기준 결제 조회
     @GetMapping("/orders/{orderId}")
     public ResponseEntity<PaymentLookupResponse> getPaymentByOrderId(@PathVariable Long orderId) {
         PaymentLookupResponse response = paymentService.getPaymentByOrderId(orderId);
