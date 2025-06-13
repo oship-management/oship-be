@@ -55,6 +55,7 @@ public class PaymentService {
     /**
      * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
      */
+    @Transactional
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
         // 1. DB 기준 중복 확인 (동시성 보장x)
@@ -326,6 +327,24 @@ public class PaymentService {
         return PaymentLookupResponse.convertFromTossLookup(tossResponse);
     }
 
+    /**
+     * 결제 취소 이력 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PaymentCancelHistoryResponse> getCancelHistory(String paymentKey) {
+        // 1. 결제 정보 조회
+        Payment payment = paymentRepository.findByPaymentKey(paymentKey)
+            .orElseThrow(() -> new ApiException("결제 정보가 없습니다.", ErrorType.NOT_FOUND));
+
+        // 2. 취소이력 조회
+        List<PaymentCancelHistory> histories = paymentCancelHistoryRepository.findByPayment(payment);
+
+        // 3. DTO 변환
+        return histories.stream()
+            .map(PaymentCancelHistoryResponse::fromEntity)
+            .toList();
+    }
+
     // 하나의 orderId에 연결된 모든 결제 조회 (확장용)
     @Transactional(readOnly = true)
     public List<PaymentLookupResponse> getAllPaymentsByOrderId(Long orderId) {
@@ -352,24 +371,6 @@ public class PaymentService {
             })
             .toList();
     }
-
-    /**
-     * 결제 취소 이력 조회
-     */
-    public List<PaymentCancelHistoryResponse> getCancelHistory(String paymentKey) {
-        // 1. 결제 정보 조회
-        Payment payment = paymentRepository.findByPaymentKey(paymentKey)
-            .orElseThrow(() -> new ApiException("결제 정보가 없습니다.", ErrorType.NOT_FOUND));
-
-        // 2. 취소이력 조회
-        List<PaymentCancelHistory> histories = paymentCancelHistoryRepository.findByPayment(payment);
-
-        // 3. DTO 변환
-        return histories.stream()
-            .map(PaymentCancelHistoryResponse::fromEntity)
-            .toList();
-    }
-
 
     private String getLast4Digits(String cardNumber) {
         if (cardNumber != null && cardNumber.length() >= 4) {
