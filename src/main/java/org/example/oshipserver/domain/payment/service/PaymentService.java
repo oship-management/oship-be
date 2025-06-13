@@ -337,11 +337,14 @@ public class PaymentService {
      * 결제 취소 이력 조회
      */
     public List<PaymentCancelHistoryResponse> getCancelHistory(String paymentKey) {
+        // 1. 결제 정보 조회
         Payment payment = paymentRepository.findByPaymentKey(paymentKey)
             .orElseThrow(() -> new ApiException("결제 정보가 없습니다.", ErrorType.NOT_FOUND));
 
+        // 2. 취소이력 조회
         List<PaymentCancelHistory> histories = paymentCancelHistoryRepository.findByPayment(payment);
 
+        // 3. DTO 변환
         return histories.stream()
             .map(PaymentCancelHistoryResponse::fromEntity)
             .toList();
