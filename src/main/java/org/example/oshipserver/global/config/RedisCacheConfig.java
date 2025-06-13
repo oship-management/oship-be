@@ -3,10 +3,10 @@ package org.example.oshipserver.global.config;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -23,6 +23,7 @@ public class RedisCacheConfig {
     public static final String CURRENT_MONTH_CACHE = "sellerStatsRedis:current";
     public static final String PAST_MONTH_CACHE = "sellerStatsRedis:past";
 
+    @Primary
     @Bean
     public CacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
 
