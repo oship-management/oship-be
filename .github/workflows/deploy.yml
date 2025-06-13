@@ -1,12 +1,16 @@
 name: DEPLOY
 
 on:
-  pull_request:
+  push:
     branches:
       - main
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
+      FEDEX_API_URL: ${{secrets.FEDEX_API_URL}}
 
     steps:
       - uses: actions/checkout@v3
