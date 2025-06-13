@@ -2,6 +2,7 @@ package org.example.oshipserver.client.toss;
 
 import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.global.exception.ApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -65,14 +66,14 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             // Toss API에서 에러 응답이 온 경우
-            System.err.println("[Toss 에러 응답] 상태코드: " + e.getStatusCode());
+            System.err.println("[Toss 호출 실패] 상태코드: " + e.getStatusCode());
             System.err.println("[Toss 에러 바디] " + e.getResponseBodyAsString());
-            throw e; // 혹은 CustomException으로 감싸서 throw
+            throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             // 네트워크 오류 등 기타 예외
             System.err.println("[Toss 호출 예외 발생] " + e.getMessage());
             e.printStackTrace();
-            throw e;
+            throw new ApiException("Toss 호출 중 알 수 없는 오류 발생", e);
         }
     }
 }
