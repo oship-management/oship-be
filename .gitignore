@@ -42,7 +42,9 @@ out/
 
 # yml
 application-prod.yml
-.env
-mysql/
-redis/
+infra/.env
+infra/mysql/
+infra/redis/
 /src/main/generated/
+#로그파일
+/logs
