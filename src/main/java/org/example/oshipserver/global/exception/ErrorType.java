@@ -27,6 +27,7 @@ public enum ErrorType{
     INVALID_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 방식입니다."),
     ALREADY_CANCELED(HttpStatus.BAD_REQUEST, "이미 전체 금액이 취소되었습니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청이 올바르지 않습니다."),
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다."),
 
     // Shipping/Barcode 관련 에러
     BARCODE_NOT_PRINTED(HttpStatus.BAD_REQUEST, "바코드가 출력되지 않았습니다."),
