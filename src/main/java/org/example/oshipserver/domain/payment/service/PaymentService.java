@@ -15,6 +15,7 @@ import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmReq
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest.MultiOrderRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
@@ -38,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.example.oshipserver.global.exception.ApiException;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.transaction.annotation.Transactional;
+import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 
 
 @Service
@@ -50,8 +52,9 @@ public class PaymentService {
     private final PaymentCancelHistoryRepository paymentCancelHistoryRepository;
     private final OrderRepository orderRepository;
 
-
-    // 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+    /**
+     * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+     */
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
         // 1. DB 기준 중복 확인 (동시성 보장x)
@@ -125,7 +128,10 @@ public class PaymentService {
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
     }
 
-    // 다건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+
+    /**
+     * 다건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+     */
     @Transactional
     public MultiPaymentConfirmResponse confirmMultiPayment(MultiPaymentConfirmRequest request) {
         // 1. 중복 결제 방지 (paymentKey)
@@ -322,6 +328,21 @@ public class PaymentService {
             })
             .toList();
     }
+
+    /**
+     * 결제 취소 이력 조회
+     */
+    public List<PaymentCancelHistoryResponse> getCancelHistory(String paymentKey) {
+        Payment payment = paymentRepository.findByPaymentKey(paymentKey)
+            .orElseThrow(() -> new ApiException("결제 정보가 없습니다.", ErrorType.NOT_FOUND));
+
+        List<PaymentCancelHistory> histories = paymentCancelHistoryRepository.findByPayment(payment);
+
+        return histories.stream()
+            .map(PaymentCancelHistoryResponse::fromEntity)
+            .toList();
+    }
+
 
     private String getLast4Digits(String cardNumber) {
         if (cardNumber != null && cardNumber.length() >= 4) {
