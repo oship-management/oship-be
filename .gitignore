@@ -42,7 +42,7 @@ out/
 
 # yml
 application-prod.yml
-infra/.env
+.env
 infra/mysql/
 infra/redis/
 /src/main/generated/
