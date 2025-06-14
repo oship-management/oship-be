@@ -67,15 +67,15 @@ public class GlobalExceptionHandler {
     //외부클라이언트에러
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<BaseExceptionResponse> handleHttpClient(HttpClientErrorException e){
-
+        log.error("error : " , e);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new BaseExceptionResponse(e.getStatusCode().value(), "API 오류"));
 
     }
     //500 에러 처리해야댐
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<BaseExceptionResponse> handleHttpClient(RuntimeException e){
-
+    public ResponseEntity<BaseExceptionResponse> handleError(RuntimeException e){
+        log.error("error : ", e);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new BaseExceptionResponse(HttpStatus.BAD_REQUEST.value(), "API 오류"));
 
