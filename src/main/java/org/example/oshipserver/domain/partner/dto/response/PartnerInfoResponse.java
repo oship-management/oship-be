@@ -1,5 +1,6 @@
 package org.example.oshipserver.domain.partner.dto.response;
 
+import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.user.enums.UserRole;
 
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ public record PartnerInfoResponse (
         Long userId,
         String email,
         UserRole userRole,
-        LocalDateTime lastLoginAt
+        LocalDateTime lastLoginAt,
+        AuthAddressResponse addressResponse
 ){
 }

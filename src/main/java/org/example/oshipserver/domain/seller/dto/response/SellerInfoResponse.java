@@ -1,5 +1,6 @@
 package org.example.oshipserver.domain.seller.dto.response;
 
+import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.user.enums.UserRole;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public record SellerInfoResponse(
         Long userId,
         String email,
         UserRole userRole,
-        LocalDateTime lastLoginAt
+        LocalDateTime lastLoginAt,
+        AuthAddressResponse addressResponse
 ) {
 }

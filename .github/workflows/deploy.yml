@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
-      FEDEX_API_URL: ${{secrets.FEDEX_API_URL}}
+      FEDEX_API_URL: ${{ secrets.FEDEX_API_URL }}
 
     steps:
       - uses: actions/checkout@v3
@@ -37,7 +38,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -t mxcoogi/oship-repo .
+        run: docker buildx build --platform linux/amd64 -t mxcoogi/oship-repo --load .
 
       - name: Push Docker image to Docker Hub
         run: docker push mxcoogi/oship-repo

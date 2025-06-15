@@ -12,6 +12,8 @@ import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.global.common.response.BaseExceptionResponse;
 import org.example.oshipserver.global.common.utils.JwtUtil;
+import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,8 +44,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
             try {
                 jwt = jwt.substring(7);
-                if(refreshTokenRepository.isBlacklisted(jwt)){
-                    throw new RuntimeException();
+                if(refreshTokenRepository.isBlacklisted(jwt)){ //블랙리스트에 토큰 유무 검사 true -> 토큰유효하지 않음
+                    throw new ApiException(ErrorType.TOKEN_BLACKLISTED.getDesc(), ErrorType.TOKEN_BLACKLISTED);
                 }
                 Claims claims = jwtUtil.validateToken(jwt);
                 String userId = claims.getSubject();
@@ -53,17 +55,30 @@ public class JwtFilter extends OncePerRequestFilter {
                 Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, jwt, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
-            catch (Exception e) {
-                SecurityContextHolder.clearContext();
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setCharacterEncoding("UTF-8");
-                response.setContentType("application/json; charset=UTF-8");
-                BaseExceptionResponse errorResponse = new BaseExceptionResponse(401, "유효하지 않은 토큰입니다");
-                response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
-                return;
+            catch (ApiException e) {
+                handleAuthException(response, e);
+                return ;
+            } catch (Exception e) {
+                // 예상치 못한 에러 방어
+                handleAuthException(response, new ApiException(ErrorType.UNAUTHORIZED.getDesc(), ErrorType.UNAUTHORIZED));
+                return ;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void handleAuthException(HttpServletResponse response, ApiException e) throws IOException {
+        SecurityContextHolder.clearContext();
+        response.setStatus(e.getErrorType().getStatus().value());
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json; charset=UTF-8");
+
+        BaseExceptionResponse errorResponse = new BaseExceptionResponse(
+                e.getErrorType().getStatus().value(),
+                e.getMessage()
+        );
+
+        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }

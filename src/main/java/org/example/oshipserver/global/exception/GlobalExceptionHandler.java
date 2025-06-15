@@ -67,18 +67,19 @@ public class GlobalExceptionHandler {
     //외부클라이언트에러
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<BaseExceptionResponse> handleHttpClient(HttpClientErrorException e){
-
+        log.error("서버 내부 HttpClientException 발생: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new BaseExceptionResponse(e.getStatusCode().value(), "API 오류"));
+                .body(new BaseExceptionResponse(e.getStatusCode().value(), e.getMessage()));
 
     }
     //500 에러 처리해야댐
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<BaseExceptionResponse> handleHttpClient(RuntimeException e){
+    public ResponseEntity<BaseExceptionResponse> handleRuntimeException(RuntimeException e) {
+        // 스택 트레이스 + 원인까지 출력
+        log.error("서버 내부 RuntimeException 발생: {}", e.getMessage());
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new BaseExceptionResponse(HttpStatus.BAD_REQUEST.value(), "API 오류"));
-
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new BaseExceptionResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "서버 내부 오류 발생"));
     }
 
 }

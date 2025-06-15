@@ -20,8 +20,12 @@ public enum ErrorType{
     //인증/인가
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
-    TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다"),
-
+    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다"),
+    TOKEN_MALFORMED(HttpStatus.UNAUTHORIZED, "잘못된 형식의 토큰입니다."),
+    TOKEN_SIGNATURE_INVALID(HttpStatus.UNAUTHORIZED, "토큰의 서명이 유효하지 않습니다."),
+    TOKEN_UNSUPPORTED(HttpStatus.UNAUTHORIZED, "지원하지 않는 토큰입니다."),
+    TOKEN_ILLEGAL_ARGUMENT(HttpStatus.UNAUTHORIZED, "토큰 값이 비어있거나 잘못되었습니다."),
+    TOKEN_BLACKLISTED(HttpStatus.UNAUTHORIZED, "블랙리스트에 등록된 토큰입니다."),
     // Payment 관련 에러
     DUPLICATED_PAYMENT(HttpStatus.BAD_REQUEST, "이미 처리된 결제입니다."),
     INVALID_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 방식입니다."),
