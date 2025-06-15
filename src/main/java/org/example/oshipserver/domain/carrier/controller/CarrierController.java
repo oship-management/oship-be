@@ -2,7 +2,7 @@ package org.example.oshipserver.domain.carrier.controller;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.example.oshipserver.domain.carrier.dto.CarrierRateDto;
+import org.example.oshipserver.domain.carrier.dto.PartnerCarrierNativeDto;
 import org.example.oshipserver.domain.carrier.service.CarrierService;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
@@ -20,7 +20,7 @@ public class CarrierController {
     private final CarrierService carrierService;
 
     @GetMapping("/rates")
-    public ResponseEntity<BaseResponse<List<CarrierRateDto.CarrierResponse>>> getRates(
+    public ResponseEntity<BaseResponse<List<PartnerCarrierNativeDto>>> getRates(
         @RequestParam List<Long> orderIds) {
         return ResponseEntity.status(HttpStatus.OK).body(new BaseResponse<>(HttpStatus.OK.value(), "성공", carrierService.getCarrierRatesForOrder(orderIds)));
     }
