@@ -23,13 +23,15 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
      * 특정 셀러의 지정된 월에 생성된 주문들을 조회
      *
      *
-     * @param sellerId 셀러의 고유 ID
-     * @param startOfMonth 조회 시작일
-     * @param endOfMonth   조회 종료일
-     * @return 조건에 부합하는 주문 목록
+     - Order ↔ OrderItem: @OneToMany 관계
+     *  - order.getOrderItems() 호출 시 Lazy 로딩 발생 → N+1 발생
+     *  - 이를 방지하기 위해 fetch join으로 함께 한 번에 조회
      */
     @Query("""
-    SELECT o FROM Order o
+    SELECT DISTINCT o FROM Order o
+    LEFT JOIN FETCH o.orderItems
+    LEFT JOIN FETCH o.sender
+    LEFT JOIN FETCH o.recipient
     WHERE o.sellerId = :sellerId
       AND o.deleted = false
       AND o.createdAt BETWEEN :startOfMonth AND :endOfMonth

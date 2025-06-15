@@ -1,5 +1,7 @@
 package org.example.oshipserver.domain.order.service;
 
+import static org.example.oshipserver.global.config.RedisCacheConfig.CURRENT_MONTH_CACHE;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -24,12 +26,14 @@ import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventH
 import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 @Service
 @RequiredArgsConstructor
@@ -164,7 +168,6 @@ public class OrderService {
         return PageResponseDto.toDto(orders.map(OrderListResponse::from));
     }
 
-
     @Transactional(readOnly = true)
     public OrderDetailResponse getOrderDetail(Long orderId) {
         Order order = orderRepository.findById(orderId)
@@ -174,6 +177,10 @@ public class OrderService {
     }
 
     @Transactional
+    @CacheEvict(
+        value = {CURRENT_MONTH_CACHE, "sellerStats"}, // Redis + Local 캐시 모두 무효화
+        key = "T(org.example.oshipserver.global.common.utils.CacheKeyUtil).getRedisCurrentMonthStatsKey(#request.sellerId)"
+    )
     public void updateOrder(Long orderId, OrderUpdateRequest request) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
