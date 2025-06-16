@@ -91,8 +91,8 @@ public class PaymentService {
         }
 
         // 4. 실제 결제 방식 추후 매핑 예정
-        PaymentMethod method = PaymentMethod.CARD;
-        // PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
+//        PaymentMethod method = PaymentMethod.CARD;
+         PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
         // 5. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
@@ -106,7 +106,9 @@ public class PaymentService {
             .status(PaymentStatusMapper.fromToss(tossResponse.status()))
             .build();
 
-        payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        if (tossResponse.card() != null) {
+            payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        }
         payment.setReceiptUrl(tossResponse.receipt().url());
 
         paymentRepository.save(payment);
@@ -169,8 +171,8 @@ public class PaymentService {
         }
 
         // 4. 실제 결제 방식 추후 매핑 예정
-        PaymentMethod method = PaymentMethod.CARD;
-        // PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
+//        PaymentMethod method = PaymentMethod.CARD;
+         PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
         // 5. toss 응답 기반으로 payment 엔티티 생성 및 저장
         Payment payment = Payment.builder()
@@ -184,7 +186,9 @@ public class PaymentService {
             .status(PaymentStatusMapper.fromToss(tossResponse.status()))
             .build();
 
-        payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        if (tossResponse.card() != null) {
+            payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        }
         payment.setReceiptUrl(tossResponse.receipt().url());
 
         paymentRepository.save(payment);
