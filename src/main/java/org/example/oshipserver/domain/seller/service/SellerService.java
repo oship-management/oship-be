@@ -10,7 +10,6 @@ import org.example.oshipserver.domain.seller.dto.request.SellerDeleteRequest;
 import org.example.oshipserver.domain.seller.dto.response.SellerInfoResponse;
 import org.example.oshipserver.domain.seller.repository.SellerRepository;
 import org.example.oshipserver.domain.user.entity.User;
-import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.domain.user.repository.UserRepository;
 import org.example.oshipserver.global.common.utils.PasswordEncoder;
 import org.example.oshipserver.global.exception.ApiException;
@@ -36,12 +35,8 @@ public class SellerService {
 
     @Transactional
     public void deleteSeller(Long userId, SellerDeleteRequest request, String accessToken){
-        System.out.println(request.password() + " " + request.passwordValid());
         User findUser = userRepository.findById(userId)
                 .orElseThrow(()->new ApiException("셀러 조회 실패", ErrorType.NOT_FOUND));
-        if(!findUser.getUserRole().equals(UserRole.SELLER)){
-            throw new ApiException("셀러가 아닙니다", ErrorType.FAIL);
-        }
         if (!request.password().equals(request.passwordValid())) {
             throw new ApiException("비밀번호가 일치하지 않습니다", ErrorType.VALID_FAIL);
         }
