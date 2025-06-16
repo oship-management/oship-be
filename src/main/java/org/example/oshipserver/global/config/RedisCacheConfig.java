@@ -20,11 +20,11 @@ public class RedisCacheConfig {
     // 캐시 TTL 설정
     private static final Duration DEFAULT_TTL = Duration.ofHours(6);
     private static final Duration CURRENT_MONTH_TTL = Duration.ofMinutes(5);
-    private static final Duration PAST_MONTH_TTL = Duration.ofDays(7);
+    private static final Duration PAST_MONTH_TTL = Duration.ofDays(3);
 
     // 캐시 이름
-    public static final String CURRENT_MONTH_CACHE = "sellerStatsRedis:current";
-    public static final String PAST_MONTH_CACHE = "sellerStatsRedis:past";
+    public static final String PAST_MONTH_CACHE = "sellerStatsPast";
+    public static final String CURRENT_MONTH_CACHE = "sellerStatsCurrent";
 
     /**
      * RedisCacheManager Bean 설정
