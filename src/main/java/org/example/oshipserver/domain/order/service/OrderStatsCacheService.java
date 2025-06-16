@@ -81,7 +81,7 @@ public class OrderStatsCacheService {
         key = "T(org.example.oshipserver.global.common.utils.CacheKeyUtil).getRedisCurrentMonthStatsKey(#sellerId)"
     )
     public OrderStatsResponse getCachedCurrentMonthStatsFromRedis(Long sellerId, String monthStr) {
-        String key = CacheKeyUtil.getRedisPastMonthStatsKey(sellerId, monthStr);
+        String key = CacheKeyUtil.getRedisCurrentMonthStatsKey(sellerId);
         log.info("[캐시 MISS] Redis 캐시 저장 시도: key={}, sellerId={}, monthStr={}", key, sellerId, monthStr);
         log.info("[캐시 MISS] CURRENT_MONTH_CACHE → sellerId={}, monthStr={}", sellerId, monthStr);
         return calculateStats(sellerId, monthStr);
@@ -93,6 +93,8 @@ public class OrderStatsCacheService {
     )
     public OrderStatsResponse getCachedMonthlyStatsFromRedis(Long sellerId, String monthStr) {
         log.info("[캐시 MISS] PAST_MONTH_CACHE → sellerId={}, monthStr={}", sellerId, monthStr);
+        String key = CacheKeyUtil.getRedisPastMonthStatsKey(sellerId, monthStr);
+        log.info("Redis 캐시 최종 key 확인: {}", key);
         return calculateStats(sellerId, monthStr);
     }
 
