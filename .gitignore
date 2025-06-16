@@ -20,6 +20,7 @@ bin/
 # QueryDSL Q타입 자동 생성 파일
 **/generated/
 
+
 ### IntelliJ IDEA ###
 .idea
 *.iws
@@ -41,13 +42,11 @@ out/
 
 # yml
 application-prod.yml
-infra/.env
+.env
 infra/mysql/
 infra/redis/
 /src/main/generated/
-
-# 로그파일
+#로그파일
 /logs
-
-# MySQL socket file
-mysql/data/*.sock
+/mysql
+/redis

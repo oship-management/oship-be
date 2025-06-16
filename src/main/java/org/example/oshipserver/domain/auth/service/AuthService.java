@@ -142,7 +142,7 @@ public class AuthService {
                 .orElseThrow(() -> new ApiException("유저를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
         String refreshToken = refreshTokenRepository.getRefreshToken(userId);
         if(!jwtUtil.isRefreshTokenValid(refreshToken)){
-            throw new ApiException("유효하지 않은 리프레시 토큰", ErrorType.FAIL);
+            throw new ApiException(ErrorType.TOKEN_EXPIRED.getDesc(), ErrorType.TOKEN_EXPIRED);
         }
         String accessToken = jwtUtil.createToken(findUser.getId(), findUser.getEmail(), findUser.getUserRole());
         return new TokenResponse(accessToken);
