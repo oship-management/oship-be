@@ -131,4 +131,17 @@ public class Payment extends BaseTimeEntity {
     public void cancel() {
         this.status = PaymentStatus.CANCEL;
     }
+
+    public void partialCancel(int cancelAmount, String cancelReason) {
+        // 전체 금액보다 많을 수 없도록 제어할 수도 있음
+        if (cancelAmount <= 0 || cancelAmount > this.amount) {
+            throw new IllegalArgumentException("부분 취소 금액이 유효하지 않습니다.");
+        }
+
+        // 부분 취소 상태로 변경
+        this.status = PaymentStatus.PARTIAL_CANCEL;
+
+        // 추후 이력 관리나 누적 취소 금액 관리로 확장 예정
+    }
+
 }

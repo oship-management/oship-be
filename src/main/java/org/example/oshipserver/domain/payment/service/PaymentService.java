@@ -15,26 +15,31 @@ import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmReq
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest.MultiOrderRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossSinglePaymentLookupResponse;
 import org.example.oshipserver.domain.payment.entity.Payment;
+import org.example.oshipserver.domain.payment.entity.PaymentCancelHistory;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
 import org.example.oshipserver.domain.payment.entity.PaymentOrder;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.domain.payment.mapper.PaymentMethodMapper;
 import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
+import org.example.oshipserver.domain.payment.repository.PaymentCancelHistoryRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentOrderRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.domain.payment.util.PaymentNoGenerator;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.example.oshipserver.global.exception.ApiException;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.transaction.annotation.Transactional;
+import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 
 
 @Service
@@ -44,13 +49,16 @@ public class PaymentService {
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRepository paymentRepository;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final PaymentCancelHistoryRepository paymentCancelHistoryRepository;
     private final OrderRepository orderRepository;
 
-
-    // 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+    /**
+     * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+     */
+    @Transactional
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
-        // 1. DB 기준 중복 확인
+        // 1. DB 기준 중복 확인 (동시성 보장x)
         if (paymentRepository.existsByPaymentKey(request.paymentKey())) {
             throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
         }
@@ -121,7 +129,10 @@ public class PaymentService {
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
     }
 
-    // 다건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+
+    /**
+     * 다건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
+     */
     @Transactional
     public MultiPaymentConfirmResponse confirmMultiPayment(MultiPaymentConfirmRequest request) {
         // 1. 중복 결제 방지 (paymentKey)
@@ -240,6 +251,67 @@ public class PaymentService {
             .toList();
     }
 
+    /**
+     * Toss 취소 요청 (전체/부분취소)
+     * @param paymentKey
+     * @param cancelReason
+     * @param cancelAmount null이면 전체 취소, 값이 있으면 부분 취소
+     */
+    @Transactional
+    public void cancelPayment(String paymentKey, String cancelReason, @Nullable Integer cancelAmount) {
+        // 1. 결제 조회
+        Payment payment = paymentRepository.findByPaymentKey(paymentKey)
+            .orElseThrow(() -> new ApiException("결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        // 2. 기존 취소 이력 합산
+        int totalCanceledAmount = paymentCancelHistoryRepository.findByPayment(payment)
+            .stream()
+            .mapToInt(PaymentCancelHistory::getCancelAmount)
+            .sum();
+
+        int remainingAmount = payment.getAmount() - totalCanceledAmount;
+
+        // 3. 전체 취소
+        if (cancelAmount == null) {
+            if (remainingAmount <= 0) {
+                throw new ApiException("이미 전체 금액이 취소되었습니다.", ErrorType.ALREADY_CANCELED);
+            }
+
+            // Toss에 남은 금액만큼 전체취소 요청
+            tossPaymentClient.requestCancel(paymentKey, cancelReason, remainingAmount);
+
+            // 상태 변경
+            payment.cancel();
+            paymentRepository.save(payment);
+
+            // 주문 상태도 전체취소로 변경
+            List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
+            for (PaymentOrder paymentOrder : orders) {
+                paymentOrder.cancel();
+            }
+
+            // 취소 이력 저장
+            PaymentCancelHistory history = PaymentCancelHistory.create(payment, remainingAmount, cancelReason);
+            paymentCancelHistoryRepository.save(history);
+
+        } else {
+            // 부분취소 요청이 남은 금액보다 크면 에러
+            if (cancelAmount > remainingAmount) {
+                throw new ApiException("취소 금액이 남은 결제 금액을 초과합니다.", ErrorType.INVALID_REQUEST);
+            }
+
+            // Toss에 부분취소 요청
+            tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
+
+            // 상태 변경
+            payment.partialCancel(cancelAmount, cancelReason);
+            paymentRepository.save(payment);
+
+            // 취소 이력 저장
+            PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason);
+            paymentCancelHistoryRepository.save(history);
+        }
+    }
 
     // 내부 orderId(Long) 기준으로 해당 주문에 연결된 결제 조회
     @Transactional(readOnly = true)
@@ -253,6 +325,24 @@ public class PaymentService {
             tossPaymentClient.requestSinglePaymentLookup(payment.getPaymentKey());
 
         return PaymentLookupResponse.convertFromTossLookup(tossResponse);
+    }
+
+    /**
+     * 결제 취소 이력 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PaymentCancelHistoryResponse> getCancelHistory(String paymentKey) {
+        // 1. 결제 정보 조회
+        Payment payment = paymentRepository.findByPaymentKey(paymentKey)
+            .orElseThrow(() -> new ApiException("결제 정보가 없습니다.", ErrorType.NOT_FOUND));
+
+        // 2. 취소이력 조회
+        List<PaymentCancelHistory> histories = paymentCancelHistoryRepository.findByPayment(payment);
+
+        // 3. DTO 변환
+        return histories.stream()
+            .map(PaymentCancelHistoryResponse::fromEntity)
+            .toList();
     }
 
     // 하나의 orderId에 연결된 모든 결제 조회 (확장용)

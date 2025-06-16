@@ -3,8 +3,10 @@ package org.example.oshipserver.domain.payment.controller;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
+import org.example.oshipserver.domain.payment.dto.request.PaymentCancelRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
@@ -61,8 +63,31 @@ public class PaymentController {
 
 
     /**
-     * 내부 주문 기준 결제 조회
+     * Toss 결제 취소 요청 (전체/부분 취소)
      */
+    @PostMapping("/{paymentKey}/cancel")
+    public ResponseEntity<String> cancelPayment(
+        @PathVariable String paymentKey,
+        @RequestBody PaymentCancelRequest request
+    ) {
+        paymentService.cancelPayment(paymentKey, request.cancelReason(), request.cancelAmount());
+        return ResponseEntity.ok(
+            request.cancelAmount() == null ? "결제가 성공적으로 취소되었습니다." : "부분 결제가 성공적으로 취소되었습니다."
+        );
+    }
+
+    /**
+     * Toss 결제 취소 이력 조회
+     */
+    @GetMapping("/{paymentKey}/cancel-history")
+    public ResponseEntity<List<PaymentCancelHistoryResponse>> getCancelHistory(
+        @PathVariable String paymentKey
+    ) {
+        List<PaymentCancelHistoryResponse> histories = paymentService.getCancelHistory(paymentKey);
+        return ResponseEntity.ok(histories);
+    }
+
+    // 내부 주문 기준 결제 조회
     @GetMapping("/orders/{orderId}")
     public ResponseEntity<PaymentLookupResponse> getPaymentByOrderId(@PathVariable Long orderId) {
         PaymentLookupResponse response = paymentService.getPaymentByOrderId(orderId);
