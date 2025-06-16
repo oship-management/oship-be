@@ -10,7 +10,6 @@ import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
 import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.user.entity.User;
-import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.domain.user.repository.UserRepository;
 import org.example.oshipserver.global.common.utils.PasswordEncoder;
 import org.example.oshipserver.global.exception.ApiException;
@@ -39,9 +38,6 @@ public class PartnerService {
         System.out.println(request.password() + " " + request.passwordValid());
         User findUser = userRepository.findById(userId)
                 .orElseThrow(()->new ApiException("파트너 조회 실패", ErrorType.NOT_FOUND));
-        if(!findUser.getUserRole().equals(UserRole.PARTNER)){
-            throw new ApiException("파트너가 아닙니다", ErrorType.FAIL);
-        }
         if (!request.password().equals(request.passwordValid())) {
             throw new ApiException("비밀번호가 일치하지 않습니다", ErrorType.VALID_FAIL);
         }

@@ -42,9 +42,15 @@ out/
 
 # yml
 application-prod.yml
-infra/.env
+.env
 infra/mysql/
 infra/redis/
 /src/main/generated/
+
 #로그파일
 /logs
+/mysql
+/redis
+
+# MySQL socket file
+mysql/data/*.sock

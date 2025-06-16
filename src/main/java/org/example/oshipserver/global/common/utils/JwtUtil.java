@@ -66,21 +66,34 @@ public class JwtUtil {
 
     public Claims validateToken(String token) {
         try {
-            // 토큰 파싱 및 검증 (서명 확인, 만료일 확인 포함)
             return Jwts.parserBuilder()
-                    .setSigningKey(key) // key는 JWT 생성 시 사용한 secret key
+                    .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
+
         } catch (ExpiredJwtException e) {
-            // 토큰 만료
-            throw new ApiException("Access token expired", ErrorType.TOKEN_EXPIRED);
+            //만료된 토큰
+            throw new ApiException(ErrorType.TOKEN_EXPIRED.getDesc(), ErrorType.TOKEN_EXPIRED);
         } catch (SignatureException e) {
-            // 서명 오류 (위조된 토큰)
-            throw new ApiException("Invalid token signature", ErrorType.UNAUTHORIZED);
+            //서명 오류 (변조 가능성)
+            throw new ApiException(ErrorType.TOKEN_SIGNATURE_INVALID.getDesc(), ErrorType.TOKEN_SIGNATURE_INVALID);
+
+        } catch (MalformedJwtException e) {
+            //토큰 구조 이상
+            throw new ApiException( ErrorType.TOKEN_MALFORMED.getDesc(), ErrorType.TOKEN_MALFORMED);
+
+        } catch (UnsupportedJwtException e) {
+            //지원하지 않는 토큰
+            throw new ApiException(ErrorType.TOKEN_UNSUPPORTED.getDesc(), ErrorType.TOKEN_UNSUPPORTED);
+
+        } catch (IllegalArgumentException e) {
+            //토큰이 null 또는 빈 값
+            throw new ApiException(ErrorType.TOKEN_ILLEGAL_ARGUMENT.getDesc(), ErrorType.TOKEN_ILLEGAL_ARGUMENT);
+
         } catch (JwtException e) {
-            // 그 외 JWT 관련 오류
-            throw new ApiException("Invalid token", ErrorType.UNAUTHORIZED);
+            //기타 JWT 관련 오류
+            throw new ApiException(ErrorType.UNAUTHORIZED.getDesc(), ErrorType.UNAUTHORIZED);
         }
     }
 

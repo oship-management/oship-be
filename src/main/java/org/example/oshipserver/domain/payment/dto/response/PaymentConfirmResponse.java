@@ -33,7 +33,9 @@ public record PaymentConfirmResponse(
             response.totalAmount(),
             response.currency(),
             method,
-            method == PaymentMethod.CARD && response.card() != null
+//            method == PaymentMethod.CARD && response.card() != null
+            (method == PaymentMethod.EASY_PAY_CARD || method == PaymentMethod.CARD) && response.card() != null
+
                 ? getLast4Digits(response.card().number())  // 결제방법이 카드일때만 카드4자리 보여줌
                 : null,
             response.receipt() != null ? response.receipt().url() : null

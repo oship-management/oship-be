@@ -10,7 +10,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import java.nio.charset.StandardCharsets;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식으로 처리
@@ -61,18 +63,18 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             );
 
             // 성공 응답 로그
-            System.out.println("[Toss 성공 응답] " + response.getBody());
+            log.info("[Toss 성공 응답] {}", response.getBody());
             return response.getBody();
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             // Toss API에서 에러 응답이 온 경우
-            System.err.println("[Toss 호출 실패] 상태코드: " + e.getStatusCode());
-            System.err.println("[Toss 에러 바디] " + e.getResponseBodyAsString());
+            log.error("[Toss 호출 실패] 상태코드: {}", e.getStatusCode());
+            log.error("[Toss 에러 바디] {}", e.getResponseBodyAsString());
             throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), e);
+
         } catch (Exception e) {
             // 네트워크 오류 등 기타 예외
-            System.err.println("[Toss 호출 예외 발생] " + e.getMessage());
-            e.printStackTrace();
+            log.error("[Toss 호출 예외 발생] {}", e.getMessage(), e);
             throw new ApiException("Toss 호출 중 알 수 없는 오류 발생", e);
         }
     }
