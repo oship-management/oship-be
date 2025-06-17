@@ -1,5 +1,6 @@
 package org.example.oshipserver.global.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +12,7 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+@Slf4j
 @Configuration
 @EnableRedisRepositories
 public class RedisConfig {
@@ -27,6 +29,7 @@ public RedisConnectionFactory redisConnectionFactory() {
     redisStandaloneConfiguration.setHostName(host);
     redisStandaloneConfiguration.setPort(port);
 
+    log.info("connect Elastic Cache");
     return new LettuceConnectionFactory(redisStandaloneConfiguration);
 }
 
