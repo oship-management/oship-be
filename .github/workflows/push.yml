@@ -9,6 +9,10 @@ jobs:
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
       FEDEX_API_URL: ${{secrets.FEDEX_API_URL}}
+      MAIL_HOST: ${{ secrets.MAIL_HOST }}
+      MAIL_PORT: ${{ secrets.MAIL_PORT }}
+      MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
