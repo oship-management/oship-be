@@ -1,6 +1,5 @@
 package org.example.oshipserver.domain.order.dto.request;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -57,5 +56,5 @@ public record OrderUpdateRequest(
     @NotBlank String shippingTerm,
     Long sellerId,
 
-    @NotEmpty List<@Valid OrderItemRequest> orderItems
+    @NotEmpty List<OrderItemRequest> orderItems
 ) {}
