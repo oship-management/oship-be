@@ -11,6 +11,7 @@ import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryR
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
+import org.example.oshipserver.domain.payment.dto.response.UserPaymentLookupResponse;
 import org.example.oshipserver.domain.payment.service.PaymentService;
 import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.global.common.response.BaseResponse;
@@ -47,23 +48,23 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Toss 기준 결제 조회 (결제상태 확인용)
-     */
-    @GetMapping("/toss-order/{tossOrderId}")
-    public ResponseEntity<PaymentLookupResponse> getPaymentByTossOrderId(@PathVariable String tossOrderId) {
-        PaymentLookupResponse response = paymentService.getPaymentByTossOrderId(tossOrderId);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Toss 기준 결제 조회 (주문 확인용) -> 해당 payment에 연결된 모든 order를 주문리스트로 반환
-     */
-    @GetMapping("/toss-order/{tossOrderId}/orders")
-    public ResponseEntity<List<PaymentOrderListResponse>> getOrdersByTossOrderId(@PathVariable String tossOrderId) {
-        List<PaymentOrderListResponse> response = paymentService.getOrdersByTossOrderId(tossOrderId);
-        return ResponseEntity.ok(response);
-    }
+//    /**
+//     * Toss 기준 결제 조회 (결제상태 확인용)
+//     */
+//    @GetMapping("/toss-order/{tossOrderId}")
+//    public ResponseEntity<PaymentLookupResponse> getPaymentByTossOrderId(@PathVariable String tossOrderId) {
+//        PaymentLookupResponse response = paymentService.getPaymentByTossOrderId(tossOrderId);
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    /**
+//     * Toss 기준 결제 조회 (주문 확인용) -> 해당 payment에 연결된 모든 order를 주문리스트로 반환
+//     */
+//    @GetMapping("/toss-order/{tossOrderId}/orders")
+//    public ResponseEntity<List<PaymentOrderListResponse>> getOrdersByTossOrderId(@PathVariable String tossOrderId) {
+//        List<PaymentOrderListResponse> response = paymentService.getOrdersByTossOrderId(tossOrderId);
+//        return ResponseEntity.ok(response);
+//    }
 
     /**
      * Toss 결제 취소 요청 (전체/부분 취소)
@@ -107,25 +108,11 @@ public class PaymentController {
      * @param userDetail
      */
     @GetMapping("/mypayments")
-    public ResponseEntity<List<PaymentLookupResponse>> getMyPayments(
+    public ResponseEntity<List<UserPaymentLookupResponse>> getMyPayments(
         @AuthenticationPrincipal CustomUserDetail userDetail) {
 
         Long userId = Long.valueOf(userDetail.getUserId());
-        List<PaymentLookupResponse> response = paymentService.getPaymentsByUser(userId);
-        return ResponseEntity.ok(response);
-    }
-
-    // 내부 주문 기준 결제 조회
-    @GetMapping("/orders/{orderId}")
-    public ResponseEntity<PaymentLookupResponse> getPaymentByOrderId(@PathVariable Long orderId) {
-        PaymentLookupResponse response = paymentService.getPaymentByOrderId(orderId);
-        return ResponseEntity.ok(response);
-    }
-
-    // 하나의 주문(orderId)에 연결된 모든 결제 조회
-    @GetMapping("/orders/{orderId}/payments")
-    public ResponseEntity<List<PaymentLookupResponse>> getAllPaymentsByOrderId(@PathVariable Long orderId) {
-        List<PaymentLookupResponse> response = paymentService.getAllPaymentsByOrderId(orderId);
+        List<UserPaymentLookupResponse> response = paymentService.getPaymentsByUser(userId);
         return ResponseEntity.ok(response);
     }
 

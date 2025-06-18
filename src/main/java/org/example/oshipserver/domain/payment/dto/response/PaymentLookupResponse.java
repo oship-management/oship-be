@@ -1,13 +1,16 @@
 package org.example.oshipserver.domain.payment.dto.response;
 
 import java.util.List;
-import org.example.oshipserver.domain.order.entity.Order;
+import java.util.Map;
+import org.example.oshipserver.domain.order.dto.response.OrderPaymentResponse;
 import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
+import org.example.oshipserver.domain.order.entity.Order;
 
 /**
- * 결제 단건 조회 응답 DTO (내부 응답용)
+ * 관리자 페이지용 (tossOrderId, paymentKey 포함)
+ * 결제 조회 응답 DTO (내부 응답용)
  */
 public record PaymentLookupResponse(
     String tossOrderId,
@@ -17,7 +20,8 @@ public record PaymentLookupResponse(
     Integer amount,
     String currency,
     String cardLast4Digits,
-    String receiptUrl
+    String receiptUrl,
+    List<OrderPaymentResponse> orders
 ) {
 
     /**
@@ -34,7 +38,8 @@ public record PaymentLookupResponse(
             response.totalAmount(),
             response.currency(),
             getLast4Digits(response.card() != null ? response.card().number() : null),
-            response.receipt() != null ? response.receipt().url() : null
+            response.receipt() != null ? response.receipt().url() : null,
+            List.of()
         );
     }
 
@@ -48,20 +53,28 @@ public record PaymentLookupResponse(
         return null;
     }
 
-    public static PaymentLookupResponse fromPaymentAndOrders(Payment payment, List<Order> orders) {
-        return new PaymentLookupResponse(
-            payment.getTossOrderId(),
-            payment.getPaymentKey(),
-            payment.getStatus(),
-            payment.getPaidAt().toString(),
-            payment.getAmount(),
-            payment.getCurrency(),
-            payment.getCardLast4Digits(),
-            payment.getReceiptUrl()
-        );
-    }
+//    public static PaymentLookupResponse fromPaymentAndOrders(Payment payment, List<Order> orders) {
+//        return new PaymentLookupResponse(
+//            payment.getTossOrderId(),
+//            payment.getPaymentKey(),
+//            payment.getStatus(),
+//            payment.getPaidAt().toString(),
+//            payment.getAmount(),
+//            payment.getCurrency(),
+//            payment.getCardLast4Digits(),
+//            payment.getReceiptUrl()
+//        );
+//    }
 
-    public static PaymentLookupResponse fromPaymentEntity(Payment payment) {
+    public static PaymentLookupResponse fromPaymentEntity(
+        Payment payment,
+        List<Order> orders,
+        Map<Long, Integer> orderAmounts
+    ) {
+        List<OrderPaymentResponse> orderResponses = orders.stream()
+            .map(order -> OrderPaymentResponse.from(order, orderAmounts.get(order.getId())))
+            .toList();
+
         return new PaymentLookupResponse(
             payment.getTossOrderId(),
             payment.getPaymentKey(),
@@ -70,7 +83,8 @@ public record PaymentLookupResponse(
             payment.getAmount(),
             payment.getCurrency(),
             payment.getCardLast4Digits()!= null ? payment.getCardLast4Digits() : null,
-            payment.getReceiptUrl()
+            payment.getReceiptUrl(),
+            orderResponses
         );
     }
 }

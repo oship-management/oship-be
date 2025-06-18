@@ -271,4 +271,20 @@ public class Order extends BaseTimeEntity {
     public void markAwbGenerated() {
         this.isPrintAwb = true;
     }
+
+    /**
+     * 결제 상태에 따른, 주문 상태 업데이트
+     */
+    public void markAsPaid() {
+        this.currentStatus = OrderStatus.PAID;
+    }
+    public void markAsCancelled() {
+        this.currentStatus = OrderStatus.CANCELLED;
+    }
+    public void markAsRefunded() {
+        this.currentStatus = OrderStatus.REFUNDED;
+    }
+    public void markAsFailed() {
+        this.currentStatus = OrderStatus.FAILED;
+    }
 }
