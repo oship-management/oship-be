@@ -6,10 +6,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
 import org.example.oshipserver.client.toss.TossPaymentClient;
+import org.example.oshipserver.domain.order.dto.response.OrderPaymentResponse;
 import org.example.oshipserver.domain.order.entity.Order;
+import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest.MultiOrderRequest;
@@ -21,6 +25,7 @@ import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossSinglePaymentLookupResponse;
+import org.example.oshipserver.domain.payment.dto.response.UserPaymentLookupResponse;
 import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentCancelHistory;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
@@ -115,8 +120,10 @@ public class PaymentService {
         }
         payment.setReceiptUrl(tossResponse.receipt().url());
 
+        // 6. 결제 저장
         paymentRepository.save(payment);
 
+        // 7. 결제-주문 중간 테이블 저장
         PaymentOrder paymentOrder = PaymentOrder.builder()
             .payment(payment)
             .order(order)
@@ -127,10 +134,15 @@ public class PaymentService {
 
         paymentOrderRepository.save(paymentOrder);
 
-        // 8. 응답 DTO 반환
+        // 8. 주문 상태 업데이트
+        if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {  // 중복 상태 변경 방지
+            order.markAsPaid();
+        }
+        orderRepository.save(order);
+
+        // 9. 응답 DTO 반환
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
     }
-
 
     /**
      * 다건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
@@ -170,15 +182,15 @@ public class PaymentService {
             throw e;
         }
 
-        // 6. 대표 주문으로부터 sellerId 추출
+        // 4. 대표 주문으로부터 sellerId 추출
         Long representativeOrderId = request.orders().get(0).orderId();
         Order mainOrder = orderRepository.findById(representativeOrderId)
             .orElseThrow(() -> new ApiException("대표 주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        // 4. 결제 방식 매핑
+        // 5. 결제 방식 매핑
         PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
-        // 5. toss 응답 기반으로 payment 엔티티 생성 및 저장
+        // 6. toss 응답 기반으로 payment 엔티티 생성 및 저장
         Payment payment = Payment.builder()
             .paymentNo(paymentNo)
             .paymentKey(tossResponse.paymentKey())
@@ -203,6 +215,7 @@ public class PaymentService {
             Order order = orderRepository.findById(o.orderId())
                 .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
+            // 결제-주문 연결하여 저장
             PaymentOrder paymentOrder = PaymentOrder.builder()
                 .payment(payment)
                 .order(order)
@@ -210,8 +223,13 @@ public class PaymentService {
                 .paymentStatus(payment.getStatus())
                 .confirmedAt(payment.getPaidAt())
                 .build();
-
             paymentOrderRepository.save(paymentOrder);
+
+            // 주문 상태 업데이트
+            if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {  // 중복 상태 변경 방지
+                order.markAsPaid();
+            }
+            orderRepository.save(order);
         }
 
         // 8. 응답용 orderId 리스트 추출
@@ -222,42 +240,42 @@ public class PaymentService {
         return MultiPaymentConfirmResponse.convertFromTossConfirm(tossResponse, orderIds);
     }
 
-    /**
-     * Toss 기준 결제 조회 (결제상태 확인용)
-     * tossOrderId로 단건 조회 또는 다건 조회(대표 orderId)
-     */
-    @Transactional(readOnly = true)
-    public PaymentLookupResponse getPaymentByTossOrderId(String tossOrderId) {
-        Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
-            .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
-
-        List<Order> orders = payment.getOrders();  // 연결된 주문 목록 조회
-
-        return PaymentLookupResponse.fromPaymentAndOrders(payment, orders);
-    }
-
-    /**
-     * Toss 기준 결제 조회 (주문 확인용)
-     * -> 해당 payment에 연결된 모든 order를 주문리스트로 반환
-     */
-    @Transactional(readOnly = true)
-    public List<PaymentOrderListResponse> getOrdersByTossOrderId(String tossOrderId) {
-        // 결제 정보 조회
-        Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
-            .orElseThrow(() -> new ApiException("해당 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
-
-        // 2. 결제에 연결된 모든 주문 조회
-        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
-
-        if (paymentOrders.isEmpty()) {
-            throw new ApiException("해당 결제에 연결된 주문이 없습니다.", ErrorType.NOT_FOUND);
-        }
-
-        // 3. 주문 리스트를 DTO로 변환
-        return paymentOrders.stream()
-            .map(po -> PaymentOrderListResponse.from(po.getOrder()))
-            .toList();
-    }
+//    /**
+//     * Toss 기준 결제 조회 (결제상태 확인용)
+//     * tossOrderId로 단건 조회 또는 다건 조회(대표 orderId)
+//     */
+//    @Transactional(readOnly = true)
+//    public PaymentLookupResponse getPaymentByTossOrderId(String tossOrderId) {
+//        Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
+//            .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+//
+//        List<Order> orders = payment.getOrders();  // 연결된 주문 목록 조회
+//
+//        return PaymentLookupResponse.fromPaymentAndOrders(payment, orders);
+//    }
+//
+//    /**
+//     * Toss 기준 결제 조회 (주문 확인용)
+//     * -> 해당 payment에 연결된 모든 order를 주문리스트로 반환
+//     */
+//    @Transactional(readOnly = true)
+//    public List<PaymentOrderListResponse> getOrdersByTossOrderId(String tossOrderId) {
+//        // 결제 정보 조회
+//        Payment payment = paymentRepository.findByTossOrderId(tossOrderId)
+//            .orElseThrow(() -> new ApiException("해당 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+//
+//        // 2. 결제에 연결된 모든 주문 조회
+//        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
+//
+//        if (paymentOrders.isEmpty()) {
+//            throw new ApiException("해당 결제에 연결된 주문이 없습니다.", ErrorType.NOT_FOUND);
+//        }
+//
+//        // 3. 주문 리스트를 DTO로 변환
+//        return paymentOrders.stream()
+//            .map(po -> PaymentOrderListResponse.from(po.getOrder()))
+//            .toList();
+//    }
 
     /**
      * Toss 취소 요청 (전체/부분취소)
@@ -288,7 +306,7 @@ public class PaymentService {
             // Toss에 남은 금액만큼 전체취소 요청
             tossPaymentClient.requestCancel(paymentKey, cancelReason, remainingAmount);
 
-            // 상태 변경
+            // paymentStatus 변경
             payment.cancel();
             paymentRepository.save(payment);
 
@@ -296,6 +314,13 @@ public class PaymentService {
             List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
             for (PaymentOrder paymentOrder : orders) {
                 paymentOrder.cancel();
+
+                // orderStatus 변경
+                Order order = paymentOrder.getOrder();
+                if (!order.getCurrentStatus().equals(OrderStatus.CANCELLED)) {
+                    order.markAsCancelled();
+                    orderRepository.save(order);
+                }
             }
 
             // 취소 이력 저장
@@ -311,13 +336,26 @@ public class PaymentService {
             // Toss에 부분취소 요청
             tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
 
-            // 상태 변경
+            // paymentStatus 변경
             payment.partialCancel(cancelAmount, cancelReason);
             paymentRepository.save(payment);
 
             // 취소 이력 저장
             PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason);
             paymentCancelHistoryRepository.save(history);
+
+            // orderStatus 변경 : 전체 금액이 취소된 경우에만 REFUNDED로 변경되도록 (부분취소는 여전히 PAID)
+            int newTotalCanceled = totalCanceledAmount + cancelAmount;
+            if (newTotalCanceled == payment.getAmount()) {
+                List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
+                for (PaymentOrder paymentOrder : orders) {
+                    Order order = paymentOrder.getOrder();
+                    if (!order.getCurrentStatus().equals(OrderStatus.REFUNDED)) {
+                        order.markAsRefunded();
+                        orderRepository.save(order);
+                    }
+                }
+            }
         }
     }
 
@@ -341,13 +379,24 @@ public class PaymentService {
 
     /**
      * sellerId를 기준으로 결제 요청 내역 조회
+     * 관리자 페이지용 (tossOrderId, paymentKey 조회됨)
      */
     @Transactional(readOnly = true)
     public List<PaymentLookupResponse> getPaymentsBySellerId(Long sellerId) {
         List<Payment> payments = paymentRepository.findAllBySellerId(sellerId);
 
         return payments.stream()
-            .map(PaymentLookupResponse::fromPaymentEntity)
+            .map(payment -> {
+                List<Order> orders = payment.getOrders();
+
+                Map<Long, Integer> orderAmounts = payment.getPaymentOrders().stream()
+                    .collect(Collectors.toMap(
+                        po -> po.getOrder().getId(),
+                        PaymentOrder::getPaymentAmount
+                    ));
+
+                return PaymentLookupResponse.fromPaymentEntity(payment, orders, orderAmounts);
+            })
             .toList();
     }
 
@@ -356,53 +405,27 @@ public class PaymentService {
      * @param userId
      * @return
      */
-    public List<PaymentLookupResponse> getPaymentsByUser(Long userId) {
-        // sellerId 기준으로 order에 저장된 결제내역 조회
+    @Transactional(readOnly = true)
+    public List<UserPaymentLookupResponse> getPaymentsByUser(Long userId) {
+        // 해당 사용자 결제 목록 조회
         List<Payment> payments = paymentRepository.findAllBySellerId(userId);
 
         return payments.stream()
-            .map(PaymentLookupResponse::fromPaymentEntity)
-            .toList();
-    }
+            .map(payment -> {
+                List<Order> orders = payment.getOrders(); // 해당 결제에 연결된 모든 주문리스트 가져옴
 
+                // Map 생성; 주문별 결제 금액 추출
+                Map<Long, Integer> orderAmounts = payment.getPaymentOrders().stream()
+                    .collect(Collectors.toMap(
+                        po -> po.getOrder().getId(),
+                        PaymentOrder::getPaymentAmount
+                    ));
 
-    // 내부 orderId(Long) 기준으로 해당 주문에 연결된 결제 조회
-    @Transactional(readOnly = true)
-    public PaymentLookupResponse getPaymentByOrderId(Long orderId) {
-        PaymentOrder paymentOrder = paymentOrderRepository.findByOrder_Id(orderId)
-            .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+                List<OrderPaymentResponse> orderResponses = orders.stream()
+                    .map(order -> OrderPaymentResponse.from(order, orderAmounts.get(order.getId())))
+                    .toList();
 
-        Payment payment = paymentOrder.getPayment();
-
-        TossSinglePaymentLookupResponse tossResponse =
-            tossPaymentClient.requestSinglePaymentLookup(payment.getPaymentKey());
-
-        return PaymentLookupResponse.convertFromTossLookup(tossResponse);
-    }
-
-    // 하나의 orderId에 연결된 모든 결제 조회 (확장용)
-    @Transactional(readOnly = true)
-    public List<PaymentLookupResponse> getAllPaymentsByOrderId(Long orderId) {
-        // 1. 해당 주문에 연결된 모든 PaymentOrder 조회
-        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByOrder_Id(orderId);
-
-        if (paymentOrders.isEmpty()) {
-            throw new ApiException("해당 주문의 결제 이력이 없습니다.", ErrorType.NOT_FOUND);
-        }
-
-        // 2. Payment 중복 제거 후 paymentKey만 추출
-        List<String> paymentKeys = paymentOrders.stream()
-            .map(po -> po.getPayment().getPaymentKey())
-            .distinct()
-            .toList();
-
-        // 3. 각 paymentKey로 Toss API 조회 후 DTO 변환
-        return paymentKeys.stream()
-            .map(paymentKey -> {
-                TossSinglePaymentLookupResponse tossResponse =
-                    tossPaymentClient.requestSinglePaymentLookup(paymentKey);
-
-                return PaymentLookupResponse.convertFromTossLookup(tossResponse);
+                return UserPaymentLookupResponse.fromPaymentEntityForUser(payment, orderResponses); // 🔁 변경된 메서드
             })
             .toList();
     }
