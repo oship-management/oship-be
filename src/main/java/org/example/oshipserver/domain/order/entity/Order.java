@@ -102,7 +102,7 @@ public class Order extends BaseTimeEntity {
     private List<OrderItem> orderItems = new ArrayList<>();
 
     // Partner와 Seller
-    private Long parterId;
+    private Long partnerId;
     private Long sellerId;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

@@ -61,4 +61,16 @@ public record PaymentLookupResponse(
         );
     }
 
+    public static PaymentLookupResponse fromPaymentEntity(Payment payment) {
+        return new PaymentLookupResponse(
+            payment.getTossOrderId(),
+            payment.getPaymentKey(),
+            payment.getStatus(),
+            payment.getPaidAt() != null ? payment.getPaidAt().toString() : null,
+            payment.getAmount(),
+            payment.getCurrency(),
+            payment.getCardLast4Digits()!= null ? payment.getCardLast4Digits() : null,
+            payment.getReceiptUrl()
+        );
+    }
 }
