@@ -10,8 +10,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
 
 @Entity
@@ -32,5 +34,12 @@ public class CarrierCountry extends BaseTimeEntity {
     private int zoneNo;
 
     @Column(length = 10, nullable = false)
-    private String countryCode;
+    private CountryCode countryCode;
+
+    @Builder
+    public CarrierCountry(Carrier carrier, int zoneNo, CountryCode countryCode){
+        this.carrier = carrier;
+        this.zoneNo = zoneNo;
+        this.countryCode = countryCode;
+    }
 }

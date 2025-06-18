@@ -63,6 +63,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 
+	// gmail
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+	// sendgrid
+	// implementation 'com.sendgrid:sendgrid-java:4.9.3'
+
 	implementation 'org.apache.httpcomponents.client5:httpclient5'
 
 }
