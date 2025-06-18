@@ -1,7 +1,7 @@
 package org.example.oshipserver.domain.admin.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.oshipserver.domain.admin.dto.RequestZone;
+import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.admin.service.AdminService;
 import org.example.oshipserver.global.common.response.BaseResponse;

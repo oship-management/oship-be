@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.oshipserver.domain.admin.dto.RequestZone;
+import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.carrier.entity.Carrier;
