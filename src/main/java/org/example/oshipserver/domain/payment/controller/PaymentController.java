@@ -93,7 +93,7 @@ public class PaymentController {
 
     /**
      * sellerId 기준 결제 내역 조회
-     * 추후에 관리자만 접근할 수 있도록 수정
+     * 추후에 관리자만 조회하도록 수정
      * @param sellerId
      */
     @GetMapping("/seller/{sellerId}")
@@ -112,13 +112,9 @@ public class PaymentController {
         @AuthenticationPrincipal CustomUserDetail userDetail) {
 
         Long userId = Long.valueOf(userDetail.getUserId());
-        UserRole userRole = userDetail.getUserRole();
-
-        List<PaymentLookupResponse> response = paymentService.getPaymentsByUser(userId, userRole);
+        List<PaymentLookupResponse> response = paymentService.getPaymentsByUser(userId);
         return ResponseEntity.ok(response);
     }
-
-
 
     // 내부 주문 기준 결제 조회
     @GetMapping("/orders/{orderId}")

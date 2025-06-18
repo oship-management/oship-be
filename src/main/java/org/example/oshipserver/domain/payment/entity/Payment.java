@@ -66,6 +66,10 @@ public class Payment extends BaseTimeEntity {
     // 결제 실패 사유
     private String failReason;
 
+    // 결제 요청자
+    @Column(nullable = false)
+    private Long sellerId;
+
     // 우리 서버의 내부 엔티티
     @ManyToOne(fetch = FetchType.LAZY)
     private Order order;
@@ -103,7 +107,7 @@ public class Payment extends BaseTimeEntity {
     @Builder
     public Payment(String paymentNo, String paymentKey, String tossOrderId,
         PaymentStatus status, PaymentMethod method, Integer amount,
-        String currency, LocalDateTime paidAt, String failReason) {
+        String currency, LocalDateTime paidAt, String failReason, Long sellerId) {
         this.paymentNo = paymentNo;
         this.paymentKey = paymentKey;
         this.tossOrderId = tossOrderId;
@@ -113,6 +117,7 @@ public class Payment extends BaseTimeEntity {
         this.currency = currency;
         this.paidAt = paidAt;
         this.failReason = failReason;
+        this.sellerId = sellerId;
     }
 
     public void markSuccess(String paymentKey, LocalDateTime paidAt, String cardLast4Digits, String receiptUrl) {
@@ -143,5 +148,11 @@ public class Payment extends BaseTimeEntity {
 
         // 추후 이력 관리나 누적 취소 금액 관리로 확장 예정
     }
+
+//    // payment > paymentOrder > order르 통해 sellerId 가지고 오는 것보다
+//    // payment엔티티에서 결제자 id를 직접 가지고 있도록 연관관계를 맺는게 효율적
+//    public void setSellerId(Long sellerId) {
+//        this.sellerId = sellerId;
+//    }
 
 }

@@ -91,6 +91,9 @@ public class PaymentService {
             throw e;
         }
 
+        Order order = orderRepository.findById(request.orderId())
+            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
         // 4. 결제 방식 매핑
         PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
@@ -104,6 +107,7 @@ public class PaymentService {
             .method(method)
             .paidAt(OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime())
             .status(PaymentStatusMapper.fromToss(tossResponse.status()))
+            .sellerId(order.getSellerId())
             .build();
 
         if (tossResponse.card() != null) {
@@ -112,10 +116,6 @@ public class PaymentService {
         payment.setReceiptUrl(tossResponse.receipt().url());
 
         paymentRepository.save(payment);
-
-        // 6. PaymentOrder 매핑 (서버의 orderId 기준)
-        Order order = orderRepository.findById(request.orderId())
-            .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
         PaymentOrder paymentOrder = PaymentOrder.builder()
             .payment(payment)
@@ -127,7 +127,7 @@ public class PaymentService {
 
         paymentOrderRepository.save(paymentOrder);
 
-        // 7. 응답 DTO 반환
+        // 8. 응답 DTO 반환
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
     }
 
@@ -170,6 +170,11 @@ public class PaymentService {
             throw e;
         }
 
+        // 6. 대표 주문으로부터 sellerId 추출
+        Long representativeOrderId = request.orders().get(0).orderId();
+        Order mainOrder = orderRepository.findById(representativeOrderId)
+            .orElseThrow(() -> new ApiException("대표 주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
         // 4. 결제 방식 매핑
         PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
@@ -183,6 +188,7 @@ public class PaymentService {
             .method(method)
             .paidAt(OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime())
             .status(PaymentStatusMapper.fromToss(tossResponse.status()))
+            .sellerId(mainOrder.getSellerId())
             .build();
 
         if (tossResponse.card() != null) {
@@ -192,7 +198,7 @@ public class PaymentService {
 
         paymentRepository.save(payment);
 
-        // 6. PaymentOrder 생성 (주문 리스트 하나씩 매핑)
+        // 7. PaymentOrder 생성 (주문 리스트 하나씩 매핑)
         for (MultiOrderRequest o : request.orders()) {
             Order order = orderRepository.findById(o.orderId())
                 .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
@@ -208,7 +214,7 @@ public class PaymentService {
             paymentOrderRepository.save(paymentOrder);
         }
 
-        // 7. 응답용 orderId 리스트 추출
+        // 8. 응답용 orderId 리스트 추출
         List<String> orderIds = request.orders().stream()
             .map(o -> o.orderId().toString())
             .toList();
@@ -338,7 +344,7 @@ public class PaymentService {
      */
     @Transactional(readOnly = true)
     public List<PaymentLookupResponse> getPaymentsBySellerId(Long sellerId) {
-        List<Payment> payments = paymentOrderRepository.findDistinctPaymentsBySellerId(sellerId);
+        List<Payment> payments = paymentRepository.findAllBySellerId(sellerId);
 
         return payments.stream()
             .map(PaymentLookupResponse::fromPaymentEntity)
@@ -348,16 +354,11 @@ public class PaymentService {
     /**
      * 사용자 본인의 결제 내역 조회
      * @param userId
-     * @param userRole
      * @return
      */
-    public List<PaymentLookupResponse> getPaymentsByUser(Long userId, UserRole userRole) {
-        if (userRole != UserRole.SELLER) {
-            throw new ApiException("권한이 없습니다.", ErrorType.UNAUTHORIZED);
-        }
-
+    public List<PaymentLookupResponse> getPaymentsByUser(Long userId) {
         // sellerId 기준으로 order에 저장된 결제내역 조회
-        List<Payment> payments = paymentOrderRepository.findDistinctPaymentsBySellerId(userId);
+        List<Payment> payments = paymentRepository.findAllBySellerId(userId);
 
         return payments.stream()
             .map(PaymentLookupResponse::fromPaymentEntity)
