@@ -146,37 +146,43 @@ public class OrderService {
     public PageResponseDto<OrderListResponse> getOrderList(
         Long sellerId, String startDate, String endDate, Pageable pageable
     ) {
-        // 날짜 파싱 (nullable 허용)
+        // 검색 시작일: null인 경우 매우 과거 날짜로 설정 (기본값)
         LocalDate start = (startDate != null)
             ? LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE)
             : LocalDate.of(2000, 1, 1);  // 매우 과거로 기본 설정
 
+        // 검색 종료일: null인 경우 오늘 날짜로 설정 (기본값)
         LocalDate end = (endDate != null)
             ? LocalDate.parse(endDate, DateTimeFormatter.ISO_DATE)
             : LocalDate.now();  // 오늘까지로 기본 설정
 
-        Page<Order> orders;
-
-        if (sellerId == null) {
-            // sellerId 없이 전체 조회 (날짜 조건만)
-            orders = orderRepository.findByCreatedAtBetween(
-                start.atStartOfDay(), end.plusDays(1).atStartOfDay(), pageable);
-        } else {
-            // sellerId와 날짜 조건 모두 사용
-            orders = orderRepository.findBySellerIdAndCreatedAtBetween(
-                sellerId, start.atStartOfDay(), end.plusDays(1).atStartOfDay(), pageable);
-        }
+        // 삭제되지 않은 주문 중, sellerId와 날짜 조건에 맞는 주문 페이지 조회
+        Page<Order> orders = orderRepository.findBySellerIdAndCreatedAtBetweenAndDeletedFalse(
+            sellerId,
+            start.atStartOfDay(),
+            end.plusDays(1).atStartOfDay(), // 종료일 포함을 위해 하루 더함
+            pageable
+        );
 
         return PageResponseDto.toDto(orders.map(OrderListResponse::from));
     }
 
     @Transactional(readOnly = true)
-    public OrderDetailResponse getOrderDetail(Long orderId) {
+    public OrderDetailResponse getOrderDetail(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
+        if (order.isDeleted()) {
+            throw new ApiException("삭제된 주문입니다.", ErrorType.NOT_FOUND);
+        }
+
+        if (!order.getSellerId().equals(userId)) {
+            throw new ApiException("해당 주문에 접근할 권한이 없습니다.", ErrorType.FORBIDDEN);
+        }
+
         return OrderDetailResponse.from(order);
     }
+
 
     @Transactional
     @CacheEvict(
@@ -191,16 +197,14 @@ public class OrderService {
             throw new ApiException("이미 삭제된 주문입니다.", ErrorType.DB_FAIL);
         }
 
+        // 주문 정보 수정
         order.updateFrom(request);
 
-        if (order.getSender() != null) {
-            order.getSender().updateFrom(request);
-        }
+        // 송신자/수신자 정보 갱신 (기존 객체가 있다고 전제)
+        order.getSender().updateFrom(request);
+        order.getRecipient().updateFrom(request);
 
-        if (order.getRecipient() != null) {
-            order.getRecipient().updateFrom(request);
-        }
-
+        // 아이템 목록 갱신 (수정/추가/삭제)
         order.updateItems(request.orderItems());
     }
 
