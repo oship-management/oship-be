@@ -2,6 +2,7 @@ package org.example.oshipserver.domain.admin.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.admin.dto.RequestZone;
+import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.admin.service.AdminService;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
@@ -30,11 +31,10 @@ public class AdminController {
     }
 
     @PostMapping(value = "/rates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<BaseResponse<Void>> uploadRateExcel(
+    public ResponseEntity<BaseResponse<ResponseRateDto>> uploadRateExcel(
         @RequestParam("file") MultipartFile file
     ){
-        adminService.uploadRateExcel(file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(HttpStatus.CREATED.value(), "성공", null));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(HttpStatus.CREATED.value(), "성공", adminService.uploadRateExcel(file)));
     }
 
 }
