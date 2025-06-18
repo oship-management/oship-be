@@ -11,6 +11,7 @@ import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmRespons
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
 import org.example.oshipserver.domain.payment.service.PaymentService;
+import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -85,6 +86,24 @@ public class PaymentController {
     ) {
         List<PaymentCancelHistoryResponse> histories = paymentService.getCancelHistory(paymentKey);
         return ResponseEntity.ok(histories);
+    }
+
+    /**
+     * seller 기준 결제 내역 조회
+     */
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<List<PaymentLookupResponse>> getPaymentsBySeller(@PathVariable Long sellerId) {
+        List<PaymentLookupResponse> response = paymentService.getPaymentsBySellerId(sellerId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * partner 기준 결제 내역 조회
+     */
+    @GetMapping("/partner/{partnerId}")
+    public ResponseEntity<List<PaymentLookupResponse>> getPaymentsByPartner(@PathVariable Long partnerId) {
+        List<PaymentLookupResponse> response = paymentService.getPaymentsByPartnerId(partnerId);
+        return ResponseEntity.ok(response);
     }
 
     // 내부 주문 기준 결제 조회

@@ -5,6 +5,8 @@ import java.util.Optional;
 import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long> {
 
@@ -18,4 +20,22 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
     // 하나의 주문(orderId)에 연결된 모든 PaymentOrder 조회
     List<PaymentOrder> findAllByOrder_Id(Long orderId);
 
+    // userId를 기반으로 결제 목록 조회
+    @Query("""
+    SELECT po.payment
+    FROM PaymentOrder po
+    WHERE po.order.id IN (
+        SELECT o.id FROM Order o WHERE o.partnerId = :partnerId
+    )
+""")
+    List<Payment> findAllByPartnerId(@Param("partnerId") Long partnerId);
+
+    @Query("""
+    SELECT po.payment
+    FROM PaymentOrder po
+    WHERE po.order.id IN (
+        SELECT o.id FROM Order o WHERE o.sellerId = :sellerId
+    )
+""")
+    List<Payment> findAllBySellerId(@Param("sellerId") Long sellerId);
 }

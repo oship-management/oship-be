@@ -90,9 +90,8 @@ public class PaymentService {
             throw e;
         }
 
-        // 4. 실제 결제 방식 추후 매핑 예정
-//        PaymentMethod method = PaymentMethod.CARD;
-         PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
+        // 4. 결제 방식 매핑
+        PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
         // 5. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
@@ -170,9 +169,8 @@ public class PaymentService {
             throw e;
         }
 
-        // 4. 실제 결제 방식 추후 매핑 예정
-//        PaymentMethod method = PaymentMethod.CARD;
-         PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
+        // 4. 결제 방식 매핑
+        PaymentMethod method = PaymentMethodMapper.fromToss(tossResponse);
 
         // 5. toss 응답 기반으로 payment 엔티티 생성 및 저장
         Payment payment = Payment.builder()
@@ -216,7 +214,6 @@ public class PaymentService {
 
         return MultiPaymentConfirmResponse.convertFromTossConfirm(tossResponse, orderIds);
     }
-
 
     /**
      * Toss 기준 결제 조회 (결제상태 확인용)
@@ -317,20 +314,6 @@ public class PaymentService {
         }
     }
 
-    // 내부 orderId(Long) 기준으로 해당 주문에 연결된 결제 조회
-    @Transactional(readOnly = true)
-    public PaymentLookupResponse getPaymentByOrderId(Long orderId) {
-        PaymentOrder paymentOrder = paymentOrderRepository.findByOrder_Id(orderId)
-            .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
-
-        Payment payment = paymentOrder.getPayment();
-
-        TossSinglePaymentLookupResponse tossResponse =
-            tossPaymentClient.requestSinglePaymentLookup(payment.getPaymentKey());
-
-        return PaymentLookupResponse.convertFromTossLookup(tossResponse);
-    }
-
     /**
      * 결제 취소 이력 조회
      */
@@ -347,6 +330,44 @@ public class PaymentService {
         return histories.stream()
             .map(PaymentCancelHistoryResponse::fromEntity)
             .toList();
+    }
+
+    /**
+     * partnerId를 기준으로 결제 요청 내역 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PaymentLookupResponse> getPaymentsByPartnerId(Long partnerId) {
+        List<Payment> payments = paymentOrderRepository.findAllByPartnerId(partnerId);
+
+        return payments.stream()
+            .map(PaymentLookupResponse::fromPaymentEntity)
+            .toList();
+    }
+
+    /**
+     * sellerId를 기준으로 결제 요청 내역 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PaymentLookupResponse> getPaymentsBySellerId(Long sellerId) {
+        List<Payment> payments = paymentOrderRepository.findAllBySellerId(sellerId);
+
+        return payments.stream()
+            .map(PaymentLookupResponse::fromPaymentEntity)
+            .toList();
+    }
+
+    // 내부 orderId(Long) 기준으로 해당 주문에 연결된 결제 조회
+    @Transactional(readOnly = true)
+    public PaymentLookupResponse getPaymentByOrderId(Long orderId) {
+        PaymentOrder paymentOrder = paymentOrderRepository.findByOrder_Id(orderId)
+            .orElseThrow(() -> new ApiException("해당 주문의 결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        Payment payment = paymentOrder.getPayment();
+
+        TossSinglePaymentLookupResponse tossResponse =
+            tossPaymentClient.requestSinglePaymentLookup(payment.getPaymentKey());
+
+        return PaymentLookupResponse.convertFromTossLookup(tossResponse);
     }
 
     // 하나의 orderId에 연결된 모든 결제 조회 (확장용)
