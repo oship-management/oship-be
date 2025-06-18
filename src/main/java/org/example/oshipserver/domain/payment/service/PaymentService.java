@@ -333,18 +333,6 @@ public class PaymentService {
     }
 
     /**
-     * partnerId를 기준으로 결제 요청 내역 조회
-     */
-    @Transactional(readOnly = true)
-    public List<PaymentLookupResponse> getPaymentsByPartnerId(Long partnerId) {
-        List<Payment> payments = paymentOrderRepository.findAllByPartnerId(partnerId);
-
-        return payments.stream()
-            .map(PaymentLookupResponse::fromPaymentEntity)
-            .toList();
-    }
-
-    /**
      * sellerId를 기준으로 결제 요청 내역 조회
      */
     @Transactional(readOnly = true)

@@ -89,7 +89,7 @@ public class PaymentController {
     }
 
     /**
-     * seller 기준 결제 내역 조회
+     * sellerId 기준 결제 내역 조회
      */
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<List<PaymentLookupResponse>> getPaymentsBySeller(@PathVariable Long sellerId) {
@@ -97,14 +97,6 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * partner 기준 결제 내역 조회
-     */
-    @GetMapping("/partner/{partnerId}")
-    public ResponseEntity<List<PaymentLookupResponse>> getPaymentsByPartner(@PathVariable Long partnerId) {
-        List<PaymentLookupResponse> response = paymentService.getPaymentsByPartnerId(partnerId);
-        return ResponseEntity.ok(response);
-    }
 
     // 내부 주문 기준 결제 조회
     @GetMapping("/orders/{orderId}")

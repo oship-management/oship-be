@@ -20,16 +20,7 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
     // 하나의 주문(orderId)에 연결된 모든 PaymentOrder 조회
     List<PaymentOrder> findAllByOrder_Id(Long orderId);
 
-    // userId를 기반으로 결제 목록 조회
-    @Query("""
-    SELECT po.payment
-    FROM PaymentOrder po
-    WHERE po.order.id IN (
-        SELECT o.id FROM Order o WHERE o.partnerId = :partnerId
-    )
-""")
-    List<Payment> findAllByPartnerId(@Param("partnerId") Long partnerId);
-
+    // sellerId를 기반으로 결제 목록 조회
     @Query("""
     SELECT po.payment
     FROM PaymentOrder po
