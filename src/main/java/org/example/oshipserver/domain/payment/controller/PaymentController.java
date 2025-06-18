@@ -2,6 +2,7 @@ package org.example.oshipserver.domain.payment.controller;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentCancelRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
@@ -11,8 +12,10 @@ import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmRespons
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
 import org.example.oshipserver.domain.payment.service.PaymentService;
+import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -90,12 +93,31 @@ public class PaymentController {
 
     /**
      * sellerId 기준 결제 내역 조회
+     * 추후에 관리자만 접근할 수 있도록 수정
+     * @param sellerId
      */
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<List<PaymentLookupResponse>> getPaymentsBySeller(@PathVariable Long sellerId) {
         List<PaymentLookupResponse> response = paymentService.getPaymentsBySellerId(sellerId);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 사용자 본인의 결제 내역 조회
+     * 토큰에서 seller 정보를 추출하는 방식
+     * @param userDetail
+     */
+    @GetMapping("/mypayments")
+    public ResponseEntity<List<PaymentLookupResponse>> getMyPayments(
+        @AuthenticationPrincipal CustomUserDetail userDetail) {
+
+        Long userId = Long.valueOf(userDetail.getUserId());
+        UserRole userRole = userDetail.getUserRole();
+
+        List<PaymentLookupResponse> response = paymentService.getPaymentsByUser(userId, userRole);
+        return ResponseEntity.ok(response);
+    }
+
 
 
     // 내부 주문 기준 결제 조회

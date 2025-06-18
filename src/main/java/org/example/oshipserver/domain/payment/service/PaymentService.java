@@ -32,6 +32,7 @@ import org.example.oshipserver.domain.payment.repository.PaymentCancelHistoryRep
 import org.example.oshipserver.domain.payment.repository.PaymentOrderRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.domain.payment.util.PaymentNoGenerator;
+import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
@@ -337,12 +338,32 @@ public class PaymentService {
      */
     @Transactional(readOnly = true)
     public List<PaymentLookupResponse> getPaymentsBySellerId(Long sellerId) {
-        List<Payment> payments = paymentOrderRepository.findAllBySellerId(sellerId);
+        List<Payment> payments = paymentOrderRepository.findDistinctPaymentsBySellerId(sellerId);
 
         return payments.stream()
             .map(PaymentLookupResponse::fromPaymentEntity)
             .toList();
     }
+
+    /**
+     * 사용자 본인의 결제 내역 조회
+     * @param userId
+     * @param userRole
+     * @return
+     */
+    public List<PaymentLookupResponse> getPaymentsByUser(Long userId, UserRole userRole) {
+        if (userRole != UserRole.SELLER) {
+            throw new ApiException("권한이 없습니다.", ErrorType.UNAUTHORIZED);
+        }
+
+        // sellerId 기준으로 order에 저장된 결제내역 조회
+        List<Payment> payments = paymentOrderRepository.findDistinctPaymentsBySellerId(userId);
+
+        return payments.stream()
+            .map(PaymentLookupResponse::fromPaymentEntity)
+            .toList();
+    }
+
 
     // 내부 orderId(Long) 기준으로 해당 주문에 연결된 결제 조회
     @Transactional(readOnly = true)
