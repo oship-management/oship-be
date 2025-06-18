@@ -15,8 +15,12 @@ import org.springframework.stereotype.Repository;
 public interface OrderRepository extends JpaRepository<Order,Long> {
     boolean existsByOrderNoAndSellerId(String orderNo, Long sellerId);
     boolean existsByOshipMasterNo(String masterNo);
-    Page<Order> findBySellerIdAndCreatedAtBetween(Long sellerId, LocalDateTime start, LocalDateTime end, Pageable pageable);
-    Page<Order> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
+    Page<Order> findByCreatedAtBetweenAndDeletedFalse(
+        LocalDateTime start, LocalDateTime end, Pageable pageable);
+
+    Page<Order> findBySellerIdAndCreatedAtBetweenAndDeletedFalse(
+        Long sellerId, LocalDateTime start, LocalDateTime end, Pageable pageable);
+
     Optional<Order> findByOshipMasterNo(String masterNo);
 
     /**
