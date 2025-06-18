@@ -1,14 +1,9 @@
 package org.example.oshipserver.global.common.excel;
 
-import jakarta.annotation.PreDestroy;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
@@ -20,34 +15,30 @@ import org.springframework.web.multipart.MultipartFile;
 public abstract class AbstractExcelUploadProcessor<T, R> {
 
     private final ExcelParser<T> parser;
-    private final ExecutorService executor;
-    private final long MAX_FILE_SIZE = 10L * 1024 * 1024;
+    private final long fileSize;
 
-    protected AbstractExcelUploadProcessor(ExcelParser<T> parser, int threadPoolSize) {
+    protected AbstractExcelUploadProcessor(ExcelParser<T> parser, int fileSize) {
         this.parser = parser;
-        this.executor = Executors.newFixedThreadPool(threadPoolSize);
+        this.fileSize = (long) fileSize * 1024 * 1024;
     }
 
     public List<R> process(MultipartFile file) {
         validateFile(file);
 
-        List<T> dtos = parseWorkbook(file);
+        List<T> records = parseWorkbook(file);
 
-        List<CompletableFuture<R>> futures = dtos.stream()
-            .map(dto -> CompletableFuture.supplyAsync(() -> {
-                try {
-                    return processRecord(dto);
-                } catch (Exception ex) {
-                    handleRecordError(dto, ex);
-                    return null;
-                }
-            }, executor))
-            .toList();
+        List<R> results = new ArrayList<>(records.size());
+        for (int i = 0; i < records.size(); i++) {
+            T record = records.get(i);
+            try {
+                R item = processRecord(record);
+                results.add(item);
+            } catch (Exception e) {
+                handleRecordError(i, record, e);
+            }
+        }
 
-        return futures.stream()
-            .map(CompletableFuture::join)
-            .filter(Objects::nonNull)
-            .toList();
+        return results;
     }
 
     private void validateFile(MultipartFile file) {
@@ -62,8 +53,9 @@ public abstract class AbstractExcelUploadProcessor<T, R> {
             throw new ApiException("엑셀 파일(.xls 또는 .xlsx)만 업로드 가능합니다.", ErrorType.INVALID_PARAMETER);
         }
 
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new ApiException("10MB 이하 파일만 업로드 할 수 있습니다.", ErrorType.INVALID_PARAMETER);
+        if (file.getSize() > fileSize) {
+            throw new ApiException(fileSize + "MB 이하 파일만 업로드 할 수 있습니다.",
+                ErrorType.INVALID_PARAMETER);
         }
 
         try (InputStream in = file.getInputStream()) {
@@ -81,22 +73,9 @@ public abstract class AbstractExcelUploadProcessor<T, R> {
         }
     }
 
-    protected void handleRecordError(T dto, Exception ex) {
-        log.warn("처리 실패, dto={}", dto, ex);
+    private void handleRecordError(int index, T record, Exception ex) {
+        log.warn("처리 실패 at index={}, record={} error={}", index, record, ex.getMessage());
     }
 
-    protected abstract R processRecord(T dto);
-
-    @PreDestroy
-    public void destroy() {
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            executor.shutdownNow();
-        }
-    }
+    protected abstract R processRecord(T record);
 }

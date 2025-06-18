@@ -9,12 +9,19 @@ import org.springframework.stereotype.Service;
 public class RateExcelProcessor extends
     AbstractExcelUploadProcessor<RateExcelRequest, RateCreateRequest> {
 
-    public RateExcelProcessor(ExcelParser<RateExcelRequest> parser) {
-        super(parser, 5);
+    public RateExcelProcessor() {
+        super(
+            new ExcelParser<>(row -> new RateExcelRequest(
+                (int) row.getCell(0).getNumericCellValue(),
+                (long) row.getCell(1).getNumericCellValue(),
+                (int) row.getCell(2).getNumericCellValue(),
+                row.getCell(3).getNumericCellValue(),
+                row.getCell(4).getNumericCellValue()
+            )), 1);
     }
 
     @Override
-    protected RateCreateRequest processRecord(RateExcelRequest dto){
+    protected RateCreateRequest processRecord(RateExcelRequest dto) {
         return RateCreateRequest.builder()
             .carrierId(dto.carrierId())
             .zoneIndex(dto.zoneIndex())
@@ -22,5 +29,4 @@ public class RateExcelProcessor extends
             .weight(BigDecimal.valueOf(dto.amount()))
             .build();
     }
-
 }
