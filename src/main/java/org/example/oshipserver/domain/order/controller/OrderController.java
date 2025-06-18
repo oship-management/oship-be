@@ -14,6 +14,7 @@ import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -45,19 +46,27 @@ public class OrderController {
 
     @GetMapping
     public BaseResponse<PageResponseDto<OrderListResponse>> getOrderList(
-        @RequestParam(required = false) Long sellerId,
+        Authentication user,
         @RequestParam(required = false) String startDate,
         @RequestParam(required = false) String endDate,
         Pageable pageable
     ) {
-        PageResponseDto<OrderListResponse> response = orderService.getOrderList(sellerId, startDate, endDate, pageable);
+        Long userId = Long.valueOf(user.getName());
+
+        PageResponseDto<OrderListResponse> response = orderService.getOrderList(userId, startDate, endDate, pageable);
         return new BaseResponse<>(200, "주문 목록 조회 성공", response);
     }
 
 
     @GetMapping("/{id}")
-    public BaseResponse<OrderDetailResponse> getOrderDetail(@PathVariable final Long id) {
-        return new BaseResponse<>(200, "주문 상세 조회 성공", orderService.getOrderDetail(id));
+    public BaseResponse<OrderDetailResponse> getOrderDetail(
+        Authentication user,
+        @PathVariable final Long id
+
+    ) {
+        Long userId = Long.valueOf(user.getName());
+        OrderDetailResponse response = orderService.getOrderDetail(userId, id);
+        return new BaseResponse<>(200, "주문 상세 조회 성공", response);
     }
 
     @PatchMapping("/{id}")
