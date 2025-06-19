@@ -87,7 +87,7 @@ public class PaymentController {
         @PathVariable String paymentKey,
         @RequestBody PaymentPartialCancelRequest request
     ) {
-        paymentService.cancelPartialPayment(paymentKey, request.orderId(), request.cancelAmount(), request.cancelReason());
+        paymentService.cancelPartialPayment(paymentKey, request.orderId(), request.cancelReason());
         return ResponseEntity.ok("부분 취소 완료");
     }
 
