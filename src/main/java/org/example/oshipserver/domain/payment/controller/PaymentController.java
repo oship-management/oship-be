@@ -5,17 +5,15 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
-import org.example.oshipserver.domain.payment.dto.request.PaymentCancelRequest;
+import org.example.oshipserver.domain.payment.dto.request.PaymentFullCancelRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
+import org.example.oshipserver.domain.payment.dto.request.PaymentPartialCancelRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
-import org.example.oshipserver.domain.payment.dto.response.PaymentOrderListResponse;
 import org.example.oshipserver.domain.payment.dto.response.UserPaymentLookupResponse;
 import org.example.oshipserver.domain.payment.service.PaymentService;
-import org.example.oshipserver.domain.user.enums.UserRole;
-import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.http.ResponseEntity;
@@ -70,17 +68,27 @@ public class PaymentController {
 //    }
 
     /**
-     * Toss 결제 취소 요청 (전체/부분 취소)
+     * Toss 결제 전체 취소 요청
      */
-    @PostMapping("/{paymentKey}/cancel")
-    public ResponseEntity<String> cancelPayment(
+    @PostMapping("/{paymentKey}/cancel/full")
+    public ResponseEntity<String> cancelFullPayment(
         @PathVariable String paymentKey,
-        @RequestBody PaymentCancelRequest request
+        @RequestBody PaymentFullCancelRequest request
     ) {
-        paymentService.cancelPayment(paymentKey, request.cancelReason(), request.cancelAmount());
-        return ResponseEntity.ok(
-            request.cancelAmount() == null ? "결제가 성공적으로 취소되었습니다." : "부분 결제가 성공적으로 취소되었습니다."
-        );
+        paymentService.cancelFullPayment(paymentKey, request.cancelReason());
+        return ResponseEntity.ok("전체 취소 완료");
+    }
+
+    /**
+     * Toss 결제 부분 취소 요청
+     */
+    @PostMapping("/{paymentKey}/cancel/partial")
+    public ResponseEntity<String> cancelPartialPayment(
+        @PathVariable String paymentKey,
+        @RequestBody PaymentPartialCancelRequest request
+    ) {
+        paymentService.cancelPartialPayment(paymentKey, request.orderId(), request.cancelAmount(), request.cancelReason());
+        return ResponseEntity.ok("부분 취소 완료");
     }
 
     /**
