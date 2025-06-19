@@ -26,11 +26,13 @@ public enum ErrorType{
     TOKEN_UNSUPPORTED(HttpStatus.UNAUTHORIZED, "지원하지 않는 토큰입니다."),
     TOKEN_ILLEGAL_ARGUMENT(HttpStatus.UNAUTHORIZED, "토큰 값이 비어있거나 잘못되었습니다."),
     TOKEN_BLACKLISTED(HttpStatus.UNAUTHORIZED, "블랙리스트에 등록된 토큰입니다."),
+
     // Payment 관련 에러
     DUPLICATED_PAYMENT(HttpStatus.BAD_REQUEST, "이미 처리된 결제입니다."),
     INVALID_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 방식입니다."),
     ALREADY_CANCELED(HttpStatus.BAD_REQUEST, "이미 전체 금액이 취소되었습니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청이 올바르지 않습니다."),
+    INVALID_ORDER(HttpStatus.BAD_REQUEST, "해당 주문은 이 결제에 포함되어 있지 않습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다."),
 
     // Shipping/Barcode 관련 에러
