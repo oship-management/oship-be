@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
  * 결제 조회 응답 DTO
  */
 public record UserPaymentLookupResponse(
+    Long paymentId,
     String paymentStatus,
     String paidAt,
     Integer amount,
@@ -23,13 +24,24 @@ public record UserPaymentLookupResponse(
         List<OrderPaymentResponse> orders
     ) {
         return new UserPaymentLookupResponse(
+            payment.getId(),
             payment.getStatus().name(),
             payment.getPaidAt() != null ? payment.getPaidAt().toString() : null,
             payment.getAmount(),
             payment.getCurrency(),
-            payment.getCardLast4Digits(),
+            payment.getCardLast4Digits()!= null ? payment.getCardLast4Digits() : null,
             payment.getReceiptUrl(),
             orders
         );
+    }
+
+    /**
+     * 카드 번호에서 마지막 4자리 추출
+     */
+    private static String getLast4Digits(String cardNumber) {
+        if (cardNumber != null && cardNumber.length() >= 4) {
+            return cardNumber.substring(cardNumber.length() - 4);
+        }
+        return null;
     }
 }

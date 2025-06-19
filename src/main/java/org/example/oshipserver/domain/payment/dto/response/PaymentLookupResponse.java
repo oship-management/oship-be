@@ -13,6 +13,7 @@ import org.example.oshipserver.domain.order.entity.Order;
  * 결제 조회 응답 DTO (내부 응답용)
  */
 public record PaymentLookupResponse(
+    Long paymentId,
     String tossOrderId,
     String paymentKey,
     PaymentStatus paymentStatus,
@@ -24,34 +25,24 @@ public record PaymentLookupResponse(
     List<OrderPaymentResponse> orders
 ) {
 
-    /**
-     * Toss 기준 단건 결제 조회 응답을 내부 응답 DTO로 변환
-     * toss에 직접 조회 요청했을 때 사용
-     */
-    public static PaymentLookupResponse convertFromTossLookup(
-        TossSinglePaymentLookupResponse response) {
-        return new PaymentLookupResponse(
-            response.orderId(), // Toss 응답의 orderId를 tossOrderId로 매핑
-            response.paymentKey(),
-            PaymentStatusMapper.fromToss(response.status()),
-            response.approvedAt(),
-            response.totalAmount(),
-            response.currency(),
-            getLast4Digits(response.card() != null ? response.card().number() : null),
-            response.receipt() != null ? response.receipt().url() : null,
-            List.of()
-        );
-    }
-
-    /**
-     * 카드 번호에서 마지막 4자리 추출
-     */
-    private static String getLast4Digits(String cardNumber) {
-        if (cardNumber != null && cardNumber.length() >= 4) {
-            return cardNumber.substring(cardNumber.length() - 4);
-        }
-        return null;
-    }
+//    /**
+//     * Toss 기준 단건 결제 조회 응답을 내부 응답 DTO로 변환
+//     * toss에 직접 조회 요청했을 때 사용
+//     */
+//    public static PaymentLookupResponse convertFromTossLookup(
+//        TossSinglePaymentLookupResponse response) {
+//        return new PaymentLookupResponse(
+//            response.orderId(), // Toss 응답의 orderId를 tossOrderId로 매핑
+//            response.paymentKey(),
+//            PaymentStatusMapper.fromToss(response.status()),
+//            response.approvedAt(),
+//            response.totalAmount(),
+//            response.currency(),
+//            getLast4Digits(response.card() != null ? response.card().number() : null),
+//            response.receipt() != null ? response.receipt().url() : null,
+//            List.of()
+//        );
+//    }
 
 //    public static PaymentLookupResponse fromPaymentAndOrders(Payment payment, List<Order> orders) {
 //        return new PaymentLookupResponse(
@@ -76,6 +67,7 @@ public record PaymentLookupResponse(
             .toList();
 
         return new PaymentLookupResponse(
+            payment.getId(),
             payment.getTossOrderId(),
             payment.getPaymentKey(),
             payment.getStatus(),
@@ -86,5 +78,15 @@ public record PaymentLookupResponse(
             payment.getReceiptUrl(),
             orderResponses
         );
+    }
+
+    /**
+     * 카드 번호에서 마지막 4자리 추출
+     */
+    private static String getLast4Digits(String cardNumber) {
+        if (cardNumber != null && cardNumber.length() >= 4) {
+            return cardNumber.substring(cardNumber.length() - 4);
+        }
+        return null;
     }
 }
