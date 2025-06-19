@@ -278,13 +278,12 @@ public class PaymentService {
 //    }
 
     /**
-     * Toss 취소 요청 (전체/부분취소)
+     * Toss 전체 취소 요청
      * @param paymentKey
      * @param cancelReason
-     * @param cancelAmount null이면 전체 취소, 값이 있으면 부분 취소
      */
     @Transactional
-    public void cancelPayment(String paymentKey, String cancelReason, @Nullable Integer cancelAmount) {
+    public void cancelFullPayment(String paymentKey, String cancelReason) {
         // 1. 결제 조회
         Payment payment = paymentRepository.findByPaymentKey(paymentKey)
             .orElseThrow(() -> new ApiException("결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
@@ -297,63 +296,88 @@ public class PaymentService {
 
         int remainingAmount = payment.getAmount() - totalCanceledAmount;
 
-        // 3. 전체 취소
-        if (cancelAmount == null) {
-            if (remainingAmount <= 0) {
-                throw new ApiException("이미 전체 금액이 취소되었습니다.", ErrorType.ALREADY_CANCELED);
-            }
+        if (remainingAmount <= 0) {
+            throw new ApiException("이미 전체 금액이 취소되었습니다.", ErrorType.ALREADY_CANCELED);
+        }
 
-            // Toss에 남은 금액만큼 전체취소 요청
-            tossPaymentClient.requestCancel(paymentKey, cancelReason, remainingAmount);
+        // 3. 남은 금액만큼, Toss에 전체취소 요청
+        tossPaymentClient.requestCancel(paymentKey, cancelReason, remainingAmount);
 
-            // paymentStatus 변경
-            payment.cancel();
-            paymentRepository.save(payment);
+        // 4. paymentStatus 변경
+        payment.cancel();
+        paymentRepository.save(payment);
 
-            // 주문 상태도 전체취소로 변경
-            List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
-            for (PaymentOrder paymentOrder : orders) {
-                paymentOrder.cancel();
+        // 5. PaymentOrder + Order 상태도 전체 취소로 변경
+        List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
+        for (PaymentOrder po : paymentOrders) {
+            po.cancel();
+            po.getOrder().markAsCancelled(); // orderStatus 변경
+            orderRepository.save(po.getOrder());
+        }
 
-                // orderStatus 변경
-                Order order = paymentOrder.getOrder();
-                if (!order.getCurrentStatus().equals(OrderStatus.CANCELLED)) {
-                    order.markAsCancelled();
+        // 6. 취소 이력 저장
+        PaymentCancelHistory history = PaymentCancelHistory.create(payment, remainingAmount, cancelReason);
+        paymentCancelHistoryRepository.save(history);
+    }
+
+    /**
+     * Toss 부분 취소 요청
+     * @param paymentKey
+     * @param orderId
+     * @param cancelAmount
+     * @param cancelReason
+     */
+    @Transactional
+    public void cancelPartialPayment(String paymentKey, Long orderId, int cancelAmount, String cancelReason) {
+        // 1. 결제 조회
+        Payment payment = paymentRepository.findByPaymentKey(paymentKey)
+            .orElseThrow(() -> new ApiException("결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        // 2. 해당 주문이 결제에 포함되어 있는지 확인
+        PaymentOrder paymentOrder = payment.getPaymentOrders().stream()
+            .filter(po -> po.getOrder().getId().equals(orderId))
+            .findFirst()
+            .orElseThrow(() -> new ApiException("해당 주문은 이 결제에 포함되어 있지 않습니다.", ErrorType.INVALID_ORDER));
+
+        // 3. 해당 주문 결제금액과 비교
+        if (cancelAmount > paymentOrder.getPaymentAmount()) {
+            throw new ApiException("주문 금액보다 큰 금액은 취소할 수 없습니다.", ErrorType.INVALID_REQUEST);
+        }
+
+        // 4. 누적 취소 금액 계산
+        int totalCanceledAmount = paymentCancelHistoryRepository.findByPayment(payment)
+            .stream()
+            .mapToInt(PaymentCancelHistory::getCancelAmount)
+            .sum();
+
+        int newTotalCanceled = totalCanceledAmount + cancelAmount;
+
+        // 5. Toss에 부분 취소 요청
+        tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
+
+        // 6. 결제 상태 변경
+        payment.partialCancel(cancelAmount, cancelReason);
+        paymentRepository.save(payment);
+
+        // 7. 주문 상태 변경
+        paymentOrder.cancel();
+        paymentOrder.getOrder().markAsCancelled();
+        paymentOrderRepository.save(paymentOrder);
+        orderRepository.save(paymentOrder.getOrder());
+
+        // 8. 취소 이력 저장
+        PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason);
+        paymentCancelHistoryRepository.save(history);
+
+        // 9. 주문 상태도 업데이트
+        if (newTotalCanceled == payment.getAmount()) {
+            // 전체 금액이 모두 취소된 경우, OrderStatus를 REFUNDED로 변경
+            List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
+            for (PaymentOrder po : paymentOrders) {
+                Order order = po.getOrder();
+                if (!order.getCurrentStatus().equals(OrderStatus.REFUNDED)) {
+                    order.markAsRefunded();
                     orderRepository.save(order);
-                }
-            }
-
-            // 취소 이력 저장
-            PaymentCancelHistory history = PaymentCancelHistory.create(payment, remainingAmount, cancelReason);
-            paymentCancelHistoryRepository.save(history);
-
-        } else {
-            // 부분취소 요청이 남은 금액보다 크면 에러
-            if (cancelAmount > remainingAmount) {
-                throw new ApiException("취소 금액이 남은 결제 금액을 초과합니다.", ErrorType.INVALID_REQUEST);
-            }
-
-            // Toss에 부분취소 요청
-            tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
-
-            // paymentStatus 변경
-            payment.partialCancel(cancelAmount, cancelReason);
-            paymentRepository.save(payment);
-
-            // 취소 이력 저장
-            PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason);
-            paymentCancelHistoryRepository.save(history);
-
-            // orderStatus 변경 : 전체 금액이 취소된 경우에만 REFUNDED로 변경되도록 (부분취소는 여전히 PAID)
-            int newTotalCanceled = totalCanceledAmount + cancelAmount;
-            if (newTotalCanceled == payment.getAmount()) {
-                List<PaymentOrder> orders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
-                for (PaymentOrder paymentOrder : orders) {
-                    Order order = paymentOrder.getOrder();
-                    if (!order.getCurrentStatus().equals(OrderStatus.REFUNDED)) {
-                        order.markAsRefunded();
-                        orderRepository.save(order);
-                    }
                 }
             }
         }
