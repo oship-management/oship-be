@@ -156,7 +156,7 @@ public class Order extends BaseTimeEntity {
      * @param dto      주문 요청 DTO
      * @param masterNo 외부 식별자
      */
-    public static Order of(OrderCreateRequest dto, String masterNo) {
+    public static Order of(OrderCreateRequest dto, String masterNo, Long userId) {
         return Order.builder()
             .orderNo(dto.orderNo())
             .oshipMasterNo(masterNo)
@@ -173,9 +173,10 @@ public class Order extends BaseTimeEntity {
             .serviceType(dto.serviceType())
             .packageType(dto.packageType())
             .shippingTerm(dto.shippingTerm())
-            .sellerId(dto.sellerId())
+            .sellerId(userId)
             .build();
     }
+
 
     /**
      * 주문 상품 목록 추가
