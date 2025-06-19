@@ -7,6 +7,8 @@ import java.util.Locale;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.example.oshipserver.global.common.excel.record.ExcelParseResult;
+import org.example.oshipserver.global.common.excel.record.ExcelParseResult.ErrorDetail;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,23 +24,24 @@ public abstract class AbstractExcelUploadProcessor<T, R> {
         this.fileSize = (long) fileSize * 1024 * 1024;
     }
 
-    public List<R> process(MultipartFile file) {
+    public ExcelParseResult<R> process(MultipartFile file) {
         validateFile(file);
 
-        List<T> records = parseWorkbook(file);
+        ExcelParseResult<T> records = parseWorkbook(file);
 
-        List<R> results = new ArrayList<>(records.size());
-        for (int i = 0; i < records.size(); i++) {
-            T record = records.get(i);
+        List<R> results = new ArrayList<>(records.success().size());
+        for (int i = 0; i < records.success().size(); i++) {
+            T record = records.success().get(i);
             try {
                 R item = processRecord(record);
                 results.add(item);
             } catch (Exception e) {
+                records.errors().add(new ErrorDetail(i, e.getMessage()));
                 handleRecordError(i, record, e);
             }
         }
 
-        return results;
+        return new ExcelParseResult<>(results, records.errors());
     }
 
     private void validateFile(MultipartFile file) {
@@ -65,7 +68,7 @@ public abstract class AbstractExcelUploadProcessor<T, R> {
         }
     }
 
-    private List<T> parseWorkbook(MultipartFile file) {
+    private ExcelParseResult<T> parseWorkbook(MultipartFile file) {
         try (InputStream in = file.getInputStream()) {
             return parser.parse(in);
         } catch (Exception e) {

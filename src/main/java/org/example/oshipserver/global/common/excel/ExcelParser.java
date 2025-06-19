@@ -10,6 +10,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.example.oshipserver.global.common.excel.record.ExcelParseResult;
+import org.example.oshipserver.global.common.excel.record.ExcelParseResult.ErrorDetail;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 
@@ -22,8 +24,9 @@ public class ExcelParser<T> {
         this.mapper = mapper;
     }
 
-    public List<T> parse(InputStream in) {
+    public ExcelParseResult<T> parse(InputStream in) {
         List<T> records = new ArrayList<>();
+        List<ExcelParseResult.ErrorDetail> errors = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(in)) {
             Sheet sheet = wb.getSheetAt(0);
             int first = sheet.getFirstRowNum() + 1;
@@ -37,12 +40,13 @@ public class ExcelParser<T> {
                     T dto = mapper.apply(row);
                     records.add(dto);
                 } catch (Exception e) {
+                    errors.add(new ErrorDetail(i, e.getMessage()));
                     log.warn("엑셀 파싱 실패 - {} 행: {}", i, e.getMessage());
                 }
             }
         } catch (IOException e) {
             throw new ApiException("엑셀 파싱 중 전체 실패", ErrorType.FAIL);
         }
-        return records;
+        return new ExcelParseResult<>(records, errors);
     }
 }

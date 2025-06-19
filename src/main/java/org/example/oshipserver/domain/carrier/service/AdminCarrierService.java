@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
+import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
+import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto.ErrorDetail;
 import org.example.oshipserver.domain.carrier.entity.Carrier;
 import org.example.oshipserver.domain.carrier.entity.CarrierCountry;
 import org.example.oshipserver.domain.carrier.entity.CarrierRateCharge;
@@ -30,7 +31,8 @@ public class AdminCarrierService {
     public void createZone(RequestZone dto) {
 
         Carrier carrier = carrierRepository.findById(dto.carrierId())
-            .orElseThrow(() -> new ApiException("해당 id의 carrier가 없습니다.", ErrorType.INVALID_PARAMETER));
+            .orElseThrow(
+                () -> new ApiException("해당 id의 carrier가 없습니다.", ErrorType.INVALID_PARAMETER));
 
         CarrierCountry carrierCountry = CarrierCountry.builder()
             .carrier(carrier)
@@ -42,15 +44,18 @@ public class AdminCarrierService {
     }
 
     @Transactional
-    public ResponseRateDto createRate(List<RateCreateRequest> dtos) {
+    public ResponseRateDto createRate(List<RateCreateRequest> records) {
 
         int failCount = 0;
         List<CarrierRateCharge> rateCharges = new ArrayList<>();
+        List<ResponseRateDto.ErrorDetail> errors = new ArrayList<>();
 
-        for (RateCreateRequest request : dtos) {
+        for (int i = 0; i < records.size(); i++) {
+            RateCreateRequest request = records.get(i);
             try {
                 Carrier carrier = carrierRepository.findById(request.carrierId())
-                    .orElseThrow(() -> new ApiException("해당 id의 carrier가 없습니다.", ErrorType.INVALID_PARAMETER));
+                    .orElseThrow(() -> new ApiException("해당 id의 carrier가 없습니다.",
+                        ErrorType.INVALID_PARAMETER));
 
                 rateCharges.add(CarrierRateCharge.builder()
                     .carrier(carrier)
@@ -60,14 +65,16 @@ public class AdminCarrierService {
                     .build());
             } catch (Exception ex) {
                 failCount++;
+                errors.add(new ErrorDetail(i, ex.getMessage()));
                 log.warn("Rate 생성 건너뛰기: dto={}, error={}", request, ex.getMessage());
             }
         }
         carrierRateChargeRepository.saveAll(rateCharges);
 
         return ResponseRateDto.builder()
-            .success(rateCharges.size())
-            .fail(failCount)
+            .totalData(records.size())
+            .totalError(failCount)
+            .errors(errors)
             .build();
     }
 }

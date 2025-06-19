@@ -1,12 +1,12 @@
 package org.example.oshipserver.domain.admin.service;
 
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
+import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.carrier.service.AdminCarrierService;
+import org.example.oshipserver.global.common.excel.record.ExcelParseResult;
 import org.example.oshipserver.global.common.excel.RateExcelProcessor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,8 +24,12 @@ public class AdminService {
     }
 
     public ResponseRateDto uploadRateExcel(MultipartFile file){
-        List<RateCreateRequest> dtos = rateExcelProcessor.process(file);
+        ExcelParseResult<RateCreateRequest> records = rateExcelProcessor.process(file);
 
-        return adminCarrierService.createRate(dtos);
+        if (!records.errors().isEmpty()){
+            return ResponseRateDto.from(records);
+        }
+
+        return adminCarrierService.createRate(records.success());
     }
 }
