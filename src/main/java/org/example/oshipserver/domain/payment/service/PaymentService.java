@@ -324,35 +324,30 @@ public class PaymentService {
      * Toss 부분 취소 요청
      * @param paymentKey
      * @param orderId
-     * @param cancelAmount
      * @param cancelReason
      */
     @Transactional
-    public void cancelPartialPayment(String paymentKey, Long orderId, int cancelAmount, String cancelReason) {
+    public void cancelPartialPayment(String paymentKey, Long orderId, String cancelReason) {
         // 1. 결제 조회
         Payment payment = paymentRepository.findByPaymentKey(paymentKey)
             .orElseThrow(() -> new ApiException("결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
-        // 2. 해당 주문이 결제에 포함되어 있는지 확인
+        // 2. 해당 주문이 결제에 포함되어 있는지 확인 (orderId 기준으로만 취소 가능하도록)
         PaymentOrder paymentOrder = payment.getPaymentOrders().stream()
             .filter(po -> po.getOrder().getId().equals(orderId))
             .findFirst()
             .orElseThrow(() -> new ApiException("해당 주문은 이 결제에 포함되어 있지 않습니다.", ErrorType.INVALID_ORDER));
 
-        // 3. 해당 주문 결제금액과 비교
-        if (cancelAmount > paymentOrder.getPaymentAmount()) {
-            throw new ApiException("주문 금액보다 큰 금액은 취소할 수 없습니다.", ErrorType.INVALID_REQUEST);
+        // 3. 이미 취소된 경우 방지
+        if (paymentOrder.getPaymentStatus() == PaymentStatus.CANCEL) {
+            throw new ApiException("이미 취소된 주문입니다.", ErrorType.ALREADY_CANCELED);
         }
 
-        // 4. 누적 취소 금액 계산
-        int totalCanceledAmount = paymentCancelHistoryRepository.findByPayment(payment)
-            .stream()
-            .mapToInt(PaymentCancelHistory::getCancelAmount)
-            .sum();
+        // 부분취소금액을 외부에서 입력받지 않고, 내부에서 order 금액 가져오는 방식으로 리팩토링
+        // 취소금액 = order 단위의 전체 금액
+        int cancelAmount = paymentOrder.getPaymentAmount();
 
-        int newTotalCanceled = totalCanceledAmount + cancelAmount;
-
-        // 5. Toss에 부분 취소 요청
+        // 5. Toss에 부분취소 요청
         tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
 
         // 6. 결제 상태 변경
@@ -361,7 +356,7 @@ public class PaymentService {
 
         // 7. 주문 상태 변경
         paymentOrder.cancel();
-        paymentOrder.getOrder().markAsCancelled();
+        paymentOrder.getOrder().markAsCancelled(); // order상태를 CANCELLED로
         paymentOrderRepository.save(paymentOrder);
         orderRepository.save(paymentOrder.getOrder());
 
@@ -369,17 +364,21 @@ public class PaymentService {
         PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason);
         paymentCancelHistoryRepository.save(history);
 
-        // 9. 주문 상태도 업데이트
-        if (newTotalCanceled == payment.getAmount()) {
-            // 전체 금액이 모두 취소된 경우, OrderStatus를 REFUNDED로 변경
-            List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
-            for (PaymentOrder po : paymentOrders) {
-                Order order = po.getOrder();
-                if (!order.getCurrentStatus().equals(OrderStatus.REFUNDED)) {
-                    order.markAsRefunded();
-                    orderRepository.save(order);
-                }
-            }
+        // 9. 누적 취소 금액 계산
+        int totalCanceledAmount = paymentCancelHistoryRepository.findByPayment(payment)
+            .stream()
+            .mapToInt(PaymentCancelHistory::getCancelAmount)
+            .sum();
+
+        // 10. 전체 취소 여부 체크
+        if (totalCanceledAmount == payment.getAmount()) { // 누적취소금액과 결제금액이 같을 경우
+            payment.cancel(); // paymentStatus CANCEL로 전환
+            paymentRepository.save(payment);
+
+            payment.getPaymentOrders().forEach(po -> {
+                po.getOrder().markAsRefunded(); // orderStatus REFUNDED로 전환
+                orderRepository.save(po.getOrder());
+            });
         }
     }
 
