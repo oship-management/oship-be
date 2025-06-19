@@ -1,5 +1,6 @@
 package org.example.oshipserver.domain.payment.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
@@ -15,6 +16,8 @@ import org.example.oshipserver.domain.payment.dto.response.UserPaymentLookupResp
 import org.example.oshipserver.domain.payment.service.PaymentService;
 import org.example.oshipserver.domain.user.enums.UserRole;
 import org.example.oshipserver.global.common.response.BaseResponse;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -94,25 +97,30 @@ public class PaymentController {
     /**
      * sellerId 기준 결제 내역 조회
      * 추후에 관리자만 조회하도록 수정
-     * @param sellerId
      */
     @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<PaymentLookupResponse>> getPaymentsBySeller(@PathVariable Long sellerId) {
-        List<PaymentLookupResponse> response = paymentService.getPaymentsBySellerId(sellerId);
+    public ResponseEntity<List<PaymentLookupResponse>> getPaymentsBySeller(
+        @PathVariable Long sellerId,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        List<PaymentLookupResponse> response = paymentService.getPaymentsBySellerId(sellerId, startDate, endDate);
         return ResponseEntity.ok(response);
     }
+
 
     /**
      * 사용자 본인의 결제 내역 조회
      * 토큰에서 seller 정보를 추출하는 방식
-     * @param userDetail
      */
     @GetMapping("/mypayments")
     public ResponseEntity<List<UserPaymentLookupResponse>> getMyPayments(
-        @AuthenticationPrincipal CustomUserDetail userDetail) {
+        @AuthenticationPrincipal CustomUserDetail userDetail,
+        @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate startDate,
+        @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate endDate) {
 
         Long userId = Long.valueOf(userDetail.getUserId());
-        List<UserPaymentLookupResponse> response = paymentService.getPaymentsByUser(userId);
+        List<UserPaymentLookupResponse> response = paymentService.getPaymentsByUser(userId, startDate, endDate);
         return ResponseEntity.ok(response);
     }
 

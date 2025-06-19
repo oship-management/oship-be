@@ -382,8 +382,11 @@ public class PaymentService {
      * 관리자 페이지용 (tossOrderId, paymentKey 조회됨)
      */
     @Transactional(readOnly = true)
-    public List<PaymentLookupResponse> getPaymentsBySellerId(Long sellerId) {
-        List<Payment> payments = paymentRepository.findAllBySellerId(sellerId);
+    public List<PaymentLookupResponse> getPaymentsBySellerId(Long sellerId, LocalDate startDate, LocalDate endDate) {
+        LocalDateTime start = (startDate != null) ? startDate.atStartOfDay() : LocalDate.MIN.atStartOfDay();
+        LocalDateTime end = (endDate != null) ? endDate.plusDays(1).atStartOfDay() : LocalDate.MAX.atStartOfDay();
+
+        List<Payment> payments = paymentRepository.findBySellerIdAndCreatedAtBetween(sellerId, start, end);
 
         return payments.stream()
             .map(payment -> {
@@ -406,9 +409,13 @@ public class PaymentService {
      * @return
      */
     @Transactional(readOnly = true)
-    public List<UserPaymentLookupResponse> getPaymentsByUser(Long userId) {
-        // 해당 사용자 결제 목록 조회
-        List<Payment> payments = paymentRepository.findAllBySellerId(userId);
+    public List<UserPaymentLookupResponse> getPaymentsByUser(Long userId, LocalDate startDate, LocalDate endDate) {
+        // 날짜 기본값 설정
+        LocalDateTime start = (startDate != null) ? startDate.atStartOfDay() : LocalDate.MIN.atStartOfDay();
+        LocalDateTime end = (endDate != null) ? endDate.plusDays(1).atStartOfDay() : LocalDate.MAX.atStartOfDay();
+
+        // 날짜로 해당 사용자 결제 목록 조회
+        List<Payment> payments = paymentRepository.findBySellerIdAndCreatedAtBetween(userId, start, end);
 
         return payments.stream()
             .map(payment -> {
@@ -425,7 +432,7 @@ public class PaymentService {
                     .map(order -> OrderPaymentResponse.from(order, orderAmounts.get(order.getId())))
                     .toList();
 
-                return UserPaymentLookupResponse.fromPaymentEntityForUser(payment, orderResponses); // 🔁 변경된 메서드
+                return UserPaymentLookupResponse.fromPaymentEntityForUser(payment, orderResponses);
             })
             .toList();
     }
