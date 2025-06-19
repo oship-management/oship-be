@@ -1,7 +1,11 @@
 package org.example.oshipserver.client.toss;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Base64;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.payment.dto.request.FailedTossRequestDto;
+import org.example.oshipserver.global.common.component.RedisService;
 import org.example.oshipserver.global.exception.ApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -21,6 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식으로 처리
 
     private final RestTemplate restTemplate;
+    private final RedisService redisService;
+    private final ObjectMapper objectMapper;
 
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -88,20 +94,25 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
     }
 
     @Recover
-    public <T, R> R recover(
+    public <R> R recover(
         ApiException e, // 재시도후 마지막 예외
         String url, // toss api
-        T body,
+        Map<String, Object> body,
         Class<R> responseType,
         String idempotencyKey
     ) {
-        log.error("Toss 최종 재시도 실패 - 큐 적재 예정");
-        log.error("▶ URL: {}", url);
-        log.error("▶ Body: {}", body);
-        log.error("▶ 에러 메시지: {}", e.getMessage());
+        log.error("Toss 결제 요청 최종 재시도 실패. 실패한 요청을 Redis 큐에 적재합니다.");
+        try {
+            FailedTossRequestDto failedRequest = new FailedTossRequestDto(url, body, idempotencyKey);
 
-        // TODO: Redis 큐에 실패 요청 적재 예정
-        // redisService.push("failed:toss:payment", serializeToJson(...));
+            String json = objectMapper.writeValueAsString(failedRequest); // 직렬화
+            redisService.pushToList("failed:toss:payment", json);     // Redis 적재
+
+            log.info("Redis 적재 완료: {}", json);
+        } catch (Exception ex) {
+            log.error("Redis 적재 실패: {}", ex.getMessage(), ex);
+        }
+
 
         throw new ApiException("최종 재시도 실패", e); // 재시도 실패후, 마지막 예외. 임시로 예외 던짐
     }
