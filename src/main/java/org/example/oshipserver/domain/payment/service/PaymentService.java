@@ -316,7 +316,7 @@ public class PaymentService {
         }
 
         // 6. 취소 이력 저장
-        PaymentCancelHistory history = PaymentCancelHistory.create(payment, remainingAmount, cancelReason);
+        PaymentCancelHistory history = PaymentCancelHistory.create(payment, remainingAmount, cancelReason, null);
         paymentCancelHistoryRepository.save(history);
     }
 
@@ -361,7 +361,7 @@ public class PaymentService {
         orderRepository.save(paymentOrder.getOrder());
 
         // 8. 취소 이력 저장
-        PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason);
+        PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason, paymentOrder.getOrder());
         paymentCancelHistoryRepository.save(history);
 
         // 9. 누적 취소 금액 계산
