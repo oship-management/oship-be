@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.global.exception.ApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -31,6 +34,11 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
      * @param idempotencyKey 멱등성 키
      * @return Toss 응답객체
      */
+    @Retryable(
+        value = { ApiException.class },  // 재시도할 예외
+        maxAttempts = 4,                 // 총 4번 (최초 1회 시도 + 3회 재시도)
+        backoff = @Backoff(delay = 2000, multiplier = 2) // 점점 지연시간 증가
+    )
     public <T, R> R postForIdempotent(
         String url,
         T body,
@@ -78,4 +86,24 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             throw new ApiException("Toss 호출 중 알 수 없는 오류 발생", e);
         }
     }
+
+    @Recover
+    public <T, R> R recover(
+        ApiException e, // 재시도후 마지막 예외
+        String url, // toss api
+        T body,
+        Class<R> responseType,
+        String idempotencyKey
+    ) {
+        log.error("Toss 최종 재시도 실패 - 큐 적재 예정");
+        log.error("▶ URL: {}", url);
+        log.error("▶ Body: {}", body);
+        log.error("▶ 에러 메시지: {}", e.getMessage());
+
+        // TODO: Redis 큐에 실패 요청 적재 예정
+        // redisService.push("failed:toss:payment", serializeToJson(...));
+
+        throw new ApiException("최종 재시도 실패", e); // 재시도 실패후, 마지막 예외. 임시로 예외 던짐
+    }
+
 }
