@@ -19,5 +19,6 @@ public record OrderBulkDto(
     Boolean deleted,
     LocalDateTime createdAt,
     LocalDateTime modifiedAt,
-    Long sellerId
+    Long sellerId,
+    String lastTrackingEvent
 ) {}

@@ -10,6 +10,8 @@ public record OrderItemBulkDto(
     Double weight,
     String hsCode,
     String originCountryCode,
+    String originStateCode,
+    String originStateName,
     String weightUnit,
     Long orderId,// FK (orders.id 참조)
     LocalDateTime createdAt,

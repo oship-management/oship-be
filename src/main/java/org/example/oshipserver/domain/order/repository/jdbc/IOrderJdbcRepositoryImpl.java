@@ -44,8 +44,8 @@ public class IOrderJdbcRepositoryImpl implements IOrderJdbcRepository {
     public void bulkInsertOrders(List<OrderBulkDto> orders) {
         String sql = "INSERT INTO orders (order_no, oship_master_no, shipping_term, service_type, weight_unit, " +
             "shipment_actual_weight, shipment_volume_weight, dimension_width, dimension_length, dimension_height, " +
-            "package_type, parcel_count, item_contents_type, deleted, created_at, modified_at, seller_id) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "package_type, parcel_count, item_contents_type, deleted, created_at, modified_at, seller_id,last_tracking_event) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
@@ -71,6 +71,7 @@ public class IOrderJdbcRepositoryImpl implements IOrderJdbcRepository {
                 ps.setTimestamp(15, toTimestamp(o.createdAt()));
                 ps.setTimestamp(16, toTimestamp(o.modifiedAt()));
                 ps.setObject(17, o.sellerId());
+                ps.setString(18, o.lastTrackingEvent());
             }
 
             @Override
@@ -139,9 +140,9 @@ public class IOrderJdbcRepositoryImpl implements IOrderJdbcRepository {
     public void bulkInsertOrderItems(List<OrderItemBulkDto> items) {
         String sql = "INSERT INTO order_items (" +
             "name, quantity, unit_value, value_currency, " +
-            "weight, hs_code, origin_country_code, weight_unit, " +
+            "weight, hs_code, origin_country_code, item_origin_state_code, item_origin_state_name, weight_unit, " +
             "order_id, created_at, modified_at" +
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.batchUpdate(sql, items, 1000, (ps, item) -> {
             ps.setString(1, item.name());
@@ -151,12 +152,15 @@ public class IOrderJdbcRepositoryImpl implements IOrderJdbcRepository {
             setDoubleOrNull(ps, 5, item.weight());
             ps.setString(6, item.hsCode());
             ps.setString(7, item.originCountryCode());
-            ps.setString(8, item.weightUnit());
-            setLongOrNull(ps, 9, item.orderId());
-            ps.setTimestamp(10, toTimestamp(item.createdAt()));
-            ps.setTimestamp(11, toTimestamp(item.modifiedAt()));
+            ps.setString(8, item.originStateCode());
+            ps.setString(9, item.originStateName());
+            ps.setString(10, item.weightUnit());
+            setLongOrNull(ps, 11, item.orderId());
+            ps.setTimestamp(12, toTimestamp(item.createdAt()));
+            ps.setTimestamp(13, toTimestamp(item.modifiedAt()));
         });
     }
+
 
     @Override
     public void bulkInsertOrderSenders(List<OrderSenderBulkDto> senders) {

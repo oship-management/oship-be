@@ -23,7 +23,7 @@ public class OrderDtoMapperImpl implements OrderDtoMapper {
             req.shipmentActualWeight(), req.shipmentVolumeWeight(),
             (double) req.dimensionWidth(), (double) req.dimensionLength(), (double) req.dimensionHeight(),
             req.packageType(), req.parcelCount(), req.itemContentsType(),
-            false, LocalDateTime.now(), LocalDateTime.now(), sellerId
+            false, LocalDateTime.now(), LocalDateTime.now(), sellerId, req.lastTrackingEvent()
         );
     }
 
@@ -38,6 +38,8 @@ public class OrderDtoMapperImpl implements OrderDtoMapper {
                 item.itemWeight(),
                 item.itemHSCode(),
                 item.itemOriginCountryCode(),
+                item.itemOriginStateCode(),
+                item.itemOriginStateName(),
                 item.weightUnit(),
                 orderId,
                 LocalDateTime.now(),
