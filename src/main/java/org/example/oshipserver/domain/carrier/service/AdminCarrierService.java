@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
+import org.example.oshipserver.domain.admin.dto.request.RateGroupRequest;
 import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto.ErrorDetail;
@@ -44,25 +44,34 @@ public class AdminCarrierService {
     }
 
     @Transactional
-    public ResponseRateDto createRate(List<RateCreateRequest> records) {
+    public ResponseRateDto createRate(List<RateGroupRequest> records) {
 
         int failCount = 0;
-        List<CarrierRateCharge> rateCharges = new ArrayList<>();
+        int totalCount = 0;
         List<ResponseRateDto.ErrorDetail> errors = new ArrayList<>();
+        List<CarrierRateCharge> rateCharges = new ArrayList<>();
 
         for (int i = 0; i < records.size(); i++) {
-            RateCreateRequest request = records.get(i);
+            RateGroupRequest request = records.get(i);
             try {
                 Carrier carrier = carrierRepository.findById(request.carrierId())
                     .orElseThrow(() -> new ApiException("해당 id의 carrier가 없습니다.",
                         ErrorType.INVALID_PARAMETER));
 
-                rateCharges.add(CarrierRateCharge.builder()
-                    .carrier(carrier)
-                    .zoneIndex(request.zoneIndex())
-                    .weight(request.weight())
-                    .amount(request.amount())
-                    .build());
+                carrierRateChargeRepository.softDeleteByCarrierIdAndZoneAndDeletedAtIsNull(
+                    request.carrierId(),
+                    request.zoneIndex());
+
+                for (RateGroupRequest.amounts amount : request.amounts()) {
+                    rateCharges.add(CarrierRateCharge.builder()
+                        .carrier(carrier)
+                        .zoneIndex(request.zoneIndex())
+                        .weight(amount.weight())
+                        .amount(amount.amount())
+                        .build());
+                    totalCount++;
+                }
+
             } catch (Exception ex) {
                 failCount++;
                 errors.add(new ErrorDetail(i, ex.getMessage()));
@@ -72,7 +81,7 @@ public class AdminCarrierService {
         carrierRateChargeRepository.saveAll(rateCharges);
 
         return ResponseRateDto.builder()
-            .totalData(records.size())
+            .totalData(totalCount)
             .totalError(failCount)
             .errors(errors)
             .build();
