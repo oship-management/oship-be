@@ -3,10 +3,19 @@ package org.example.oshipserver.client.toss;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.order.entity.Order;
+import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
+import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.payment.dto.request.FailedTossRequestDto;
+import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentFailLog;
+import org.example.oshipserver.domain.payment.entity.PaymentOrder;
+import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.domain.payment.repository.PaymentFailLogRepository;
+import org.example.oshipserver.domain.payment.repository.PaymentOrderRepository;
+import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +38,8 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final PaymentFailLogRepository paymentFailLogRepository;
+    private final PaymentRepository paymentRepository;
+    private final OrderRepository orderRepository;
 
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -118,8 +129,28 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             paymentFailLogRepository.save(failLog); // db 저장
             log.warn("결제 실패 로그 저장 완료: idempotencyKey={}", idempotencyKey);
 
+            // 상태 업데이트
+            Optional<Payment> optionalPayment = paymentRepository.findByIdempotencyKey(idempotencyKey);
+            if (optionalPayment.isPresent()) {
+                Payment payment = optionalPayment.get();
+                payment.updateStatus(PaymentStatus.FAIL);  // 결제 상태 변경
+                paymentRepository.save(payment);
+
+                for (PaymentOrder po : payment.getPaymentOrders()) {
+                    Order order = po.getOrder();
+                    try {
+                        order.markAs(OrderStatus.FAILED); // 주문 상태 변경
+                        orderRepository.save(order);
+                    } catch (IllegalStateException ex) {
+                        log.warn("주문 상태를 FAILED로 전이할 수 없음: orderId={}, currentStatus={}, reason={}",
+                            order.getId(), order.getCurrentStatus(), ex.getMessage());
+                    }
+                }
+
+                log.warn("결제 및 주문 상태 FAIL / FAILED 로 변경 완료: paymentNo={}", payment.getPaymentNo());
+            }
         } catch (Exception ex) {
-            log.error("결제 실패 로그 저장 중 오류 발생: {}", ex.getMessage(), ex);
+            log.error("결제 실패 로그 저장 또는 상태 업데이트 중 오류 발생: {}", ex.getMessage(), ex);
         }
 
         // 사용자에게 최종 실패 응답 반환

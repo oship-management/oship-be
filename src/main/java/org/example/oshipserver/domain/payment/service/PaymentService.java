@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.example.oshipserver.client.toss.TossPaymentClient;
 import org.example.oshipserver.domain.order.dto.response.OrderPaymentResponse;
 import org.example.oshipserver.domain.order.entity.Order;
@@ -47,7 +48,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.transaction.annotation.Transactional;
 import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
@@ -135,10 +136,16 @@ public class PaymentService {
         paymentOrderRepository.save(paymentOrder);
 
         // 8. 주문 상태 업데이트
-        if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {  // 중복 상태 변경 방지
-            order.markAsPaid();
+        try {
+            if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {
+                order.markAs(OrderStatus.PAID);
+                orderRepository.save(order);
+                log.info("주문 상태가 PAID로 변경되었습니다. orderId={}", order.getId());
+            }
+        } catch (IllegalStateException e) {
+            log.warn("주문 상태 변경 실패: orderId={}, currentStatus={}, targetStatus=PAID, reason={}",
+                order.getId(), order.getCurrentStatus(), e.getMessage());
         }
-        orderRepository.save(order);
 
         // 9. 응답 DTO 반환
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
@@ -226,10 +233,16 @@ public class PaymentService {
             paymentOrderRepository.save(paymentOrder);
 
             // 주문 상태 업데이트
-            if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {  // 중복 상태 변경 방지
-                order.markAsPaid();
+            if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {
+                try {
+                    order.markAs(OrderStatus.PAID);
+                    orderRepository.save(order);
+                    log.info("주문 상태가 PAID로 변경되었습니다. orderId={}", order.getId());
+                } catch (IllegalStateException e) {
+                    log.warn("주문 상태를 PAID로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                        order.getId(), order.getCurrentStatus(), e.getMessage());
+                }
             }
-            orderRepository.save(order);
         }
 
         // 8. 응답용 orderId 리스트 추출
@@ -311,8 +324,15 @@ public class PaymentService {
         List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
         for (PaymentOrder po : paymentOrders) {
             po.cancel();
-            po.getOrder().markAsCancelled(); // orderStatus 변경
-            orderRepository.save(po.getOrder());
+            Order order = po.getOrder();
+            try {
+                order.markAs(OrderStatus.CANCELLED);
+                orderRepository.save(order);
+                log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
+            } catch (IllegalStateException e) {
+                log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                    order.getId(), order.getCurrentStatus(), e.getMessage());
+            }
         }
 
         // 6. 취소 이력 저장
@@ -356,9 +376,18 @@ public class PaymentService {
 
         // 7. 주문 상태 변경
         paymentOrder.cancel();
-        paymentOrder.getOrder().markAsCancelled(); // order상태를 CANCELLED로
+
+        Order order = paymentOrder.getOrder();
+        try {
+            order.markAs(OrderStatus.CANCELLED);
+            log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
+        } catch (IllegalStateException e) {
+            log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                order.getId(), order.getCurrentStatus(), e.getMessage());
+        }
+
         paymentOrderRepository.save(paymentOrder);
-        orderRepository.save(paymentOrder.getOrder());
+        orderRepository.save(order);
 
         // 8. 취소 이력 저장
         PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason, paymentOrder.getOrder());
@@ -376,8 +405,15 @@ public class PaymentService {
             paymentRepository.save(payment);
 
             payment.getPaymentOrders().forEach(po -> {
-                po.getOrder().markAsRefunded(); // orderStatus REFUNDED로 전환
-                orderRepository.save(po.getOrder());
+                Order o = po.getOrder();
+                try {
+                    o.markAs(OrderStatus.REFUNDED);
+                    log.info("주문 상태가 REFUNDED로 변경되었습니다. orderId={}", o.getId());
+                } catch (IllegalStateException e) {
+                    log.warn("주문 상태를 REFUNDED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                        o.getId(), o.getCurrentStatus(), e.getMessage());
+                }
+                orderRepository.save(o);
             });
         }
     }

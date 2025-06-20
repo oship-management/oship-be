@@ -275,16 +275,13 @@ public class Order extends BaseTimeEntity {
     /**
      * 결제 상태에 따른, 주문 상태 업데이트
      */
-    public void markAsPaid() {
-        this.currentStatus = OrderStatus.PAID;
-    }
-    public void markAsCancelled() {
-        this.currentStatus = OrderStatus.CANCELLED;
-    }
-    public void markAsRefunded() {
-        this.currentStatus = OrderStatus.REFUNDED;
-    }
-    public void markAsFailed() {
-        this.currentStatus = OrderStatus.FAILED;
+    public void markAs(OrderStatus nextStatus) {
+        if (!this.currentStatus.canTransitionTo(nextStatus)) {
+            throw new IllegalStateException(
+                String.format("현재 상태 '%s'에서는 상태 '%s'로 전이할 수 없습니다.",
+                    this.currentStatus.name(), nextStatus.name())
+            );
+        }
+        this.currentStatus = nextStatus;
     }
 }

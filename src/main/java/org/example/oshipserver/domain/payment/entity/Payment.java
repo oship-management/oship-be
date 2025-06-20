@@ -120,17 +120,8 @@ public class Payment extends BaseTimeEntity {
         this.sellerId = sellerId;
     }
 
-    public void markSuccess(String paymentKey, LocalDateTime paidAt, String cardLast4Digits, String receiptUrl) {
-        this.paymentKey = paymentKey;
-        this.status = PaymentStatus.COMPLETE;
-        this.paidAt = paidAt;
-        this.cardLast4Digits = cardLast4Digits;
-        this.receiptUrl = receiptUrl;
-    }
-
-    public void markFailed(String reason) {
-        this.status = PaymentStatus.FAIL;
-        this.failReason = reason;
+    public void updateStatus(PaymentStatus status) {
+        this.status = status;
     }
 
     public void cancel() {
@@ -148,6 +139,9 @@ public class Payment extends BaseTimeEntity {
 
         // 추후 이력 관리나 누적 취소 금액 관리로 확장 예정
     }
+
+    @Column(name = "idempotency_key", nullable = false, unique = true)
+    private String idempotencyKey;
 
 //    // payment > paymentOrder > order르 통해 sellerId 가지고 오는 것보다
 //    // payment엔티티에서 결제자 id를 직접 가지고 있도록 연관관계를 맺는게 효율적
