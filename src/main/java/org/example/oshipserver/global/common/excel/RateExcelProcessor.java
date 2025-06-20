@@ -25,8 +25,8 @@ public class RateExcelProcessor extends
         return RateCreateRequest.builder()
             .carrierId(dto.carrierId())
             .zoneIndex(dto.zoneIndex())
-            .amount(BigDecimal.valueOf(dto.weight()))
-            .weight(BigDecimal.valueOf(dto.amount()))
+            .weight(BigDecimal.valueOf(dto.weight()))
+            .amount(BigDecimal.valueOf(dto.amount()))
             .build();
     }
 }
