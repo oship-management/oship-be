@@ -21,7 +21,8 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**") // API 경로에만 허용
                 .allowedOrigins("https://seller.oshipapp.com") // 허용할 프론트엔드 도메인
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedOrigins("https://partner.oshipapp.com") // 허용할 프론트엔드 도메인
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true); // 쿠키/세션 전달 허용
     }
