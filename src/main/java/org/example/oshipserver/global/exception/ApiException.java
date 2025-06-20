@@ -5,23 +5,41 @@ import lombok.RequiredArgsConstructor;
 
 
 @Getter
-@RequiredArgsConstructor
 public class ApiException extends RuntimeException{
 
-    private final String message;
     private final ErrorType errorType;
 
-    // 외부 오류용(Toss): ErrorType 없이 message만 전달
+    /**
+     * ErrorType만 전달할 경우 (errorType의 메시지를 사용)
+     */
+    public ApiException(ErrorType errorType) {
+        super(errorType.getMessage());
+        this.errorType = errorType;
+    }
+
+    /**
+     * 외부 API 오류 등으로 message만 따로 지정
+     * ErrorType : 기본값인 INTERNAL_SERVER_ERROR
+     */
     public ApiException(String message) {
         super(message);
-        this.message = message;
         this.errorType = ErrorType.INTERNAL_SERVER_ERROR;
     }
 
-    // 외부 오류용(Toss) : e.getResponseBodyAsString()과 함께 전달
+    /**
+     * 원인 예외 포함 + message 지정 시 사용
+     * ErrorType : 기본값인 INTERNAL_SERVER_ERROR
+     */
     public ApiException(String message, Throwable cause) {
         super(message, cause);
-        this.message = message;
         this.errorType = ErrorType.INTERNAL_SERVER_ERROR;
+    }
+
+    /**
+     * message + ErrorType 모두 직접 지정
+     */
+    public ApiException(String message, ErrorType errorType) {
+        super(message);
+        this.errorType = errorType;
     }
 }

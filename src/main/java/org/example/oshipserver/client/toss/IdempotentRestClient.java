@@ -95,7 +95,7 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
 
     @Recover
     public <R> R recover(
-        ApiException e, // 재시도후 마지막 예외
+        ApiException e, // 최종 예외
         String url, // toss api
         Map<String, Object> body,
         Class<R> responseType,
@@ -104,8 +104,7 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         log.error("Toss 결제 요청 최종 재시도 실패. 실패한 요청을 Redis 큐에 적재합니다.");
         try {
             FailedTossRequestDto failedRequest = new FailedTossRequestDto(url, body, idempotencyKey);
-
-            String json = objectMapper.writeValueAsString(failedRequest); // 직렬화
+            String json = objectMapper.writeValueAsString(failedRequest); // json 직렬화
             redisService.pushToList("failed:toss:payment", json);     // Redis 적재
 
             log.info("Redis 적재 완료: {}", json);
@@ -113,8 +112,8 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             log.error("Redis 적재 실패: {}", ex.getMessage(), ex);
         }
 
-
-        throw new ApiException("최종 재시도 실패", e); // 재시도 실패후, 마지막 예외. 임시로 예외 던짐
+        // 사용자에게 일시적 실패라는 응답 전달. 이후 10분간 재처리(retry)
+        throw new ApiException("현재 일시적 장애로 인해 결제를 완료할 수 없습니다. 10분 후에 다시 확인해주세요.");
     }
 
 }

@@ -34,6 +34,7 @@ public enum ErrorType{
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청이 올바르지 않습니다."),
     INVALID_ORDER(HttpStatus.BAD_REQUEST, "해당 주문은 이 결제에 포함되어 있지 않습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다."),
+    REDIS_RETRY_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "재시도 중 장애 발생, 나중에 다시 시도해주세요"),
 
     // Shipping/Barcode 관련 에러
     BARCODE_NOT_PRINTED(HttpStatus.BAD_REQUEST, "바코드가 출력되지 않았습니다."),
@@ -48,5 +49,10 @@ public enum ErrorType{
 
     private final HttpStatus status;
     private final String desc;
+
+    public String getMessage() {
+        return desc;
+    }
+
 }
 
