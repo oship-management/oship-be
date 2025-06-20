@@ -95,7 +95,9 @@ public class OrderExcelUploadController {
                 row.itemWeight(),
                 row.weightUnit(),
                 row.itemHSCode(),
-                row.itemOriginCountryCode()
+                row.itemOriginCountryCode(),
+                row.itemOriginStateCode(),
+                row.itemOriginStateName()
             )
         ).toList();
 
@@ -145,6 +147,7 @@ public class OrderExcelUploadController {
             base.dimensionHeight().intValue(),
             base.packageType(),
             base.shippingTerm(),
+            base.lastTrackingEvent(),
 
             // 상품 목록
             orderItems

@@ -1,21 +1,15 @@
 package org.example.oshipserver.domain.order.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.oshipserver.domain.order.dto.bulk.InternalOrderCreateDto;
-import org.example.oshipserver.domain.order.dto.bulk.OrderBulkDto;
-import org.example.oshipserver.domain.order.dto.bulk.OrderItemBulkDto;
-import org.example.oshipserver.domain.order.dto.bulk.OrderRecipientBulkDto;
-import org.example.oshipserver.domain.order.dto.bulk.OrderSenderBulkDto;
-import org.example.oshipserver.domain.order.dto.bulk.RecipientAddressBulkDto;
-import org.example.oshipserver.domain.order.dto.bulk.SenderAddressBulkDto;
+import org.example.oshipserver.domain.order.dto.bulk.*;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
+import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.repository.IOrderRepository;
 import org.example.oshipserver.domain.order.repository.jdbc.IOrderJdbcRepository;
 import org.example.oshipserver.domain.order.service.bulkmapper.OrderDtoMapper;
@@ -27,12 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OrderBulkService {
+public class OrderBulkV3Service {
 
     private final IOrderRepository orderRepository;
     private final IOrderJdbcRepository orderJdbcRepository;
     private final OrderDtoMapper orderDtoMapper;
-    private final OrderService orderService;
 
     @Transactional
     public List<String> createOrdersBulk(List<InternalOrderCreateDto> requests) {
@@ -48,47 +41,41 @@ public class OrderBulkService {
             throw new ApiException("중복된 주문번호 존재: " + existingOrderNos, ErrorType.DUPLICATED_ORDER);
         }
 
-        // 2. OrderBulkDto 생성 및 masterNo → dto 매핑
+        // 2. masterNo 일괄 생성
+        CountryCode countryCode = requests.get(0).request().recipientCountryCode();
+        List<String> masterNos = generateUniqueMasterNos(requests.size(), countryCode);
+        Iterator<String> masterNoIter = masterNos.iterator();
+
+        // 3. OrderBulkDto 생성 및 매핑
         List<OrderBulkDto> orderDtos = new ArrayList<>();
         Map<String, InternalOrderCreateDto> masterNoToDto = new HashMap<>();
 
         for (InternalOrderCreateDto dto : requests) {
             OrderCreateRequest req = dto.request();
-
-            // V3 에서는 generateUniqueMasterNo (다건 메서드 생성으로 변경)
-            String masterNo = orderService.generateUniqueMasterNo(req.recipientCountryCode());
+            String masterNo = masterNoIter.next();
             orderDtos.add(orderDtoMapper.toOrderDto(req, masterNo, dto.sellerId()));
             masterNoToDto.put(masterNo, dto);
         }
 
-        // 3. 주문 insert
+        // 4. 주문 INSERT
         orderJdbcRepository.bulkInsertOrders(orderDtos);
 
-        // 4. masterNo 목록 준비
-        List<String> masterNos = orderDtos.stream()
-            .map(OrderBulkDto::oshipMasterNo)
+        // 5. 주소 DTO 생성 및 INSERT
+        List<SenderAddressBulkDto> senderAddresses = masterNos.stream()
+            .map(m -> orderDtoMapper.toSenderAddressDto(masterNoToDto.get(m).request(), m))
             .toList();
-
-        // 5. 주소 DTO 생성 및 insert 먼저 수행
-        List<SenderAddressBulkDto> senderAddresses = new ArrayList<>();
-        List<RecipientAddressBulkDto> recipientAddresses = new ArrayList<>();
-
-        for (String masterNo : masterNos) {
-            InternalOrderCreateDto dto = masterNoToDto.get(masterNo);
-            OrderCreateRequest req = dto.request();
-
-            senderAddresses.add(orderDtoMapper.toSenderAddressDto(req, masterNo));
-            recipientAddresses.add(orderDtoMapper.toRecipientAddressDto(req, masterNo));
-        }
+        List<RecipientAddressBulkDto> recipientAddresses = masterNos.stream()
+            .map(m -> orderDtoMapper.toRecipientAddressDto(masterNoToDto.get(m).request(), m))
+            .toList();
         orderJdbcRepository.bulkInsertSenderAddresses(senderAddresses);
         orderJdbcRepository.bulkInsertRecipientAddresses(recipientAddresses);
 
-        // 6. 이제 orderId + addressId 조회
+        // 6. ID 매핑 조회
         Map<String, Long> masterNoToOrderId = orderJdbcRepository.findOrderIdMapByMasterNos(masterNos);
         Map<String, Long> masterNoToSenderAddressId = orderJdbcRepository.findSenderAddressIdsByMasterNos(masterNos);
         Map<String, Long> masterNoToRecipientAddressId = orderJdbcRepository.findRecipientAddressIdsByMasterNos(masterNos);
 
-        // 7. 나머지 DTO 생성
+        // 7. 최종 DTO 매핑
         List<OrderItemBulkDto> items = new ArrayList<>();
         List<OrderSenderBulkDto> senders = new ArrayList<>();
         List<OrderRecipientBulkDto> recipients = new ArrayList<>();
@@ -98,39 +85,47 @@ public class OrderBulkService {
             OrderCreateRequest req = dto.request();
             Long orderId = masterNoToOrderId.get(masterNo);
 
-            if (orderId == null) {
-                throw new ApiException("orderId 조회 실패: " + masterNo, ErrorType.NOT_FOUND);
-            }
-
-            Long senderAddressId = masterNoToSenderAddressId.get(masterNo);
-            Long recipientAddressId = masterNoToRecipientAddressId.get(masterNo);
+            if (orderId == null) throw new ApiException("orderId 조회 실패: " + masterNo, ErrorType.NOT_FOUND);
 
             items.addAll(orderDtoMapper.toOrderItemDtos(req, masterNo, orderId));
-            senders.add(orderDtoMapper.toSenderDto(req, orderId, senderAddressId, dto.sellerId()));
-            recipients.add(orderDtoMapper.toRecipientDto(req, orderId, recipientAddressId));
+            senders.add(orderDtoMapper.toSenderDto(req, orderId, masterNoToSenderAddressId.get(masterNo), dto.sellerId()));
+            recipients.add(orderDtoMapper.toRecipientDto(req, orderId, masterNoToRecipientAddressId.get(masterNo)));
         }
 
-        // 8. 최종 bulk insert
+        // 8. 아이템/발송자/수취인 INSERT
         orderJdbcRepository.bulkInsertOrderItems(items);
         orderJdbcRepository.bulkInsertOrderSenders(senders);
         orderJdbcRepository.bulkInsertOrderRecipients(recipients);
 
-
-        // OrderBulkRepository ,,, JDBC 기반의 레포지토리에서 실직적인 Insert 작업
-        // 여러 테이블의 insert 메서드를 호출 ,,, 5개의 list DTO 를 넣어서 ....
-
-        // 트래킹 이벤트 등록 (옵션)
-//        for (Order order : orders) {
-//            trackingEventHandler.handleTrackingEvent(
-//                order.getId(),
-//                TrackingEventEnum.ORDER_PLACED,
-//                ""
-//            );
-//        }
-
-
-        // 9. 완료된 masterNo 반환
+        // 9. 결과 반환
         return masterNos;
     }
 
+
+
+    // UUID 기반으로 중복 없는 주문 마스터번호를 여러 개 생성
+    public List<String> generateUniqueMasterNos(int count, CountryCode countryCode) {
+        String prefix = "OSH";
+        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+        String country = (countryCode != null) ? countryCode.name() : "XX";
+
+        Set<String> result = new LinkedHashSet<>();
+        while (result.size() < count) {
+            List<String> candidates = new ArrayList<>();
+            while (candidates.size() < (count - result.size())) {
+                String uuidSegment = UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
+                candidates.add(prefix + date + country + uuidSegment);
+            }
+
+            // 이미 DB에 존재하는 master 번호는 제외
+            List<String> existing = orderRepository.findExistingMasterNos(candidates);
+            for (String masterNo : candidates) {
+                if (!existing.contains(masterNo)) {
+                    result.add(masterNo);
+                }
+            }
+        }
+
+        return new ArrayList<>(result);
+    }
 }

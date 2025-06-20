@@ -12,7 +12,7 @@ import org.example.oshipserver.domain.order.dto.request.OrderExcelRequest;
 import org.example.oshipserver.domain.order.dto.response.OrderCreateResponse;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.StateCode;
-import org.example.oshipserver.domain.order.service.OrderBulkService;
+import org.example.oshipserver.domain.order.service.OrderBulkV3Service;
 import org.example.oshipserver.domain.order.util.ExcelOrderParser;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
@@ -25,11 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v2/orders")
+@RequestMapping("/api/v3/orders")
 @RequiredArgsConstructor
-public class OrderExcelBulkUploadController {
+public class OrderExcelBulkUploadV3Controller {
 
-    private final OrderBulkService orderBulkService;
+    private final OrderBulkV3Service orderBulkV3Service;
     private final ExcelOrderParser excelOrderParser;
 
     /**
@@ -60,7 +60,7 @@ public class OrderExcelBulkUploadController {
             .toList();
 
         // 5. 주문 생성 처리
-        List<String> masterNos = orderBulkService.createOrdersBulk(requests);
+        List<String> masterNos = orderBulkV3Service.createOrdersBulk(requests);
         List<OrderCreateResponse> responses = masterNos.stream()
             .map(OrderCreateResponse::new)
             .toList();

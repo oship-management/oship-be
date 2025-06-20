@@ -26,5 +26,13 @@ public class IOrderRepositoryImpl implements IOrderRepository {
             .fetch();
     }
 
+    @Override
+    public List<String> findExistingMasterNos(List<String> masterNos) {
+        return queryFactory
+            .select(order.oshipMasterNo)
+            .from(order)
+            .where(order.oshipMasterNo.in(masterNos))
+            .fetch();
+    }
 
 }
