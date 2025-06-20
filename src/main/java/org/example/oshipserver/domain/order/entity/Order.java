@@ -48,7 +48,7 @@ public class Order extends BaseTimeEntity {
     private String orderNo;
 
     // 수량 및 중량
-    private int parcelCount;
+    private Integer parcelCount;
     private BigDecimal shipmentActualWeight;
     private BigDecimal shipmentVolumeWeight;
     private String weightUnit;
@@ -62,7 +62,7 @@ public class Order extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     // 상태
-    private boolean deleted = false;
+    private Boolean deleted = false;
 
     @Enumerated(EnumType.STRING)
     @CreatedBy // 삭제 주체 자동 주입
@@ -116,13 +116,13 @@ public class Order extends BaseTimeEntity {
         String orderNo,
         String oshipMasterNo,
         String weightUnit,
-        int parcelCount,
+        Integer parcelCount,
         BigDecimal shipmentActualWeight,
         BigDecimal shipmentVolumeWeight,
         BigDecimal dimensionWidth,
         BigDecimal dimensionHeight,
         BigDecimal dimensionLength,
-        boolean deleted,
+        Boolean deleted,
         OrderStatus currentStatus,
         String itemContentsType,
         String serviceType,
