@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -38,6 +39,10 @@ public class CarrierRateCharge extends BaseTimeEntity {
 
     @Column(nullable = false)
     private BigDecimal amount;
+
+    @Column
+    private LocalDateTime deletedAt;
+
 
     @Builder
     public CarrierRateCharge(Carrier carrier, int zoneIndex, BigDecimal weight, BigDecimal amount) {
