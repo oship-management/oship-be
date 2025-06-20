@@ -34,6 +34,8 @@ public enum ErrorType{
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청이 올바르지 않습니다."),
     INVALID_ORDER(HttpStatus.BAD_REQUEST, "해당 주문은 이 결제에 포함되어 있지 않습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류입니다."),
+    PAYMENT_STATUS_TRANSITION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "결제 상태 전이에 실패했습니다."),
+    PAYMENT_INVALID_CANCEL_AMOUNT(HttpStatus.BAD_REQUEST, "부분취소 금액이 유효하지 않습니다."),
 
     // TOSS API 호출 에러
     REDIS_RETRY_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "재시도 중 장애 발생, 나중에 다시 시도해주세요"),

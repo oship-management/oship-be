@@ -317,8 +317,14 @@ public class PaymentService {
         tossPaymentClient.requestCancel(paymentKey, cancelReason, remainingAmount);
 
         // 4. paymentStatus 변경
-        payment.cancel();
-        paymentRepository.save(payment);
+        try {
+            payment.updateStatus(PaymentStatus.CANCEL);
+            paymentRepository.save(payment);
+            log.info("결제 상태를 CANCEL로 변경했습니다. paymentNo={}", payment.getPaymentNo());
+        } catch (IllegalStateException ex) {
+            log.warn("결제 상태 CANCEL로 변경 실패: 현재 상태={}, paymentNo={}, reason={}",
+                payment.getStatus(), payment.getPaymentNo(), ex.getMessage());
+        }
 
         // 5. PaymentOrder + Order 상태도 전체 취소로 변경
         List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
@@ -371,8 +377,26 @@ public class PaymentService {
         tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
 
         // 6. 결제 상태 변경
-        payment.partialCancel(cancelAmount, cancelReason);
-        paymentRepository.save(payment);
+        try{
+            payment.partialCancel(cancelAmount); // 금액 유효성 체크
+            payment.updateStatus(PaymentStatus.PARTIAL_CANCEL); // 상태 변경
+            paymentRepository.save(payment);
+            log.info("결제 상태가 PARTIAL_CANCEL로 변경되었습니다. paymentNo={}", payment.getPaymentNo());
+        } catch (IllegalArgumentException e) {
+            log.warn("결제 부분취소 요청 금액이 유효하지 않습니다. paymentNo={}, cancelAmount={}, reason={}",
+                payment.getPaymentNo(), cancelAmount, e.getMessage());
+            throw new ApiException(
+                String.format("부분취소 금액이 유효하지 않습니다. 취소 요청 금액=%d, 결제 총액=%d", cancelAmount, payment.getAmount()),
+                ErrorType.PAYMENT_INVALID_CANCEL_AMOUNT
+            );
+        } catch (IllegalStateException e) {
+            log.warn("결제 상태 PARTIAL_CANCEL로 변경 실패. 현재 상태={}, paymentNo={}, reason={}",
+                payment.getStatus(), payment.getPaymentNo(), e.getMessage());
+            throw new ApiException(
+                "PARTIAL_CANCEL 상태로 변경할 수 없습니다.",
+                ErrorType.PAYMENT_STATUS_TRANSITION_FAILED
+            );
+        }
 
         // 7. 주문 상태 변경
         paymentOrder.cancel();
@@ -381,9 +405,9 @@ public class PaymentService {
         try {
             order.markAs(OrderStatus.CANCELLED);
             log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException exxx) {
             log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
-                order.getId(), order.getCurrentStatus(), e.getMessage());
+                order.getId(), order.getCurrentStatus(), exxx.getMessage());
         }
 
         paymentOrderRepository.save(paymentOrder);
@@ -401,17 +425,23 @@ public class PaymentService {
 
         // 10. 전체 취소 여부 체크
         if (totalCanceledAmount == payment.getAmount()) { // 누적취소금액과 결제금액이 같을 경우
-            payment.cancel(); // paymentStatus CANCEL로 전환
-            paymentRepository.save(payment);
+            try {
+                payment.updateStatus(PaymentStatus.CANCEL);
+                paymentRepository.save(payment);
+                log.info("결제 상태가 CANCEL로 변경되었습니다. paymentNo={}", payment.getPaymentNo());
+            } catch (IllegalStateException ex) {
+                log.warn("결제 상태를 CANCEL로 변경하지 못했습니다. paymentNo={}, currentStatus={}, reason={}",
+                    payment.getPaymentNo(), payment.getStatus(), ex.getMessage());
+            }
 
             payment.getPaymentOrders().forEach(po -> {
                 Order o = po.getOrder();
                 try {
                     o.markAs(OrderStatus.REFUNDED);
                     log.info("주문 상태가 REFUNDED로 변경되었습니다. orderId={}", o.getId());
-                } catch (IllegalStateException e) {
+                } catch (IllegalStateException exx) {
                     log.warn("주문 상태를 REFUNDED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
-                        o.getId(), o.getCurrentStatus(), e.getMessage());
+                        o.getId(), o.getCurrentStatus(), exx.getMessage());
                 }
                 orderRepository.save(o);
             });

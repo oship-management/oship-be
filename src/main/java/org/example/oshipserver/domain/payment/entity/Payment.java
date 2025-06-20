@@ -120,24 +120,22 @@ public class Payment extends BaseTimeEntity {
         this.sellerId = sellerId;
     }
 
-    public void updateStatus(PaymentStatus status) {
-        this.status = status;
+    public void updateStatus(PaymentStatus nextStatus) {
+        if (!this.status.canTransitionTo(nextStatus)) {
+            throw new IllegalStateException(
+                String.format("현재 상태 '%s'에서는 상태 '%s'로 전이할 수 없습니다.",
+                    this.status.name(), nextStatus.name())
+            );
+        }
+        this.status = nextStatus;
     }
 
-    public void cancel() {
-        this.status = PaymentStatus.CANCEL;
-    }
-
-    public void partialCancel(int cancelAmount, String cancelReason) {
+    public void partialCancel(int cancelAmount) {
         // 전체 금액보다 많을 수 없도록 제어할 수도 있음
         if (cancelAmount <= 0 || cancelAmount > this.amount) {
             throw new IllegalArgumentException("부분 취소 금액이 유효하지 않습니다.");
         }
-
-        // 부분 취소 상태로 변경
-        this.status = PaymentStatus.PARTIAL_CANCEL;
-
-        // 추후 이력 관리나 누적 취소 금액 관리로 확장 예정
+        // 추후 이력 관리나 누적 취소 금액 관리로 확장 가능
     }
 
     @Column(name = "idempotency_key", nullable = false, unique = true)

@@ -133,8 +133,14 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             Optional<Payment> optionalPayment = paymentRepository.findByIdempotencyKey(idempotencyKey);
             if (optionalPayment.isPresent()) {
                 Payment payment = optionalPayment.get();
-                payment.updateStatus(PaymentStatus.FAIL);  // 결제 상태 변경
-                paymentRepository.save(payment);
+                try {
+                    payment.updateStatus(PaymentStatus.FAIL);  // 결제 상태 변경
+                    paymentRepository.save(payment);
+                    log.info("결제 상태를 FAIL로 변경했습니다. paymentNo={}", payment.getPaymentNo());
+                } catch (IllegalStateException ex) {
+                    log.warn("결제 상태 FAIL로 변경 실패: 현재 상태={}, paymentNo={}, reason={}",
+                        payment.getStatus(), payment.getPaymentNo(), ex.getMessage());
+                }
 
                 for (PaymentOrder po : payment.getPaymentOrders()) {
                     Order order = po.getOrder();
