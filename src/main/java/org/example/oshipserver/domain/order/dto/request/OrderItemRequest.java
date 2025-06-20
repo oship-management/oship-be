@@ -15,9 +15,8 @@ public record OrderItemRequest(
     @DecimalMin("0.0") double itemWeight,
     @NotBlank String weightUnit,
     @NotBlank String itemHSCode,
-    @NotBlank String itemOriginCountryCode,
-    @NotBlank String itemOriginStateCode,
-    @NotBlank String itemOriginStateName
+    @NotBlank String itemOriginCountryCode
+
 ) {
     public OrderItem toEntity() {
         return OrderItem.builder()
@@ -29,8 +28,6 @@ public record OrderItemRequest(
             .weightUnit(weightUnit)
             .hsCode(itemHSCode)
             .originCountryCode(itemOriginCountryCode)
-            .itemOriginStateCode(itemOriginStateCode)
-            .itemOriginStateName(itemOriginStateName)
             .build();
     }
 }

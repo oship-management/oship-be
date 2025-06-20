@@ -12,8 +12,6 @@ public record OrderItemDto(
     @DecimalMin("0.0") double itemWeight,
     @NotBlank String weightUnit,
     @NotBlank String itemHSCode,
-    @NotBlank String itemOriginCountryCode,
-    @NotBlank String itemOriginStateCode,
-    @NotBlank String itemOriginStateName
+    @NotBlank String itemOriginCountryCode
 ) {}
 

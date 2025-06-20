@@ -87,9 +87,7 @@ public class OrderExcelBulkUploadV3Controller {
                 row.itemWeight(),
                 row.weightUnit(),
                 row.itemHSCode(),
-                row.itemOriginCountryCode(),
-                row.itemOriginStateCode(),
-                row.itemOriginStateName()
+                row.itemOriginCountryCode()
             )
         ).toList();
 

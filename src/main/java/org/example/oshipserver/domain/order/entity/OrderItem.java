@@ -35,8 +35,6 @@ public class OrderItem extends BaseTimeEntity {
     private BigDecimal weight;
     private String hsCode;
     private String originCountryCode;
-    private String  itemOriginStateCode;
-    private String itemOriginStateName;
 
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -46,8 +44,8 @@ public class OrderItem extends BaseTimeEntity {
     @Builder
     private OrderItem(
         String name, int quantity, BigDecimal unitValue, String valueCurrency,
-        BigDecimal weight, String weightUnit, String hsCode, String originCountryCode,
-        String itemOriginStateCode, String itemOriginStateName
+        BigDecimal weight, String weightUnit, String hsCode, String originCountryCode
+
     ) {
         this.name = name;
         this.quantity = quantity;
@@ -57,8 +55,6 @@ public class OrderItem extends BaseTimeEntity {
         this.weightUnit = weightUnit;
         this.hsCode = hsCode;
         this.originCountryCode = originCountryCode;
-        this.itemOriginStateCode = itemOriginStateCode;
-        this.itemOriginStateName = itemOriginStateName;
     }
 
     public static OrderItem of(OrderItemDto dto) {
@@ -71,8 +67,6 @@ public class OrderItem extends BaseTimeEntity {
             .weightUnit(dto.weightUnit())
             .hsCode(dto.itemHSCode())
             .originCountryCode(dto.itemOriginCountryCode())
-            .itemOriginStateCode(dto.itemOriginStateCode())
-            .itemOriginStateName(dto.itemOriginStateName())
             .build();
     }
 
@@ -86,8 +80,6 @@ public class OrderItem extends BaseTimeEntity {
         this.weightUnit = req.weightUnit();
         this.hsCode = req.itemHSCode();
         this.originCountryCode = req.itemOriginCountryCode();
-        this.itemOriginStateCode = req.itemOriginStateCode();
-        this.itemOriginStateName = req.itemOriginStateName();
     }
 
     /**

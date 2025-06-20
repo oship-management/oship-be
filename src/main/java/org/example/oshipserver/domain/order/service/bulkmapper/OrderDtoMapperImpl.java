@@ -38,8 +38,6 @@ public class OrderDtoMapperImpl implements OrderDtoMapper {
                 item.itemWeight(),
                 item.itemHSCode(),
                 item.itemOriginCountryCode(),
-                item.itemOriginStateCode(),
-                item.itemOriginStateName(),
                 item.weightUnit(),
                 orderId,
                 LocalDateTime.now(),

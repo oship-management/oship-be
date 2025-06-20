@@ -50,8 +50,6 @@ public record OrderExcelRequest(
     Double itemWeight,
     String itemHSCode,
     String itemOriginCountryCode,
-    String itemOriginStateCode,
-    String itemOriginStateName,
     String lastTrackingEvent
 ) {
     public static OrderExcelRequest from(Row row) {
@@ -64,8 +62,8 @@ public record OrderExcelRequest(
             getString(row, 24), getString(row, 25), getDouble(row, 26), getDouble(row, 27), getString(row, 28),
             getDouble(row, 29), getDouble(row, 30), getDouble(row, 31), getString(row, 32), getInt(row, 33),
             getString(row, 34), getString(row, 35), getString(row, 36), getInt(row, 37), getDouble(row, 38),
-            getString(row, 39), getDouble(row, 40), getString(row, 41), getString(row, 42),getString(row, 43),
-            getString(row, 44),getString(row, 45)
+            getString(row, 39), getDouble(row, 40), getString(row, 41), getString(row, 42),getString(row, 43)
+
         );
     }
 

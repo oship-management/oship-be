@@ -140,9 +140,9 @@ public class IOrderJdbcRepositoryImpl implements IOrderJdbcRepository {
     public void bulkInsertOrderItems(List<OrderItemBulkDto> items) {
         String sql = "INSERT INTO order_items (" +
             "name, quantity, unit_value, value_currency, " +
-            "weight, hs_code, origin_country_code, item_origin_state_code, item_origin_state_name, weight_unit, " +
+            "weight, hs_code, origin_country_code, weight_unit, " +
             "order_id, created_at, modified_at" +
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.batchUpdate(sql, items, 1000, (ps, item) -> {
             ps.setString(1, item.name());
@@ -152,14 +152,13 @@ public class IOrderJdbcRepositoryImpl implements IOrderJdbcRepository {
             setDoubleOrNull(ps, 5, item.weight());
             ps.setString(6, item.hsCode());
             ps.setString(7, item.originCountryCode());
-            ps.setString(8, item.originStateCode());
-            ps.setString(9, item.originStateName());
-            ps.setString(10, item.weightUnit());
-            setLongOrNull(ps, 11, item.orderId());
-            ps.setTimestamp(12, toTimestamp(item.createdAt()));
-            ps.setTimestamp(13, toTimestamp(item.modifiedAt()));
+            ps.setString(8, item.weightUnit());
+            setLongOrNull(ps, 9, item.orderId());
+            ps.setTimestamp(10, toTimestamp(item.createdAt()));
+            ps.setTimestamp(11, toTimestamp(item.modifiedAt()));
         });
     }
+
 
 
     @Override
