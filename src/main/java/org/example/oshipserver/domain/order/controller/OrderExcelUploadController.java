@@ -43,7 +43,7 @@ public class OrderExcelUploadController {
      */
     @OrderExecutionLog
     @PostMapping("/upload")
-    public ResponseEntity<BaseResponse<List<OrderCreateResponse>>> uploadOrderExcel(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<BaseResponse<List<OrderCreateResponse>>> uploadOrderExcel(@RequestParam(value = "file", required = false) MultipartFile file ) {
         List<OrderExcelRequest> dtos = excelOrderParser.parse(file);
 
         Map<String, List<OrderExcelRequest>> grouped = dtos.stream()
@@ -65,7 +65,8 @@ public class OrderExcelUploadController {
             .map(CompletableFuture::join)
             .toList();
 
-        executor.shutdown();
+        executor.shutdown(); // 사용자 응답 속도 느려짐 , 쿼리가 많이 날라감.
+        // 서비스 분리 ,,, Batch
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(new BaseResponse<>(201, "엑셀 업로드 주문 생성 완료", responses));

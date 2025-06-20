@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.order.entity.Order;
 
 @Entity
 @Getter
@@ -32,13 +33,19 @@ public class PaymentCancelHistory {
     @Column(nullable = false)
     private LocalDateTime canceledAt;
 
+    // 어떤 주문이 취소됐는지 추적할 수 있도록
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
+
     // 정적 팩토리 메서드
-    public static PaymentCancelHistory create(Payment payment, Integer cancelAmount, String cancelReason) {
+    public static PaymentCancelHistory create(Payment payment, Integer cancelAmount, String cancelReason, Order order) {
         PaymentCancelHistory history = new PaymentCancelHistory();
         history.payment = payment;
         history.cancelAmount = cancelAmount;
         history.cancelReason = cancelReason;
         history.canceledAt = LocalDateTime.now();
+        history.order = order;
         return history;
     }
 }

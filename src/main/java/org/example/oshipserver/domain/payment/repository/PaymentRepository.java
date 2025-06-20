@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.payment.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentOrder;
@@ -19,4 +20,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     // tossPaymentKey로 조회 (결제 취소용)
     Optional<Payment> findByPaymentKey(String paymentKey);
+
+//    // sellerId 기준으로 결제 조회
+//    List<Payment> findAllBySellerId(Long sellerId);
+
+    // 날짜 + sellerId 기준으로 결제 조회
+    List<Payment> findBySellerIdAndCreatedAtBetween(Long sellerId, LocalDateTime start, LocalDateTime end);
+
 }

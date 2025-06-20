@@ -102,7 +102,7 @@ public class Order extends BaseTimeEntity {
     private List<OrderItem> orderItems = new ArrayList<>();
 
     // Partner와 Seller
-    private Long parterId;
+    private Long partnerId;
     private Long sellerId;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -216,18 +216,35 @@ public class Order extends BaseTimeEntity {
     }
 
     public void updateItems(List<OrderItemRequest> updatedRequests) {
+        // 1. 기존 아이템들을 ID 기준으로 Map화
         Map<Long, OrderItem> existingItemMap = this.orderItems.stream()
             .collect(Collectors.toMap(OrderItem::getId, Function.identity()));
+
+        List<OrderItem> newItemList = new ArrayList<>();
 
         for (OrderItemRequest req : updatedRequests) {
             Long id = req.id();
 
-            if (id == null || !existingItemMap.containsKey(id)) {
-                throw new ApiException("수정할 수 없는 주문 항목입니다: id=" + id, ErrorType.NOT_FOUND);
+            if (id != null) {
+                OrderItem existing = existingItemMap.get(id);
+                if (existing == null) {
+                    throw new ApiException("존재하지 않는 주문 항목입니다. id=" + id, ErrorType.NOT_FOUND);
+                }
+                existing.updateFrom(req);
+                newItemList.add(existing);
+                existingItemMap.remove(id); // 삭제 대상에서 제외
+            } else {
+                OrderItem newItem = req.toEntity(); // 신규 생성
+                newItem.assignOrder(this);
+                newItemList.add(newItem);
             }
-            existingItemMap.get(id).updateFrom(req);
         }
+
+        // 2. 기존 orderItems 중 요청에 포함되지 않은 항목은 제거됨
+        this.orderItems.clear();
+        this.orderItems.addAll(newItemList);
     }
+
 
     // 주문이 삭제되었는지 확인
     public boolean isDeleted() {
@@ -253,5 +270,21 @@ public class Order extends BaseTimeEntity {
      */
     public void markAwbGenerated() {
         this.isPrintAwb = true;
+    }
+
+    /**
+     * 결제 상태에 따른, 주문 상태 업데이트
+     */
+    public void markAsPaid() {
+        this.currentStatus = OrderStatus.PAID;
+    }
+    public void markAsCancelled() {
+        this.currentStatus = OrderStatus.CANCELLED;
+    }
+    public void markAsRefunded() {
+        this.currentStatus = OrderStatus.REFUNDED;
+    }
+    public void markAsFailed() {
+        this.currentStatus = OrderStatus.FAILED;
     }
 }

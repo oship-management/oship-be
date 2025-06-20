@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.admin.dto;
+package org.example.oshipserver.domain.admin.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
