@@ -5,8 +5,10 @@ import java.util.Base64;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.payment.dto.request.FailedTossRequestDto;
-import org.example.oshipserver.global.common.component.RedisService;
+import org.example.oshipserver.domain.payment.entity.PaymentFailLog;
+import org.example.oshipserver.domain.payment.repository.PaymentFailLogRepository;
 import org.example.oshipserver.global.exception.ApiException;
+import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.retry.annotation.Backoff;
@@ -25,8 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식으로 처리
 
     private final RestTemplate restTemplate;
-    private final RedisService redisService;
     private final ObjectMapper objectMapper;
+    private final PaymentFailLogRepository paymentFailLogRepository;
 
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -101,19 +103,26 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         Class<R> responseType,
         String idempotencyKey
     ) {
-        log.error("Toss 결제 요청 최종 재시도 실패. 실패한 요청을 Redis 큐에 적재합니다.");
-        try {
-            FailedTossRequestDto failedRequest = new FailedTossRequestDto(url, body, idempotencyKey);
-            String json = objectMapper.writeValueAsString(failedRequest); // json 직렬화
-            redisService.pushToList("failed:toss:payment", json);     // Redis 적재
+        log.error("Toss 결제 요청 최종 재시도 실패. 실패 로그를 DB에 기록합니다.");
 
-            log.info("Redis 적재 완료: {}", json);
+        try {
+            String bodyJson = objectMapper.writeValueAsString(body); // json 직렬화
+
+            PaymentFailLog failLog = PaymentFailLog.builder()
+                .url(url)
+                .requestBody(bodyJson)
+                .idempotencyKey(idempotencyKey)
+                .errorMessage(e.getMessage())
+                .build();
+
+            paymentFailLogRepository.save(failLog); // db 저장
+            log.warn("결제 실패 로그 저장 완료: idempotencyKey={}", idempotencyKey);
+
         } catch (Exception ex) {
-            log.error("Redis 적재 실패: {}", ex.getMessage(), ex);
+            log.error("결제 실패 로그 저장 중 오류 발생: {}", ex.getMessage(), ex);
         }
 
-        // 사용자에게 일시적 실패라는 응답 전달. 이후 10분간 재처리(retry)
-        throw new ApiException("현재 일시적 장애로 인해 결제를 완료할 수 없습니다. 10분 후에 다시 확인해주세요.");
+        // 사용자에게 최종 실패 응답 반환
+        throw new ApiException(ErrorType.TOSS_PAYMENT_FAILED);
     }
-
 }
