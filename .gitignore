@@ -54,3 +54,4 @@ infra/redis/
 
 # MySQL socket file
 mysql/data/*.sock
+.DS_Store
