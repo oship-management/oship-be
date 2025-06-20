@@ -2,19 +2,17 @@ package org.example.oshipserver.domain.order.controller;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.order.aop.OrderExecutionLog;
 import org.example.oshipserver.domain.order.dto.OrderItemDto;
+import org.example.oshipserver.domain.order.dto.bulk.InternalOrderCreateDto;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
 import org.example.oshipserver.domain.order.dto.request.OrderExcelRequest;
 import org.example.oshipserver.domain.order.dto.response.OrderCreateResponse;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.StateCode;
-import org.example.oshipserver.domain.order.service.OrderService;
+import org.example.oshipserver.domain.order.service.OrderBulkService;
 import org.example.oshipserver.domain.order.util.ExcelOrderParser;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
@@ -27,66 +25,60 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/orders")
+@RequestMapping("/api/v2/orders")
 @RequiredArgsConstructor
-public class OrderExcelUploadController {
+public class OrderExcelBulkUploadController {
 
-    private static final int ORDER_UPLOAD_THREAD_POOL_SIZE = 10; // 주문 처리용 스레드 풀 개수
-
+    private final OrderBulkService orderBulkService;
     private final ExcelOrderParser excelOrderParser;
-    private final OrderService orderService;
 
     /**
-     * 엑셀 파일을 업로드 받아 주문을 생성하는 엔드포인트
-     *
-     * @param file Multipart 엑셀 파일 (헤더 + 데이터)
-     * @return 생성된 주문의 masterNo 목록을 응답
+     * 엑셀 파일을 업로드 받아 여러 주문을 생성하는 엔드포인트
+     * - 주문번호(orderNo)를 기준으로 주문을 그룹화
+     * - 중복 주문번호가 하나라도 있으면 전체 실패
+     * - 한 주문 안에 여러 상품이 포함될 수 있음
      */
     @OrderExecutionLog
     @PostMapping("/upload")
-    public ResponseEntity<BaseResponse<List<OrderCreateResponse>>> uploadOrderExcel(
+    public ResponseEntity<BaseResponse<List<OrderCreateResponse>>> uploadBulkOrderExcel(
         Authentication authentication,
-        @RequestParam(value = "file", required = false) MultipartFile file ) {
-        Long userId = Long.valueOf(authentication.getName()); // 인증 정보에서 userId 추출
+        @RequestParam("file") MultipartFile file) {
+
+        // 1. 로그인한 사용자 ID 추출
+        Long sellerId = Long.valueOf(authentication.getName());
+
+        // 2. 엑셀 파싱 → OrderExcelRequest 목록 생성
         List<OrderExcelRequest> dtos = excelOrderParser.parse(file);
 
+        // 3. 주문번호 기준으로 그룹화
         Map<String, List<OrderExcelRequest>> grouped = dtos.stream()
             .collect(Collectors.groupingBy(OrderExcelRequest::orderNo));
 
-        // 병렬 처리를 위한 ExecutorService
-        ExecutorService executor = Executors.newFixedThreadPool(ORDER_UPLOAD_THREAD_POOL_SIZE);
-
-        // CompletableFuture로 병렬 처리
-        List<CompletableFuture<OrderCreateResponse>> futures = grouped.values().stream()
-            .map(group -> CompletableFuture.supplyAsync(() -> {
-                OrderCreateRequest request = toOrderCreateRequest(group); // sellerId 하드 코딩 제외 필요
-                return new OrderCreateResponse(orderService.createOrder(userId, request));
-            }, executor))
+        // 4. 그룹별로 InternalOrderCreateDto로 변환 (sellerId 포함)
+        List<InternalOrderCreateDto> requests = grouped.values().stream()
+            .map(group -> new InternalOrderCreateDto(sellerId, toOrderCreateRequest(group)))
             .toList();
 
-        // 모든 작업이 완료될 때까지 기다림
-        List<OrderCreateResponse> responses = futures.stream()
-            .map(CompletableFuture::join)
+        // 5. 주문 생성 처리
+        List<String> masterNos = orderBulkService.createOrdersBulk(requests);
+        List<OrderCreateResponse> responses = masterNos.stream()
+            .map(OrderCreateResponse::new)
             .toList();
 
-        executor.shutdown(); // 사용자 응답 속도 느려짐 , 쿼리가 많이 날라감.
-
+        // 6. 응답 반환
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(new BaseResponse<>(201, "엑셀 업로드 주문 생성 완료", responses));
     }
 
     /**
-     * 같은 orderNo를 가진 여러 줄의 엑셀 데이터를 단일 주문 요청 객체로 변환
-     *
-     * @param group 동일한 주문번호를 가진 OrderExcelRequest 목록
-     * @return OrderCreateRequest (아이템 목록 포함)
+     * 동일한 주문번호를 가진 OrderExcelRequest들을 하나의 OrderCreateRequest로 변환
+     * - 첫 행을 기준으로 주문/발송자/수취인/배송 정보 추출
+     * - 모든 행을 상품 정보(OrderItemDto)로 변환하여 포함
      */
     private OrderCreateRequest toOrderCreateRequest(List<OrderExcelRequest> group) {
-        // 첫 번째 행을 기반으로 주문의 공통 필드 추출
-        OrderExcelRequest base = group.get(0);
+        OrderExcelRequest base = group.get(0);  // 그룹 대표 행
 
-        // 1. 상품 정보 (OrderItemDto 리스트) 생성
-        List<OrderItemDto> orderItems = group.stream().map(row ->
+        List<OrderItemDto> items = group.stream().map(row ->
             new OrderItemDto(
                 row.itemName(),
                 row.itemQuantity(),
@@ -99,27 +91,27 @@ public class OrderExcelUploadController {
             )
         ).toList();
 
-        // 2. 주문 정보 객체 생성
         return new OrderCreateRequest(
+            // 주문 정보
             base.storePlatform(),
             base.orderNo(),
             base.storeName(),
 
-            // 발송자 정보
+            // 발송자
             base.senderName(),
             base.senderCompany(),
             base.senderEmail(),
             base.senderPhoneNo(),
-            CountryCode.valueOf(base.senderCountryCode()), // 문자열 → enum 변환
+            CountryCode.valueOf(base.senderCountryCode()),
             base.senderState(),
-            StateCode.valueOf(base.senderState()),         // 문자열 → enum 변환
+            StateCode.valueOf(base.senderState()),
             base.senderCity(),
             base.senderAddress1(),
             base.senderAddress2(),
             base.senderZipCode(),
             base.senderTaxId(),
 
-            // 수취인 정보
+            // 수취인
             base.recipientName(),
             base.recipientCompany(),
             base.recipientEmail(),
@@ -146,8 +138,8 @@ public class OrderExcelUploadController {
             base.packageType(),
             base.shippingTerm(),
 
-            // 상품 목록
-            orderItems
+            // 아이템 리스트
+            items
         );
     }
 }
