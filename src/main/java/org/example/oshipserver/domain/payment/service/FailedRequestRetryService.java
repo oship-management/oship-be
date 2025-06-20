@@ -21,7 +21,7 @@ public class FailedRequestRetryService {
 
     private static final String REDIS_KEY = "failed:toss:requests";
 
-    @Scheduled(fixedDelay = 60000) // 메서드가 주기적으로 실행됨. 1분마다 재시도.
+    @Scheduled(fixedDelay = 600_000) // 10분마다 메서드가 주기적으로 실행됨 (스케줄러)
     public void retryFailedTossRequests() {
         while (true) {
             String json = redisService.popFromList(REDIS_KEY);  // redis에서 pop해서 실패 요청을 하나씩 꺼냄
