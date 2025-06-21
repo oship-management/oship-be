@@ -39,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderService {
     private final OrderRepository orderRepository;
+    private final OrderNotificationService orderNotificationService;
     private final TrackingEventHandler trackingEventHandler;
 
     public String createOrder(Long userId, OrderCreateRequest orderCreateRequest) {
@@ -122,7 +123,13 @@ public class OrderService {
             ""
         );
 
-        // 9. 알림 전송 (이메일 발송)
+//        9. 알림 전송 (이메일 발송)
+//        동기 호출
+//        orderNotificationService.sendOrderCreatedSync(order);
+//
+//        비동기 호출
+//        orderNotificationService.sendOrderCreatedAsync(order);
+
 
         return masterNo;
     }
