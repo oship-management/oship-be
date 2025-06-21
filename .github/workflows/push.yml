@@ -2,19 +2,22 @@ name: PUSH-BRANCH
 
 on:
   push:
+
 jobs:
   build:
     runs-on: ubuntu-22.04
     env:
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       TOSS_SECRET_KEY: ${{ secrets.TOSS_SECRET_KEY }}
-      FEDEX_API_URL: ${{secrets.FEDEX_API_URL}}
+      FEDEX_API_URL: ${{ secrets.FEDEX_API_URL }}
       MAIL_HOST: ${{ secrets.MAIL_HOST }}
       MAIL_PORT: ${{ secrets.MAIL_PORT }}
       MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
       MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
@@ -31,6 +34,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-
       - name: Build with Gradle
         run: ./gradlew build
+
+      - name: Upload Gradle Problems Report
+        if: always()  # 실패하더라도 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-problems-report
+          path: build/reports/problems/
