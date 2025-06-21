@@ -22,6 +22,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 @ActiveProfiles("test")
@@ -43,30 +45,27 @@ class AuthIntergrationTest {
             .withDatabaseName("testdb")
             .withUsername("testuser")
             .withPassword("testpass")
-            .waitingFor(Wait.forListeningPort());;
+            .withStartupTimeout(Duration.ofSeconds(30))
+            .waitingFor(Wait.forListeningPort());
 
     @Container
     private static final GenericContainer<?> redis = new GenericContainer<>("redis:7.0.12")
             .withExposedPorts(6379)
-            .waitingFor(Wait.forListeningPort());
+            .waitingFor(Wait.forListeningPort())
+            .withStartupTimeout(Duration.ofSeconds(30));
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry registry) {
-        // MySQL Testcontainer 설정
         registry.add("spring.datasource.url", mysql::getJdbcUrl);
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
         registry.add("spring.datasource.driver-class-name", mysql::getDriverClassName);
-    }
-
-
-    @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
         String host = redis.getHost();
         Integer port = redis.getMappedPort(6379);
         registry.add("spring.redis.host", () -> host);
         registry.add("spring.redis.port", () -> port);
     }
+
 
     @Test
     @DisplayName("파트너 회원가입 성공")
