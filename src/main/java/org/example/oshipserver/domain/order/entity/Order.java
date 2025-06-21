@@ -194,6 +194,10 @@ public class Order extends BaseTimeEntity {
         this.recipient = recipient;
     }
 
+    public void assignPartner(Long partnerId) {
+        this.partnerId = partnerId;
+    }
+
     public void softDelete(DeleterRole deletedBy) {
         this.deleted = true;
         this.deletedBy = deletedBy;

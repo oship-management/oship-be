@@ -3,6 +3,8 @@ package org.example.oshipserver.domain.shipping.service;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.client.fedex.FedexClient;
 import org.example.oshipserver.client.fedex.FedexShipmentResponse;
+import org.example.oshipserver.domain.carrier.entity.Carrier;
+import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
+    private final CarrierRepository carrierRepository;
     private final OrderRepository orderRepository;
     private final TrackingEventHandler trackingEventHandler;
     private final FedexClient fedexClient;
@@ -31,9 +34,19 @@ public class ShipmentService {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
 
+        // Carrier 조회
+        Carrier carrier = carrierRepository.findById(carrierId)
+            .orElseThrow(() -> new ApiException("운송사를 찾을 수 없습니다: " + carrierId, ErrorType.NOT_FOUND));
+
         // 이미 배송이 생성되어 있는지 확인
         if (shipmentRepository.existsByOrderId(orderId)) {
             throw new ApiException("이미 배송이 생성된 주문입니다: " + orderId, ErrorType.DUPLICATED_ORDER);
+        }
+
+        // Carrier의 Partner ID를 Order에 설정
+        if (carrier.getPartner() != null) {
+            order.assignPartner(carrier.getPartner().getId());
+            orderRepository.save(order);
         }
 
         // 배송 생성
