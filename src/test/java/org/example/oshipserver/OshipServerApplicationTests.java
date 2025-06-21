@@ -1,6 +1,5 @@
 package org.example.oshipserver;
 
-import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,20 +41,7 @@ class OshipServerApplicationTests {
 		registry.add("spring.redis.host", () -> host);
 		registry.add("spring.redis.port", () -> port);
 	}
-	@Test
-	void test1() {
-		log.info("✅ MySQLContainer Info:");
-		log.info(" - getJdbcDriverInstance: {}", mysql.getJdbcDriverInstance());
-		log.info(" - getJdbcUrl: {}", mysql.getJdbcUrl());
-		log.info(" - getMappedPort(3306): {}", mysql.getMappedPort(3306));
-		log.info(" - getHost: {}", mysql.getHost());
-		log.info(" - getUsername: {}", mysql.getUsername());
-		log.info(" - getPassword: {}", mysql.getPassword());
 
-		log.info("✅ RedisContainer Info:");
-		log.info(" - getHost: {}", redis.getHost());
-		log.info(" - getMappedPort(6379): {}", redis.getMappedPort(6379));
-	}
 
 
 }
