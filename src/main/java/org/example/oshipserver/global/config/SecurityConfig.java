@@ -59,10 +59,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://seller.oshipapp.com","https://partner.oshipapp.com"));
+        config.setAllowedOrigins(List.of(
+            "https://seller.oshipapp.com",
+            "https://partner.oshipapp.com",
+            "http://localhost:5275", //셀러페이지
+            "http://localhost:5274" //파트너페이지
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // 필요한 경우
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

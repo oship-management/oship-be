@@ -16,6 +16,7 @@ public record OrderItemRequest(
     @NotBlank String weightUnit,
     @NotBlank String itemHSCode,
     @NotBlank String itemOriginCountryCode
+
 ) {
     public OrderItem toEntity() {
         return OrderItem.builder()

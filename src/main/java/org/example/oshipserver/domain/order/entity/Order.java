@@ -48,7 +48,7 @@ public class Order extends BaseTimeEntity {
     private String orderNo;
 
     // 수량 및 중량
-    private int parcelCount;
+    private Integer parcelCount;
     private BigDecimal shipmentActualWeight;
     private BigDecimal shipmentVolumeWeight;
     private String weightUnit;
@@ -62,7 +62,7 @@ public class Order extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     // 상태
-    private boolean deleted = false;
+    private Boolean deleted = false;
 
     @Enumerated(EnumType.STRING)
     @CreatedBy // 삭제 주체 자동 주입
@@ -116,13 +116,13 @@ public class Order extends BaseTimeEntity {
         String orderNo,
         String oshipMasterNo,
         String weightUnit,
-        int parcelCount,
+        Integer parcelCount,
         BigDecimal shipmentActualWeight,
         BigDecimal shipmentVolumeWeight,
         BigDecimal dimensionWidth,
         BigDecimal dimensionHeight,
         BigDecimal dimensionLength,
-        boolean deleted,
+        Boolean deleted,
         OrderStatus currentStatus,
         String itemContentsType,
         String serviceType,
@@ -156,7 +156,7 @@ public class Order extends BaseTimeEntity {
      * @param dto      주문 요청 DTO
      * @param masterNo 외부 식별자
      */
-    public static Order of(OrderCreateRequest dto, String masterNo) {
+    public static Order of(OrderCreateRequest dto, String masterNo, Long userId) {
         return Order.builder()
             .orderNo(dto.orderNo())
             .oshipMasterNo(masterNo)
@@ -173,9 +173,10 @@ public class Order extends BaseTimeEntity {
             .serviceType(dto.serviceType())
             .packageType(dto.packageType())
             .shippingTerm(dto.shippingTerm())
-            .sellerId(dto.sellerId())
+            .sellerId(userId)
             .build();
     }
+
 
     /**
      * 주문 상품 목록 추가
@@ -191,6 +192,10 @@ public class Order extends BaseTimeEntity {
 
     public void assignRecipient(OrderRecipient recipient) {
         this.recipient = recipient;
+    }
+
+    public void assignPartner(Long partnerId) {
+        this.partnerId = partnerId;
     }
 
     public void softDelete(DeleterRole deletedBy) {

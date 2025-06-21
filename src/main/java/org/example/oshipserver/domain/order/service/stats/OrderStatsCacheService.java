@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.order.service;
+package org.example.oshipserver.domain.order.service.stats;
 
 import static org.example.oshipserver.global.config.RedisCacheConfig.CURRENT_MONTH_CACHE;
 import static org.example.oshipserver.global.config.RedisCacheConfig.PAST_MONTH_CACHE;
