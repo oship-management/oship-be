@@ -34,12 +34,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Build with Gradle
+      - name: Run Tests
+        run: ./gradlew --info test
+
+      - name: Build Project
         run: ./gradlew build
 
-      - name: Upload Gradle Problems Report
-        if: always()  # 실패하더라도 업로드
+      - name: Upload Test Reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gradle-problems-report
-          path: build/reports/problems/
+          name: test-reports
+          path: build/test-results/test
