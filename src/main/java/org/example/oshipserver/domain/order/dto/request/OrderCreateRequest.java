@@ -61,7 +61,7 @@ public record OrderCreateRequest(
     @Min(1) int dimensionHeight,
     @NotBlank String packageType,
     @NotBlank String shippingTerm,
-    @NotNull Long sellerId,
+    String lastTrackingEvent,
 
     @NotEmpty List<@Valid OrderItemDto> orderItems
 ) {}
