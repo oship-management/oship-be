@@ -35,7 +35,6 @@ public class PartnerService {
     }
     @Transactional
     public void deletePartner(Long userId, PartnerDeleteRequest request, String accessToken){
-        System.out.println(request.password() + " " + request.passwordValid());
         User findUser = userRepository.findById(userId)
                 .orElseThrow(()->new ApiException("파트너 조회 실패", ErrorType.NOT_FOUND));
         if (!request.password().equals(request.passwordValid())) {
