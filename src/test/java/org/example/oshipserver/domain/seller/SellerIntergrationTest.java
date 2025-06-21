@@ -65,13 +65,15 @@ public class SellerIntergrationTest {
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
         registry.add("spring.datasource.driver-class-name", mysql::getDriverClassName);
+    }
 
-        // Redis Testcontainer 설정
+
+    @DynamicPropertySource
+    static void redisProperties(DynamicPropertyRegistry registry) {
         String host = redis.getHost();
         Integer port = redis.getMappedPort(6379);
         registry.add("spring.redis.host", () -> host);
         registry.add("spring.redis.port", () -> port);
-
     }
 
     @BeforeAll
