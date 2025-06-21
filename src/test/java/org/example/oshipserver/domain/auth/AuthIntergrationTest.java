@@ -21,6 +21,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.time.Duration;
 
@@ -136,6 +137,10 @@ class AuthIntergrationTest {
     void loginSuccess() throws Exception {
         // 먼저 회원가입 선행 필요
         //signupSeller();  // 또는 signupPartner()
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10))
+                .until(redis::isRunning);
+
 
         LoginRequest sellerRequest = new LoginRequest("seller@example.com", "password123");
         LoginRequest partnerRequest = new LoginRequest("partner@example.com", "password123");
