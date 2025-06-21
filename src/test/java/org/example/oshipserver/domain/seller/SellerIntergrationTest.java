@@ -69,23 +69,6 @@ public class SellerIntergrationTest {
         registry.add("spring.redis.host", () -> host);
         registry.add("spring.redis.port", () -> port);
 
-        // Mail 설정 수동 등록
-        registry.add("spring.mail.host", () -> "test.gmail.com");
-        registry.add("spring.mail.port", () -> 111);
-        registry.add("spring.mail.username", () -> "test@gmail.com");
-        registry.add("spring.mail.password", () -> "testtest");
-        registry.add("spring.mail.properties.mail.smtp.auth", () -> "true");
-        registry.add("spring.mail.properties.mail.smtp.starttls.enable", () -> "true");
-
-
-        // JWT 키 test
-        registry.add("jwt.secret.key", () -> "skFdtNv8u+Zbi6R6z9UmNg1t6o9c3bfL8E+Rvh5FYzZxAlv3doh+Bl1zB6X2OybOqKx+K/FdjRA=");
-
-        // Toss API 키 test
-        registry.add("toss.secret-key", () -> "test");
-
-        // FedEx API URL test
-        registry.add("fedex.api.url", () -> "https://apis-sandbox.fedex.com/");
     }
 
     @BeforeAll
