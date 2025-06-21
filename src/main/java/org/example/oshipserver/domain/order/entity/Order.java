@@ -128,6 +128,7 @@ public class Order extends BaseTimeEntity {
         String serviceType,
         String packageType,
         String shippingTerm,
+        String lastTrackingEvent,
         Long sellerId
     ) {
         this.orderNo = orderNo;
@@ -144,6 +145,7 @@ public class Order extends BaseTimeEntity {
         this.serviceType = serviceType;
         this.packageType = packageType;
         this.shippingTerm = shippingTerm;
+        this.lastTrackingEvent = lastTrackingEvent;
         this.sellerId = sellerId;
         this.deleted = false;
         this.deletedBy = null;
@@ -173,6 +175,7 @@ public class Order extends BaseTimeEntity {
             .serviceType(dto.serviceType())
             .packageType(dto.packageType())
             .shippingTerm(dto.shippingTerm())
+            .lastTrackingEvent(dto.lastTrackingEvent())
             .sellerId(userId)
             .build();
     }
