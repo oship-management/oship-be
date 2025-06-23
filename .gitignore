@@ -42,6 +42,7 @@ out/
 
 # yml
 application-prod.yml
+application-test.yml
 .env
 infra/mysql/
 infra/redis/
