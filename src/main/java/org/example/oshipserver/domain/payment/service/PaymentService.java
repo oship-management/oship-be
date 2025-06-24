@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.example.oshipserver.client.toss.IdempotentRestClient;
 import org.example.oshipserver.client.toss.TossPaymentClient;
 import org.example.oshipserver.domain.order.dto.response.OrderPaymentResponse;
 import org.example.oshipserver.domain.order.entity.Order;
@@ -47,17 +48,20 @@ import org.example.oshipserver.global.exception.ApiException;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.transaction.annotation.Transactional;
 import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
 
+    private final IdempotentRestClient idempotentRestClient;
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRepository paymentRepository;
     private final PaymentOrderRepository paymentOrderRepository;
     private final PaymentCancelHistoryRepository paymentCancelHistoryRepository;
     private final OrderRepository orderRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
@@ -81,19 +85,43 @@ public class PaymentService {
         // 3. Toss API 호출
         TossPaymentConfirmResponse tossResponse;
         try {
-            tossResponse = tossPaymentClient.requestPaymentConfirm(
-                new PaymentConfirmRequest(
-                    request.paymentKey(),
-                    null,  // 서버 orderId는 Toss에 전달하지 않음
-                    request.tossOrderId(),
-                    request.amount()
-                ),
+//            tossResponse = tossPaymentClient.requestPaymentConfirm(
+//                new PaymentConfirmRequest(
+//                    request.paymentKey(),
+//                    null,  // 서버 orderId는 Toss에 전달하지 않음
+//                    request.tossOrderId(),
+//                    request.amount()
+//                ),
+//                paymentNo
+//            );
+//         } catch (HttpClientErrorException e) {
+//             if (e.getStatusCode() == HttpStatus.CONFLICT) {
+//                 throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
+//             }
+//             throw e;
+//         }
+            Map<String, Object> tossRequestBody = Map.of(
+                "paymentKey", request.paymentKey(),
+                "orderId", request.tossOrderId(),
+                "amount", request.amount(),
+                "currency", "KRW"
+            );
+
+            tossResponse = idempotentRestClient.postForIdempotent(
+                "https://api.tosspayments.com/v1/payments/confirm",
+                tossRequestBody,
+                TossPaymentConfirmResponse.class,
                 paymentNo
             );
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.CONFLICT) {
-                throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
+
+            try {
+                log.info("[Toss 응답 JSON] {}", objectMapper.writeValueAsString(tossResponse));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.warn("Toss 응답 JSON 직렬화 실패", e);
             }
+
+        } catch (ApiException e) {
+            log.warn("Toss 결제 승인 실패. paymentNo={}, reason={}", paymentNo, e.getMessage());
             throw e;
         }
 
@@ -105,21 +133,22 @@ public class PaymentService {
 
         // 5. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
+            .idempotencyKey(paymentNo)
             .paymentNo(paymentNo)
-            .tossOrderId(tossResponse.orderId())
-            .paymentKey(tossResponse.paymentKey())
-            .amount(tossResponse.totalAmount())
-            .currency(tossResponse.currency())
+            .tossOrderId(tossResponse.getOrderId())
+            .paymentKey(tossResponse.getPaymentKey())
+            .amount(tossResponse.getTotalAmount())
+            .currency(tossResponse.getCurrency())
             .method(method)
-            .paidAt(OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime())
-            .status(PaymentStatusMapper.fromToss(tossResponse.status()))
+            .paidAt(OffsetDateTime.parse(tossResponse.getApprovedAt()).toLocalDateTime())
+            .status(PaymentStatusMapper.fromToss(tossResponse.getStatus()))
             .sellerId(order.getSellerId())
             .build();
 
-        if (tossResponse.card() != null) {
-            payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        if (tossResponse.getCard() != null) {
+            payment.setCardLast4Digits(getLast4Digits(tossResponse.getCard().getNumber()));
         }
-        payment.setReceiptUrl(tossResponse.receipt().url());
+        payment.setReceiptUrl(tossResponse.getReceipt().getUrl());
 
         // 6. 결제 저장
         paymentRepository.save(payment);
@@ -128,7 +157,7 @@ public class PaymentService {
         PaymentOrder paymentOrder = PaymentOrder.builder()
             .payment(payment)
             .order(order)
-            .paymentAmount(tossResponse.totalAmount())
+            .paymentAmount(tossResponse.getTotalAmount())
             .paymentStatus(payment.getStatus())
             .confirmedAt(payment.getPaidAt())
             .build();
@@ -182,6 +211,13 @@ public class PaymentService {
                 ),
                 paymentNo
             );
+
+            try {
+                log.info("[Toss 응답 JSON] {}", objectMapper.writeValueAsString(tossResponse));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.warn("Toss 응답 JSON 직렬화 실패", e);
+            }
+
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
@@ -199,21 +235,22 @@ public class PaymentService {
 
         // 6. toss 응답 기반으로 payment 엔티티 생성 및 저장
         Payment payment = Payment.builder()
+            .idempotencyKey(paymentNo)
             .paymentNo(paymentNo)
-            .paymentKey(tossResponse.paymentKey())
-            .tossOrderId(tossResponse.orderId())  // Toss의 orderId 저장
-            .amount(tossResponse.totalAmount())
+            .paymentKey(tossResponse.getPaymentKey())
+            .tossOrderId(tossResponse.getOrderId()) // Toss의 orderId 저장
+            .amount(tossResponse.getTotalAmount())
             .currency("KRW")
             .method(method)
-            .paidAt(OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime())
-            .status(PaymentStatusMapper.fromToss(tossResponse.status()))
+            .paidAt(OffsetDateTime.parse(tossResponse.getApprovedAt()).toLocalDateTime())
+            .status(PaymentStatusMapper.fromToss(tossResponse.getStatus()))
             .sellerId(mainOrder.getSellerId())
             .build();
 
-        if (tossResponse.card() != null) {
-            payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        if (tossResponse.getCard() != null) {
+            payment.setCardLast4Digits(getLast4Digits(tossResponse.getCard().getNumber()));
         }
-        payment.setReceiptUrl(tossResponse.receipt().url());
+        payment.setReceiptUrl(tossResponse.getReceipt().getUrl());
 
         paymentRepository.save(payment);
 

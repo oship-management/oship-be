@@ -107,7 +107,8 @@ public class Payment extends BaseTimeEntity {
     @Builder
     public Payment(String paymentNo, String paymentKey, String tossOrderId,
         PaymentStatus status, PaymentMethod method, Integer amount,
-        String currency, LocalDateTime paidAt, String failReason, Long sellerId) {
+        String currency, LocalDateTime paidAt, String failReason, Long sellerId,
+        String idempotencyKey) {
         this.paymentNo = paymentNo;
         this.paymentKey = paymentKey;
         this.tossOrderId = tossOrderId;
@@ -118,6 +119,7 @@ public class Payment extends BaseTimeEntity {
         this.paidAt = paidAt;
         this.failReason = failReason;
         this.sellerId = sellerId;
+        this.idempotencyKey = idempotencyKey;
     }
 
     public void updateStatus(PaymentStatus nextStatus) {

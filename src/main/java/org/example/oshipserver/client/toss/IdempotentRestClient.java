@@ -89,6 +89,13 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
                 responseType
             );
 
+            // Toss 응답 객체 → JSON 문자열로 변환 (역직렬화 실패하면 toss응답값이 null값으로 반환됨)
+            try {
+                log.info("[Toss 원문 응답 바디] {}", objectMapper.writeValueAsString(response.getBody()));
+            } catch (Exception ex) {
+                log.warn("[Toss 응답 바디 JSON 직렬화 실패] {}", ex.getMessage(), ex);
+            }
+
             // 성공 응답 로그
             log.info("[Toss 성공 응답] {}", response.getBody());
             return response.getBody();
@@ -97,8 +104,9 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             // Toss API에서 에러 응답이 온 경우
             log.error("[Toss 호출 실패] 상태코드: {}", e.getStatusCode());
             log.error("[Toss 에러 바디] {}", e.getResponseBodyAsString());
-            throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), e);
-
+            // @retryable이 예외를 인식할 수 있도록
+            throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), ErrorType.TOSS_PAYMENT_FAILED);
+//            throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             // 네트워크 오류 등 기타 예외
             log.error("[Toss 호출 예외 발생] {}", e.getMessage(), e);

@@ -1,67 +1,170 @@
 package org.example.oshipserver.domain.payment.dto.response;
 
-/**
- * Toss 단건 결제 승인 응답 전체 DTO
- */
-public record TossPaymentConfirmResponse(
-    String mId,
-    String lastTransactionKey,
-    String paymentKey,
-    String orderId,
-    String orderName,
-    int taxExemptionAmount,
-    String status,
-    String requestedAt,
-    String approvedAt,
-    boolean useEscrow,
-    boolean cultureExpense,
-    Card card,
-    String type,
-    EasyPay easyPay,
-    String country,
-    Failure failure,
-    boolean isPartialCancelable,
-    Receipt receipt,
-    Checkout checkout,
-    String currency,
-    int totalAmount,
-    int balanceAmount,
-    int suppliedAmount,
-    int vat,
-    int taxFreeAmount,
-    String method,
-    String version
-) {
-    public record Card(
-        String issuerCode,
-        String acquirerCode,
-        String number,
-        int installmentPlanMonths,
-        boolean isInterestFree,
-        String approveNo,
-        boolean useCardPoint,
-        String cardType,
-        String ownerType,
-        String acquireStatus,
-        int amount
-    ) {}
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
-    public record EasyPay(
-        String provider,
-        int amount,
-        int discountAmount
-    ) {}
+@Getter
+@Setter
+public class TossPaymentConfirmResponse {
 
-    public record Failure(
-        String code,
-        String message
-    ) {}
+    @JsonProperty("mid")
+    private String mId;
 
-    public record Receipt(
-        String url
-    ) {}
+    @JsonProperty("lastTransactionKey")
+    private String lastTransactionKey;
 
-    public record Checkout(
-        String url
-    ) {}
+    @JsonProperty("paymentKey")
+    private String paymentKey;
+
+    @JsonProperty("orderId")
+    private String orderId;
+
+    @JsonProperty("orderName")
+    private String orderName;
+
+    @JsonProperty("taxExemptionAmount")
+    private int taxExemptionAmount;
+
+    @JsonProperty("status")
+    private String status;
+
+    @JsonProperty("requestedAt")
+    private String requestedAt;
+
+    @JsonProperty("approvedAt")
+    private String approvedAt;
+
+    @JsonProperty("useEscrow")
+    private boolean useEscrow;
+
+    @JsonProperty("cultureExpense")
+    private boolean cultureExpense;
+
+    @JsonProperty("card")
+    private Card card;
+
+    @JsonProperty("type")
+    private String type;
+
+    @JsonProperty("easyPay")
+    private EasyPay easyPay;
+
+    @JsonProperty("country")
+    private String country;
+
+    @JsonProperty("failure")
+    private Failure failure;
+
+    @JsonProperty("partialCancelable")
+    private boolean isPartialCancelable;
+
+    @JsonProperty("receipt")
+    private Receipt receipt;
+
+    @JsonProperty("checkout")
+    private Checkout checkout;
+
+    @JsonProperty("currency")
+    private String currency;
+
+    @JsonProperty("totalAmount")
+    private int totalAmount;
+
+    @JsonProperty("balanceAmount")
+    private int balanceAmount;
+
+    @JsonProperty("suppliedAmount")
+    private int suppliedAmount;
+
+    @JsonProperty("vat")
+    private int vat;
+
+    @JsonProperty("taxFreeAmount")
+    private int taxFreeAmount;
+
+    @JsonProperty("method")
+    private String method;
+
+    @JsonProperty("version")
+    private String version;
+
+    @Getter
+    @Setter
+    public static class Card {
+
+        @JsonProperty("issuerCode")
+        private String issuerCode;
+
+        @JsonProperty("acquirerCode")
+        private String acquirerCode;
+
+        @JsonProperty("number")
+        private String number;
+
+        @JsonProperty("installmentPlanMonths")
+        private int installmentPlanMonths;
+
+        @JsonProperty("isInterestFree")
+        private boolean isInterestFree;
+
+        @JsonProperty("approveNo")
+        private String approveNo;
+
+        @JsonProperty("useCardPoint")
+        private boolean useCardPoint;
+
+        @JsonProperty("cardType")
+        private String cardType;
+
+        @JsonProperty("ownerType")
+        private String ownerType;
+
+        @JsonProperty("acquireStatus")
+        private String acquireStatus;
+
+        @JsonProperty("amount")
+        private int amount;
+    }
+
+    @Getter
+    @Setter
+    public static class EasyPay {
+
+        @JsonProperty("provider")
+        private String provider;
+
+        @JsonProperty("amount")
+        private int amount;
+
+        @JsonProperty("discountAmount")
+        private int discountAmount;
+    }
+
+    @Getter
+    @Setter
+    public static class Failure {
+
+        @JsonProperty("code")
+        private String code;
+
+        @JsonProperty("message")
+        private String message;
+    }
+
+    @Getter
+    @Setter
+    public static class Receipt {
+
+        @JsonProperty("url")
+        private String url;
+    }
+
+    @Getter
+    @Setter
+    public static class Checkout {
+
+        @JsonProperty("url")
+        private String url;
+    }
 }
