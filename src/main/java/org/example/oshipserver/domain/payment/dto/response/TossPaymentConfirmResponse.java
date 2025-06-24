@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class TossPaymentConfirmResponse {
+    // record를 class로 리팩토링 ; record는 Jackson 역직렬화 잘 안 됨
 
     @JsonProperty("mid")
     private String mId;

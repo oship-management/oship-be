@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/sellers/**").hasRole("SELLER")
                         .requestMatchers("/api/v1/partners/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/payments/**").hasRole("SELLER")
+//                        .requestMatchers("/api/v1/payments/**").permitAll()
                         .anyRequest().authenticated()
 
                 )
