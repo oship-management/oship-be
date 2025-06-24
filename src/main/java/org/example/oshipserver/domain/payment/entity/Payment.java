@@ -78,6 +78,10 @@ public class Payment extends BaseTimeEntity {
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentOrder> paymentOrders = new ArrayList<>();
 
+    public void addPaymentOrder(PaymentOrder paymentOrder) {
+        this.paymentOrders.add(paymentOrder);
+    }
+
     // 직접 매핑된 주문 리스트만 추출
     public List<Order> getOrders() {
         return paymentOrders.stream()
