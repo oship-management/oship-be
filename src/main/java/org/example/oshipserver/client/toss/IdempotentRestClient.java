@@ -92,25 +92,13 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
 
         // RestTemplate을 통해 post 요청
         try {
-            // 이후에 다시 복원예정 (아래의 디버기용 대신)
             ResponseEntity<R> response = restTemplate.exchange(
                 url,
                 HttpMethod.POST,
                 entity,
                 responseType
             );
-            // toss 응답 json을 보기 위한 임시코드(디버깅용 로깅)
-//            ResponseEntity<String> rawResponse = restTemplate.exchange(
-//                url,
-//                HttpMethod.POST,
-//                entity,
-//                String.class
-//            );
-//            log.warn("[Toss 응답 원문 JSON] {}", rawResponse.getBody());
-//
-//            throw new ApiException("Toss 응답 구조 확인 후 복원 필요", ErrorType.TOSS_PAYMENT_FAILED);
 
-            // 이후에 다시 복원예정 (아래의 디버깅용 대신)
             // toss응답이 성공적이여도 body가 null이면 재시도하도록
             if (response.getBody() == null || response.getBody().getClass().getDeclaredMethod("getPaymentKey") != null &&
                 response.getBody().getClass().getMethod("getPaymentKey").invoke(response.getBody()) == null) {
