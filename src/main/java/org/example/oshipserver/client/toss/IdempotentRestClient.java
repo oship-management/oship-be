@@ -23,6 +23,7 @@ import org.springframework.http.*;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.support.RetrySynchronizationManager;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -64,6 +65,15 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         Class<R> responseType,
         String idempotencyKey
     ) {
+        // 재시도 로그  남기기
+        log.warn("[RETRYABLE] Toss API 호출 시도 - idempotencyKey={}, url={}, retryCount={}",
+            idempotencyKey,
+            url,
+            RetrySynchronizationManager.getContext() != null
+                ? RetrySynchronizationManager.getContext().getRetryCount()
+                : 0
+        );
+
         // 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -88,6 +98,13 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
                 entity,
                 responseType
             );
+
+            // toss응답이 성공적이여도 body가 null이면 재시도하도록
+            if (response.getBody() == null || response.getBody().getClass().getDeclaredMethod("getPaymentKey") != null &&
+                response.getBody().getClass().getMethod("getPaymentKey").invoke(response.getBody()) == null) {
+                log.error("[RETRYABLE] Toss 응답은 200이지만 내용이 비정상(null)입니다 (재시도)");
+                throw new ApiException("Toss 응답이 비정상입니다", ErrorType.TOSS_PAYMENT_FAILED);
+            }
 
             // Toss 응답 객체 → JSON 문자열로 변환 (역직렬화 실패하면 toss응답값이 null값으로 반환됨)
             try {

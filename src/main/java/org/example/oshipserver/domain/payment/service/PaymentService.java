@@ -66,7 +66,7 @@ public class PaymentService {
     /**
      * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
      */
-    @Transactional
+    @Transactional(rollbackFor = ApiException.class)
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
         // 1. DB 기준 중복 확인 (동시성 보장x)
@@ -107,6 +107,7 @@ public class PaymentService {
                 "currency", "KRW"
             );
 
+            // PaymentService 내에서 tossPaymentClient 대신 idempotentRestClient 호출
             tossResponse = idempotentRestClient.postForIdempotent(
                 "https://api.tosspayments.com/v1/payments/confirm",
                 tossRequestBody,
@@ -183,7 +184,7 @@ public class PaymentService {
     /**
      * 다건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
      */
-    @Transactional
+    @Transactional(rollbackFor = ApiException.class)
     public MultiPaymentConfirmResponse confirmMultiPayment(MultiPaymentConfirmRequest request) {
         // 1. 중복 결제 방지 (paymentKey)
         if (paymentRepository.existsByPaymentKey(request.paymentKey())) {
@@ -200,15 +201,30 @@ public class PaymentService {
         // 3. Toss 결제 승인 api 호출
         TossPaymentConfirmResponse tossResponse;
         try {
-            tossResponse = tossPaymentClient.requestPaymentConfirm(
-                new PaymentConfirmRequest(
-                    request.paymentKey(),
-                    null,  // Toss에 서버 orderId 넘기지 않음
-                    request.tossOrderId(),
-                    request.orders().stream()
-                        .mapToInt(MultiOrderRequest::amount)
-                        .sum()
-                ),
+//            tossResponse = tossPaymentClient.requestPaymentConfirm(
+//                new PaymentConfirmRequest(
+//                    request.paymentKey(),
+//                    null,  // Toss에 서버 orderId 넘기지 않음
+//                    request.tossOrderId(),
+//                    request.orders().stream()
+//                        .mapToInt(MultiOrderRequest::amount)
+//                        .sum()
+//                ),
+//                paymentNo
+//            );
+
+            Map<String, Object> tossRequestBody = Map.of(
+                "paymentKey", request.paymentKey(),
+                "orderId", request.tossOrderId(),
+                "amount", request.orders().stream().mapToInt(MultiOrderRequest::amount).sum(),
+                "currency", "KRW"
+            );
+
+            // PaymentService 내에서 tossPaymentClient 대신 idempotentRestClient 호출
+            tossResponse = idempotentRestClient.postForIdempotent(
+                "https://api.tosspayments.com/v1/payments/confirm",
+                tossRequestBody,
+                TossPaymentConfirmResponse.class,
                 paymentNo
             );
 
