@@ -39,8 +39,8 @@ class OshipServerApplicationTests {
 	static void redisProperties(DynamicPropertyRegistry registry) {
 		String host = redis.getHost();
 		Integer port = redis.getMappedPort(6379);
-		registry.add("spring.redis.host", () -> host);
-		registry.add("spring.redis.port", () -> port);
+		registry.add("spring.data.redis.host", () -> host);
+		registry.add("spring.data.redis.port", () -> port);
 	}
 	@Test
 	void test1() {

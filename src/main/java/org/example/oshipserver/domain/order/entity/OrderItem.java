@@ -36,6 +36,7 @@ public class OrderItem extends BaseTimeEntity {
     private String hsCode;
     private String originCountryCode;
 
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;
@@ -44,6 +45,7 @@ public class OrderItem extends BaseTimeEntity {
     private OrderItem(
         String name, int quantity, BigDecimal unitValue, String valueCurrency,
         BigDecimal weight, String weightUnit, String hsCode, String originCountryCode
+
     ) {
         this.name = name;
         this.quantity = quantity;

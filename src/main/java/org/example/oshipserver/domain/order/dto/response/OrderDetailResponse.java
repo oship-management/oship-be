@@ -104,7 +104,10 @@ public record OrderDetailResponse(
                 new Address(
                     order.getSender().getSenderAddress().getSenderCountryCode().name(),
                     order.getSender().getSenderAddress().getSenderState(),
-                    order.getSender().getSenderAddress().getSenderStateCode().name(),
+                    //  null-safe 처리 추가
+                    order.getSender().getSenderAddress().getSenderStateCode() != null
+                        ? order.getSender().getSenderAddress().getSenderStateCode().name()
+                        : null,
                     order.getSender().getSenderAddress().getSenderCity(),
                     order.getSender().getSenderAddress().getSenderAddress1(),
                     order.getSender().getSenderAddress().getSenderAddress2(),
@@ -120,7 +123,10 @@ public record OrderDetailResponse(
                 new Address(
                     order.getRecipient().getRecipientAddress().getRecipientCountryCode().name(),
                     order.getRecipient().getRecipientAddress().getRecipientState(),
-                    order.getRecipient().getRecipientAddress().getRecipientStateCode().name(),
+                    // null 처리 추가
+                    order.getRecipient().getRecipientAddress().getRecipientStateCode() != null
+                        ? order.getRecipient().getRecipientAddress().getRecipientStateCode().name()
+                        : null,
                     order.getRecipient().getRecipientAddress().getRecipientCity(),
                     order.getRecipient().getRecipientAddress().getRecipientAddress1(),
                     order.getRecipient().getRecipientAddress().getRecipientAddress2(),

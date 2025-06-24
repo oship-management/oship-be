@@ -39,17 +39,17 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderService {
     private final OrderRepository orderRepository;
+    private final OrderNotificationService orderNotificationService;
     private final TrackingEventHandler trackingEventHandler;
 
-    public String createOrder(OrderCreateRequest orderCreateRequest) {
+    public String createOrder(Long userId, OrderCreateRequest orderCreateRequest) {
 
         /** 중복 주문 확인
          * 동일한 seller_id 내에서는 orderNo가 유일해야 하고,
          * seller_id가 다르면 orderNo 중복을 허용
          **/
-        Long sellerId = orderCreateRequest.sellerId();
 
-        if (orderRepository.existsByOrderNoAndSellerId(orderCreateRequest.orderNo(), sellerId)) {
+        if (orderRepository.existsByOrderNoAndSellerId(orderCreateRequest.orderNo(), userId)) {
             throw new ApiException("해당 계정에 동일한 주문번호가 존재합니다: " + orderCreateRequest.orderNo(), ErrorType.DUPLICATED_ORDER);
         }
 
@@ -57,7 +57,7 @@ public class OrderService {
         String masterNo = generateUniqueMasterNo(orderCreateRequest.recipientCountryCode());
 
         // 1. 주문 생성
-        Order order = Order.of(orderCreateRequest, masterNo);
+        Order order = Order.of(orderCreateRequest, masterNo, userId);
 
         // 2. 아이템 생성
         List<OrderItem> items = orderCreateRequest.orderItems().stream()
@@ -123,12 +123,18 @@ public class OrderService {
             ""
         );
 
-        // 9. 알림 전송 (이메일 발송)
+//        9. 알림 전송 (이메일 발송)
+//        동기 호출
+//        orderNotificationService.sendOrderCreatedSync(order);
+//
+//        비동기 호출
+//        orderNotificationService.sendOrderCreatedAsync(order);
+
 
         return masterNo;
     }
 
-    private String generateUniqueMasterNo(CountryCode countryCode) {
+    public String generateUniqueMasterNo(CountryCode countryCode) {
         String prefix = "OSH";
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
         String country = (countryCode != null) ? countryCode.name() : "XX";
@@ -189,9 +195,13 @@ public class OrderService {
         value = {CURRENT_MONTH_CACHE, "sellerStats"}, // Redis + Local 캐시 모두 무효화
         key = "T(org.example.oshipserver.global.common.utils.CacheKeyUtil).getRedisCurrentMonthStatsKey(#request.sellerId)"
     )
-    public void updateOrder(Long orderId, OrderUpdateRequest request) {
+    public void updateOrder(Long userId, Long orderId, OrderUpdateRequest request) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        if (!order.getSellerId().equals(userId)) {
+            throw new ApiException("해당 주문에 접근할 권한이 없습니다.", ErrorType.FORBIDDEN);
+        }
 
         if (order.isDeleted()) {
             throw new ApiException("이미 삭제된 주문입니다.", ErrorType.DB_FAIL);
@@ -209,12 +219,16 @@ public class OrderService {
     }
 
     @Transactional
-    public void softDeleteOrder(Long orderId) {
+    public void softDeleteOrder(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
         if (order.isDeleted()) {
             throw new ApiException("이미 삭제된 주문입니다.", ErrorType.DB_FAIL);
+        }
+
+        if (!order.getSellerId().equals(userId)) {
+            throw new ApiException("해당 주문에 접근할 권한이 없습니다.", ErrorType.FORBIDDEN);
         }
 
         // 현재 로그인 사용자 정보에서 삭제 주체 추출

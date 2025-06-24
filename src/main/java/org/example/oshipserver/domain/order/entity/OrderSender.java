@@ -47,6 +47,7 @@ public class OrderSender {
     private SenderAddress senderAddress;
 
     public void assignOrder(Order order) {
+        this.sellerId = order.getSellerId();
         this.order = order;
     }
 
