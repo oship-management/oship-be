@@ -44,7 +44,7 @@ public abstract class AbstractExcelUploadProcessor<T, R> {
         return new ExcelParseResult<>(results, records.errors());
     }
 
-    private void validateFile(MultipartFile file) {
+    protected void validateFile(MultipartFile file) {
         String filename = file.getOriginalFilename();
         if (filename == null || filename.isBlank()) {
             throw new ApiException("파일 이름이 없습니다.", ErrorType.INVALID_PARAMETER);
