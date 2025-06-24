@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
+import org.example.oshipserver.client.toss.IdempotentRestClient;
 import org.example.oshipserver.client.toss.TossPaymentClient;
 import org.example.oshipserver.domain.order.dto.response.OrderPaymentResponse;
 import org.example.oshipserver.domain.order.entity.Order;
@@ -46,22 +48,25 @@ import org.example.oshipserver.global.exception.ApiException;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.transaction.annotation.Transactional;
 import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
 
+    private final IdempotentRestClient idempotentRestClient;
     private final TossPaymentClient tossPaymentClient;
     private final PaymentRepository paymentRepository;
     private final PaymentOrderRepository paymentOrderRepository;
     private final PaymentCancelHistoryRepository paymentCancelHistoryRepository;
     private final OrderRepository orderRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
      */
-    @Transactional
+    @Transactional(rollbackFor = ApiException.class)
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
         // 1. DB 기준 중복 확인 (동시성 보장x)
@@ -80,19 +85,44 @@ public class PaymentService {
         // 3. Toss API 호출
         TossPaymentConfirmResponse tossResponse;
         try {
-            tossResponse = tossPaymentClient.requestPaymentConfirm(
-                new PaymentConfirmRequest(
-                    request.paymentKey(),
-                    null,  // 서버 orderId는 Toss에 전달하지 않음
-                    request.tossOrderId(),
-                    request.amount()
-                ),
+//            tossResponse = tossPaymentClient.requestPaymentConfirm(
+//                new PaymentConfirmRequest(
+//                    request.paymentKey(),
+//                    null,  // 서버 orderId는 Toss에 전달하지 않음
+//                    request.tossOrderId(),
+//                    request.amount()
+//                ),
+//                paymentNo
+//            );
+//         } catch (HttpClientErrorException e) {
+//             if (e.getStatusCode() == HttpStatus.CONFLICT) {
+//                 throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
+//             }
+//             throw e;
+//         }
+            Map<String, Object> tossRequestBody = Map.of(
+                "paymentKey", request.paymentKey(),
+                "orderId", request.tossOrderId(),
+                "amount", request.amount(),
+                "currency", "KRW"
+            );
+
+            // PaymentService 내에서 tossPaymentClient 대신 idempotentRestClient 호출
+            tossResponse = idempotentRestClient.postForIdempotent(
+                "https://api.tosspayments.com/v1/payments/confirm",
+                tossRequestBody,
+                TossPaymentConfirmResponse.class,
                 paymentNo
             );
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.CONFLICT) {
-                throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
+
+            try {
+                log.info("[Toss 응답 JSON] {}", objectMapper.writeValueAsString(tossResponse));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.warn("Toss 응답 JSON 직렬화 실패", e);
             }
+
+        } catch (ApiException e) {
+            log.warn("Toss 결제 승인 실패. paymentNo={}, reason={}", paymentNo, e.getMessage());
             throw e;
         }
 
@@ -104,21 +134,22 @@ public class PaymentService {
 
         // 5. Toss 응답값을 Payment 엔티티로 변환하여 저장
         Payment payment = Payment.builder()
+            .idempotencyKey(paymentNo)
             .paymentNo(paymentNo)
-            .tossOrderId(tossResponse.orderId())
-            .paymentKey(tossResponse.paymentKey())
-            .amount(tossResponse.totalAmount())
-            .currency(tossResponse.currency())
+            .tossOrderId(tossResponse.getOrderId())
+            .paymentKey(tossResponse.getPaymentKey())
+            .amount(tossResponse.getTotalAmount())
+            .currency(tossResponse.getCurrency())
             .method(method)
-            .paidAt(OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime())
-            .status(PaymentStatusMapper.fromToss(tossResponse.status()))
+            .paidAt(OffsetDateTime.parse(tossResponse.getApprovedAt()).toLocalDateTime())
+            .status(PaymentStatusMapper.fromToss(tossResponse.getStatus()))
             .sellerId(order.getSellerId())
             .build();
 
-        if (tossResponse.card() != null) {
-            payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        if (tossResponse.getCard() != null) {
+            payment.setCardLast4Digits(getLast4Digits(tossResponse.getCard().getNumber()));
         }
-        payment.setReceiptUrl(tossResponse.receipt().url());
+        payment.setReceiptUrl(tossResponse.getReceipt().getUrl());
 
         // 6. 결제 저장
         paymentRepository.save(payment);
@@ -127,7 +158,7 @@ public class PaymentService {
         PaymentOrder paymentOrder = PaymentOrder.builder()
             .payment(payment)
             .order(order)
-            .paymentAmount(tossResponse.totalAmount())
+            .paymentAmount(tossResponse.getTotalAmount())
             .paymentStatus(payment.getStatus())
             .confirmedAt(payment.getPaidAt())
             .build();
@@ -135,10 +166,16 @@ public class PaymentService {
         paymentOrderRepository.save(paymentOrder);
 
         // 8. 주문 상태 업데이트
-        if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {  // 중복 상태 변경 방지
-            order.markAsPaid();
+        try {
+            if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {
+                order.markAs(OrderStatus.PAID);
+                orderRepository.save(order);
+                log.info("주문 상태가 PAID로 변경되었습니다. orderId={}", order.getId());
+            }
+        } catch (IllegalStateException e) {
+            log.warn("주문 상태 변경 실패: orderId={}, currentStatus={}, targetStatus=PAID, reason={}",
+                order.getId(), order.getCurrentStatus(), e.getMessage());
         }
-        orderRepository.save(order);
 
         // 9. 응답 DTO 반환
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
@@ -147,7 +184,7 @@ public class PaymentService {
     /**
      * 다건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
      */
-    @Transactional
+    @Transactional(rollbackFor = ApiException.class)
     public MultiPaymentConfirmResponse confirmMultiPayment(MultiPaymentConfirmRequest request) {
         // 1. 중복 결제 방지 (paymentKey)
         if (paymentRepository.existsByPaymentKey(request.paymentKey())) {
@@ -164,17 +201,39 @@ public class PaymentService {
         // 3. Toss 결제 승인 api 호출
         TossPaymentConfirmResponse tossResponse;
         try {
-            tossResponse = tossPaymentClient.requestPaymentConfirm(
-                new PaymentConfirmRequest(
-                    request.paymentKey(),
-                    null,  // Toss에 서버 orderId 넘기지 않음
-                    request.tossOrderId(),
-                    request.orders().stream()
-                        .mapToInt(MultiOrderRequest::amount)
-                        .sum()
-                ),
+//            tossResponse = tossPaymentClient.requestPaymentConfirm(
+//                new PaymentConfirmRequest(
+//                    request.paymentKey(),
+//                    null,  // Toss에 서버 orderId 넘기지 않음
+//                    request.tossOrderId(),
+//                    request.orders().stream()
+//                        .mapToInt(MultiOrderRequest::amount)
+//                        .sum()
+//                ),
+//                paymentNo
+//            );
+
+            Map<String, Object> tossRequestBody = Map.of(
+                "paymentKey", request.paymentKey(),
+                "orderId", request.tossOrderId(),
+                "amount", request.orders().stream().mapToInt(MultiOrderRequest::amount).sum(),
+                "currency", "KRW"
+            );
+
+            // PaymentService 내에서 tossPaymentClient 대신 idempotentRestClient 호출
+            tossResponse = idempotentRestClient.postForIdempotent(
+                "https://api.tosspayments.com/v1/payments/confirm",
+                tossRequestBody,
+                TossPaymentConfirmResponse.class,
                 paymentNo
             );
+
+            try {
+                log.info("[Toss 응답 JSON] {}", objectMapper.writeValueAsString(tossResponse));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.warn("Toss 응답 JSON 직렬화 실패", e);
+            }
+
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 throw new ApiException("이미 처리된 결제입니다.", ErrorType.DUPLICATED_PAYMENT);
@@ -192,21 +251,22 @@ public class PaymentService {
 
         // 6. toss 응답 기반으로 payment 엔티티 생성 및 저장
         Payment payment = Payment.builder()
+            .idempotencyKey(paymentNo)
             .paymentNo(paymentNo)
-            .paymentKey(tossResponse.paymentKey())
-            .tossOrderId(tossResponse.orderId())  // Toss의 orderId 저장
-            .amount(tossResponse.totalAmount())
+            .paymentKey(tossResponse.getPaymentKey())
+            .tossOrderId(tossResponse.getOrderId()) // Toss의 orderId 저장
+            .amount(tossResponse.getTotalAmount())
             .currency("KRW")
             .method(method)
-            .paidAt(OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime())
-            .status(PaymentStatusMapper.fromToss(tossResponse.status()))
+            .paidAt(OffsetDateTime.parse(tossResponse.getApprovedAt()).toLocalDateTime())
+            .status(PaymentStatusMapper.fromToss(tossResponse.getStatus()))
             .sellerId(mainOrder.getSellerId())
             .build();
 
-        if (tossResponse.card() != null) {
-            payment.setCardLast4Digits(getLast4Digits(tossResponse.card().number()));
+        if (tossResponse.getCard() != null) {
+            payment.setCardLast4Digits(getLast4Digits(tossResponse.getCard().getNumber()));
         }
-        payment.setReceiptUrl(tossResponse.receipt().url());
+        payment.setReceiptUrl(tossResponse.getReceipt().getUrl());
 
         paymentRepository.save(payment);
 
@@ -226,10 +286,16 @@ public class PaymentService {
             paymentOrderRepository.save(paymentOrder);
 
             // 주문 상태 업데이트
-            if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {  // 중복 상태 변경 방지
-                order.markAsPaid();
+            if (!order.getCurrentStatus().equals(OrderStatus.PAID)) {
+                try {
+                    order.markAs(OrderStatus.PAID);
+                    orderRepository.save(order);
+                    log.info("주문 상태가 PAID로 변경되었습니다. orderId={}", order.getId());
+                } catch (IllegalStateException e) {
+                    log.warn("주문 상태를 PAID로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                        order.getId(), order.getCurrentStatus(), e.getMessage());
+                }
             }
-            orderRepository.save(order);
         }
 
         // 8. 응답용 orderId 리스트 추출
@@ -304,15 +370,28 @@ public class PaymentService {
         tossPaymentClient.requestCancel(paymentKey, cancelReason, remainingAmount);
 
         // 4. paymentStatus 변경
-        payment.cancel();
-        paymentRepository.save(payment);
+        try {
+            payment.updateStatus(PaymentStatus.CANCEL);
+            paymentRepository.save(payment);
+            log.info("결제 상태를 CANCEL로 변경했습니다. paymentNo={}", payment.getPaymentNo());
+        } catch (IllegalStateException ex) {
+            log.warn("결제 상태 CANCEL로 변경 실패: 현재 상태={}, paymentNo={}, reason={}",
+                payment.getStatus(), payment.getPaymentNo(), ex.getMessage());
+        }
 
         // 5. PaymentOrder + Order 상태도 전체 취소로 변경
         List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
         for (PaymentOrder po : paymentOrders) {
             po.cancel();
-            po.getOrder().markAsCancelled(); // orderStatus 변경
-            orderRepository.save(po.getOrder());
+            Order order = po.getOrder();
+            try {
+                order.markAs(OrderStatus.CANCELLED);
+                orderRepository.save(order);
+                log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
+            } catch (IllegalStateException e) {
+                log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                    order.getId(), order.getCurrentStatus(), e.getMessage());
+            }
         }
 
         // 6. 취소 이력 저장
@@ -351,14 +430,41 @@ public class PaymentService {
         tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
 
         // 6. 결제 상태 변경
-        payment.partialCancel(cancelAmount, cancelReason);
-        paymentRepository.save(payment);
+        try{
+            payment.partialCancel(cancelAmount); // 금액 유효성 체크
+            payment.updateStatus(PaymentStatus.PARTIAL_CANCEL); // 상태 변경
+            paymentRepository.save(payment);
+            log.info("결제 상태가 PARTIAL_CANCEL로 변경되었습니다. paymentNo={}", payment.getPaymentNo());
+        } catch (IllegalArgumentException e) {
+            log.warn("결제 부분취소 요청 금액이 유효하지 않습니다. paymentNo={}, cancelAmount={}, reason={}",
+                payment.getPaymentNo(), cancelAmount, e.getMessage());
+            throw new ApiException(
+                String.format("부분취소 금액이 유효하지 않습니다. 취소 요청 금액=%d, 결제 총액=%d", cancelAmount, payment.getAmount()),
+                ErrorType.PAYMENT_INVALID_CANCEL_AMOUNT
+            );
+        } catch (IllegalStateException e) {
+            log.warn("결제 상태 PARTIAL_CANCEL로 변경 실패. 현재 상태={}, paymentNo={}, reason={}",
+                payment.getStatus(), payment.getPaymentNo(), e.getMessage());
+            throw new ApiException(
+                "PARTIAL_CANCEL 상태로 변경할 수 없습니다.",
+                ErrorType.PAYMENT_STATUS_TRANSITION_FAILED
+            );
+        }
 
         // 7. 주문 상태 변경
         paymentOrder.cancel();
-        paymentOrder.getOrder().markAsCancelled(); // order상태를 CANCELLED로
+
+        Order order = paymentOrder.getOrder();
+        try {
+            order.markAs(OrderStatus.CANCELLED);
+            log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
+        } catch (IllegalStateException exxx) {
+            log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                order.getId(), order.getCurrentStatus(), exxx.getMessage());
+        }
+
         paymentOrderRepository.save(paymentOrder);
-        orderRepository.save(paymentOrder.getOrder());
+        orderRepository.save(order);
 
         // 8. 취소 이력 저장
         PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason, paymentOrder.getOrder());
@@ -372,12 +478,25 @@ public class PaymentService {
 
         // 10. 전체 취소 여부 체크
         if (totalCanceledAmount == payment.getAmount()) { // 누적취소금액과 결제금액이 같을 경우
-            payment.cancel(); // paymentStatus CANCEL로 전환
-            paymentRepository.save(payment);
+            try {
+                payment.updateStatus(PaymentStatus.CANCEL);
+                paymentRepository.save(payment);
+                log.info("결제 상태가 CANCEL로 변경되었습니다. paymentNo={}", payment.getPaymentNo());
+            } catch (IllegalStateException ex) {
+                log.warn("결제 상태를 CANCEL로 변경하지 못했습니다. paymentNo={}, currentStatus={}, reason={}",
+                    payment.getPaymentNo(), payment.getStatus(), ex.getMessage());
+            }
 
             payment.getPaymentOrders().forEach(po -> {
-                po.getOrder().markAsRefunded(); // orderStatus REFUNDED로 전환
-                orderRepository.save(po.getOrder());
+                Order o = po.getOrder();
+                try {
+                    o.markAs(OrderStatus.REFUNDED);
+                    log.info("주문 상태가 REFUNDED로 변경되었습니다. orderId={}", o.getId());
+                } catch (IllegalStateException exx) {
+                    log.warn("주문 상태를 REFUNDED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                        o.getId(), o.getCurrentStatus(), exx.getMessage());
+                }
+                orderRepository.save(o);
             });
         }
     }

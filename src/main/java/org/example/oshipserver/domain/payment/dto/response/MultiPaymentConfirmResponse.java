@@ -30,13 +30,13 @@ public record MultiPaymentConfirmResponse(
     ) {
         return new MultiPaymentConfirmResponse(
             orderIds,
-            response.paymentKey(),
-            PaymentStatusMapper.fromToss(response.status()),
-            response.approvedAt(),
-            response.totalAmount(),
-            response.currency(),
-            response.card() != null ? getLast4Digits(response.card().number()) : null,
-            response.receipt() != null ? response.receipt().url() : null
+            response.getPaymentKey(),
+            PaymentStatusMapper.fromToss(response.getStatus()),
+            response.getApprovedAt(),
+            response.getTotalAmount(),
+            response.getCurrency(),
+            response.getCard() != null ? getLast4Digits(response.getCard().getNumber()) : null,
+            response.getReceipt() != null ? response.getReceipt().getUrl() : null
         );
     }
 

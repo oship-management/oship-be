@@ -4,6 +4,8 @@ import jakarta.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.oshipserver.domain.payment.dto.request.FailedTossRequestDto;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossSinglePaymentLookupResponse;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import java.util.Base64;
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TossPaymentClient { // 외부 연동 모듈
@@ -104,6 +107,14 @@ public class TossPaymentClient { // 외부 연동 모듈
         // Toss로 POST 요청 실행
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
         restTemplate.exchange(url, HttpMethod.POST, entity, Void.class); // Toss가 우리 서버에 주는 응답바디 없음
+    }
+
+    /**
+     * Redis에 적재된 실패 요청 기반으로 Toss 결제 승인 요청 (재시도)
+     */
+    public TossPaymentConfirmResponse retryPaymentConfirm(FailedTossRequestDto dto) {
+        log.info("Toss 재시도 요청 시작: {}", dto.idempotencyKey());
+        return requestPaymentConfirm(dto.toConfirmRequest(), dto.idempotencyKey());
     }
 
 }

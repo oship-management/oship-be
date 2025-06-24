@@ -27,4 +27,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // 날짜 + sellerId 기준으로 결제 조회
     List<Payment> findBySellerIdAndCreatedAtBetween(Long sellerId, LocalDateTime start, LocalDateTime end);
 
+    Optional<Payment> findByIdempotencyKey(String idempotencyKey);
 }
