@@ -65,6 +65,7 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         Class<R> responseType,
         String idempotencyKey
     ) {
+        long start = System.currentTimeMillis();
         // 재시도 로그  남기기
         log.warn("[RETRYABLE] Toss API 호출 시도 - idempotencyKey={}, url={}, retryCount={}",
             idempotencyKey,
@@ -114,7 +115,17 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             }
 
             // 성공 응답 로그
-            log.info("[Toss 성공 응답] {}", response.getBody());
+            int retryCount = RetrySynchronizationManager.getContext() != null ?
+                RetrySynchronizationManager.getContext().getRetryCount() : 0;
+
+            long duration = System.currentTimeMillis() - start;
+
+            if (retryCount == 0) {
+                log.info("Toss API 첫 시도에 성공 - idempotencyKey={}, duration={}ms", idempotencyKey, duration);
+            } else {
+                log.info("[RETRYABLE] Toss API 재시도 후 성공 - idempotencyKey={}, retryCount={}, duration={}ms",
+                    idempotencyKey, retryCount, duration);
+            }
             return response.getBody();
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
@@ -123,11 +134,14 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             log.error("[Toss 에러 바디] {}", e.getResponseBodyAsString());
             // @retryable이 예외를 인식할 수 있도록
             throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), ErrorType.TOSS_PAYMENT_FAILED);
-//            throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             // 네트워크 오류 등 기타 예외
             log.error("[Toss 호출 예외 발생] {}", e.getMessage(), e);
             throw new ApiException("Toss 호출 중 알 수 없는 오류 발생", e);
+        } finally {
+            long end = System.currentTimeMillis();
+            long duration = end - start;
+            log.warn("[RETRYABLE] Toss API 최종 요청 소요 시간: {} ms (idempotencyKey={})", duration, idempotencyKey);
         }
     }
 
@@ -154,34 +168,17 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             paymentFailLogRepository.save(failLog); // db 저장
             log.warn("결제 실패 로그 저장 완료: idempotencyKey={}", idempotencyKey);
 
-            // 상태 업데이트
+            // 결재 실패시, payment 엔티티는 생성되지 않기 때문에, payment/order 상태 변경 없이 fail 로그만 남김
+            // payment가 생성되었을 가능성을 대비하여 존재 여부만 체크
             Optional<Payment> optionalPayment = paymentRepository.findByIdempotencyKey(idempotencyKey);
             if (optionalPayment.isPresent()) {
-                Payment payment = optionalPayment.get();
-                try {
-                    payment.updateStatus(PaymentStatus.FAIL);  // 결제 상태 변경
-                    paymentRepository.save(payment);
-                    log.info("결제 상태를 FAIL로 변경했습니다. paymentNo={}", payment.getPaymentNo());
-                } catch (IllegalStateException ex) {
-                    log.warn("결제 상태 FAIL로 변경 실패: 현재 상태={}, paymentNo={}, reason={}",
-                        payment.getStatus(), payment.getPaymentNo(), ex.getMessage());
-                }
-
-                for (PaymentOrder po : payment.getPaymentOrders()) {
-                    Order order = po.getOrder();
-                    try {
-                        order.markAs(OrderStatus.FAILED); // 주문 상태 변경
-                        orderRepository.save(order);
-                    } catch (IllegalStateException ex) {
-                        log.warn("주문 상태를 FAILED로 전이할 수 없음: orderId={}, currentStatus={}, reason={}",
-                            order.getId(), order.getCurrentStatus(), ex.getMessage());
-                    }
-                }
-
-                log.warn("결제 및 주문 상태 FAIL / FAILED 로 변경 완료: paymentNo={}", payment.getPaymentNo());
+                log.warn("결제 실패 상황에서 이미 생성된 payment 존재: paymentNo={}", optionalPayment.get().getPaymentNo());
+            } else {
+                log.warn("결제 실패 상황에서 payment 미생성 상태 (idempotencyKey={})", idempotencyKey);
             }
+
         } catch (Exception ex) {
-            log.error("결제 실패 로그 저장 또는 상태 업데이트 중 오류 발생: {}", ex.getMessage(), ex);
+            log.error("결제 실패 로그 저장 또는 상태 확인 중 오류 발생: {}", ex.getMessage(), ex);
         }
 
         // 사용자에게 최종 실패 응답 반환

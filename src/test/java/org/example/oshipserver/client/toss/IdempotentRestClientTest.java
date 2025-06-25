@@ -1,33 +1,22 @@
 package org.example.oshipserver.client.toss;
 
 import java.util.Map;
-import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
-import org.example.oshipserver.domain.payment.entity.Payment;
-import org.example.oshipserver.domain.payment.entity.PaymentFailLog;
-import org.example.oshipserver.domain.payment.entity.PaymentOrder;
 import org.example.oshipserver.domain.payment.repository.PaymentFailLogRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.global.exception.ApiException;
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.retry.support.RetryTemplate;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Optional;
-import org.example.oshipserver.domain.payment.entity.PaymentStatus;
-import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import static org.junit.jupiter.api.Assertions.*;
 
 class IdempotentRestClientRetryRecoverTest {
