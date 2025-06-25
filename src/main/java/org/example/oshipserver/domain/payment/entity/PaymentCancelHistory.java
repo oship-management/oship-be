@@ -10,6 +10,7 @@ import org.example.oshipserver.domain.order.entity.Order;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "payment_cancel_histories")
 public class PaymentCancelHistory {
 
     @Id
