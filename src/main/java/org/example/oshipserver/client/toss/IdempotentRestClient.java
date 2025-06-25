@@ -40,7 +40,6 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
     private final ObjectMapper objectMapper;
     private final PaymentFailLogRepository paymentFailLogRepository;
     private final PaymentRepository paymentRepository;
-    private final OrderRepository orderRepository;
 
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -56,8 +55,8 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
      */
     @Retryable(
         value = { ApiException.class },  // 재시도할 예외
-        maxAttempts = 4,                 // 총 4번 (최초 1회 시도 + 3회 재시도)
-        backoff = @Backoff(delay = 2000, multiplier = 2) // 점점 지연시간 증가
+        maxAttempts = 2,                 // 총 2번 (최초 1회 시도 + 1회 재시도)
+        backoff = @Backoff(delay = 2000, multiplier = 2)
     )
     public <T, R> R postForIdempotent(
         String url,
@@ -66,6 +65,10 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         String idempotencyKey
     ) {
         long start = System.currentTimeMillis();
+
+        // ✅  retry 테스트용 : 강제 실패 URL 덮어쓰기
+//        url = "https://api.tosspayments.com/this-path-does-not-exist";
+
         // 재시도 로그  남기기
         log.warn("[RETRYABLE] Toss API 호출 시도 - idempotencyKey={}, url={}, retryCount={}",
             idempotencyKey,
@@ -153,6 +156,7 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         Class<R> responseType,
         String idempotencyKey
     ) {
+        long recoverStart = System.currentTimeMillis();  // 장애 대응 시간 측정 시작
         log.error("Toss 결제 요청 최종 재시도 실패. 실패 로그를 DB에 기록합니다.");
 
         try {
@@ -166,7 +170,11 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
                 .build();
 
             paymentFailLogRepository.save(failLog); // db 저장
+            long recoverEnd = System.currentTimeMillis();  // 로그 저장 시점
+            long totalDuration = recoverEnd - recoverStart;
+
             log.warn("결제 실패 로그 저장 완료: idempotencyKey={}", idempotencyKey);
+            log.warn("[RECOVER] 장애 대응 총 소요 시간: {} ms (idempotencyKey={})", totalDuration, idempotencyKey);
 
             // 결재 실패시, payment 엔티티는 생성되지 않기 때문에, payment/order 상태 변경 없이 fail 로그만 남김
             // payment가 생성되었을 가능성을 대비하여 존재 여부만 체크
