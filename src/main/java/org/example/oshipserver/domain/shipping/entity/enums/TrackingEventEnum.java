@@ -51,5 +51,27 @@ public enum TrackingEventEnum {
 
     private final String desc;
 
+    public static TrackingEventEnum toOshipEvent(String eventCode) {
+        TrackingEventEnum gemEvent = null;
+
+        switch(eventCode) {
+            case "AF": gemEvent = TrackingEventEnum.FINAL_DEST_TRANSIT; break;
+            case "AR": gemEvent = TrackingEventEnum.FINAL_DEST_ARRIVED; break;
+            case "DD": gemEvent = TrackingEventEnum.DELIVERY_DELAY; break;
+            case "DE": gemEvent = TrackingEventEnum.DELIVERY_EXCEPTION; break;
+            case "DL": gemEvent = TrackingEventEnum.DELIVERED; break;
+            case "DP": gemEvent = TrackingEventEnum.SHIPPED; break;
+            case "IT": gemEvent = TrackingEventEnum.IN_TRANSIT; break;
+            case "OD": gemEvent = TrackingEventEnum.IN_DELIVERY; break;
+            case "PD": gemEvent = TrackingEventEnum.PICKUP_DELAY; break;
+            case "PU": gemEvent = TrackingEventEnum.READY_SHIP; break;
+            case "CC": gemEvent = TrackingEventEnum.CLEARED; break;
+            case "CD": gemEvent = TrackingEventEnum.CLEARANCE_DELAY; break;
+            case "CP": gemEvent = TrackingEventEnum.IN_CLEARANCE; break;
+        }
+
+        return gemEvent;
+    }
+
 }
 
