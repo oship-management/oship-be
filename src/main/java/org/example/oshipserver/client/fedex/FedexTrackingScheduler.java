@@ -2,6 +2,7 @@ package org.example.oshipserver.client.fedex;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.oshipserver.client.fedex.dto.FedexTrackingRequest;
@@ -38,6 +39,12 @@ public class FedexTrackingScheduler {
     private final CarrierRepository carrierRepository;
     private final ShipmentRepository shipmentRepository;
     private final TrackingEventRepository trackingEventRepository;
+
+    @PostConstruct
+    public void runOnStartup() throws Exception {
+        // 애플리케이션 시작 시 한 번 실행
+        trackingScheduler();
+    }
 
     @Scheduled(cron = "0 0 0/2 * * ?")
     public void trackingScheduler() throws Exception {
