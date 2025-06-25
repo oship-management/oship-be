@@ -355,7 +355,7 @@ public class PaymentService {
             .orElseThrow(() -> new ApiException("결제 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
         // 2. 기존 취소 이력 합산
-        int totalCanceledAmount = paymentCancelHistoryRepository.findByPayment(payment)
+        int totalCanceledAmount = paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment)
             .stream()
             .mapToInt(PaymentCancelHistory::getCancelAmount)
             .sum();
@@ -395,8 +395,10 @@ public class PaymentService {
         }
 
         // 6. 취소 이력 저장
-        PaymentCancelHistory history = PaymentCancelHistory.create(payment, remainingAmount, cancelReason, null);
-        paymentCancelHistoryRepository.save(history);
+        for (PaymentOrder po : paymentOrders) {
+            PaymentCancelHistory history = PaymentCancelHistory.create(po, po.getPaymentAmount(), cancelReason);
+            paymentCancelHistoryRepository.save(history);
+        }
     }
 
     /**
@@ -467,11 +469,11 @@ public class PaymentService {
         orderRepository.save(order);
 
         // 8. 취소 이력 저장
-        PaymentCancelHistory history = PaymentCancelHistory.create(payment, cancelAmount, cancelReason, paymentOrder.getOrder());
+        PaymentCancelHistory history = PaymentCancelHistory.create(paymentOrder, cancelAmount, cancelReason);
         paymentCancelHistoryRepository.save(history);
 
         // 9. 누적 취소 금액 계산
-        int totalCanceledAmount = paymentCancelHistoryRepository.findByPayment(payment)
+        int totalCanceledAmount = paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment)
             .stream()
             .mapToInt(PaymentCancelHistory::getCancelAmount)
             .sum();
@@ -510,8 +512,8 @@ public class PaymentService {
         Payment payment = paymentRepository.findByPaymentKey(paymentKey)
             .orElseThrow(() -> new ApiException("결제 정보가 없습니다.", ErrorType.NOT_FOUND));
 
-        // 2. 취소이력 조회
-        List<PaymentCancelHistory> histories = paymentCancelHistoryRepository.findByPayment(payment);
+        // 2. PaymentOrder 기준으로 취소이력 조회
+        List<PaymentCancelHistory> histories = paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment);
 
         // 3. DTO 변환
         return histories.stream()
