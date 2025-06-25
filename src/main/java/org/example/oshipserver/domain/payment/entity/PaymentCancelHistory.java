@@ -17,15 +17,10 @@ public class PaymentCancelHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🔁 결제-주문 중간 테이블과의 연관관계 (payment, order 각각 연결하는 대신)
+    // 결제-주문 중간 테이블과의 연관관계 (payment, order 각각 연결하는 대신)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_order_id", nullable = false)
     private PaymentOrder paymentOrder;
-
-//    // 결제 정보 연관관계
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "payment_id", nullable = false)
-//    private Payment payment;
 
     // 부분취소한 금액
     @Column(nullable = false)
@@ -38,11 +33,6 @@ public class PaymentCancelHistory {
     // 취소한 시각
     @Column(nullable = false)
     private LocalDateTime canceledAt;
-
-//    // 어떤 주문이 취소됐는지 추적할 수 있도록
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "order_id")
-//    private Order order;
 
     // 정적 팩토리 메서드
     public static PaymentCancelHistory create(PaymentOrder paymentOrder, Integer cancelAmount, String cancelReason) {
