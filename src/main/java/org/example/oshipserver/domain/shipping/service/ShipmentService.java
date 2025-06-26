@@ -10,7 +10,7 @@ import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
 import org.example.oshipserver.domain.shipping.dto.response.AwbResponse;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
-import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
+import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
 import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.exception.ApiException;

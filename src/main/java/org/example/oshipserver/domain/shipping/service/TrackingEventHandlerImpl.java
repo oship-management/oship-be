@@ -3,7 +3,7 @@ package org.example.oshipserver.domain.shipping.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.oshipserver.domain.shipping.dto.request.TrackingEventCreateRequest;
-import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
+import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.springframework.stereotype.Service;
 

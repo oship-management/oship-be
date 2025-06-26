@@ -21,7 +21,7 @@ import org.example.oshipserver.domain.order.entity.SenderAddress;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.DeleterRole;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
-import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
+import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.example.oshipserver.global.exception.ApiException;

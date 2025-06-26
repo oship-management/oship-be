@@ -1,7 +1,7 @@
 package org.example.oshipserver.domain.shipping.repository;
 
 import org.example.oshipserver.domain.shipping.entity.TrackingEvent;
-import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
+import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

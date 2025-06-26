@@ -1,6 +1,6 @@
 package org.example.oshipserver.domain.shipping.service.interfaces;
 
-import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
+import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
 
 /**
  * 외부 API 또는 다른 도메인에서 트래킹 이벤트를 생성할 때 사용하는 인터페이스

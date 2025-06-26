@@ -13,7 +13,7 @@ import org.example.oshipserver.domain.carrier.enums.CarrierName;
 import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
 import org.example.oshipserver.domain.shipping.entity.TrackingEvent;
-import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
+import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
 import org.example.oshipserver.domain.shipping.repository.TrackingEventRepository;
 import org.springframework.data.domain.PageRequest;
