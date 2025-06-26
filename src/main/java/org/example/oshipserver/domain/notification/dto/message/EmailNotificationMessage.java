@@ -4,5 +4,6 @@ public record EmailNotificationMessage(
     String email,
     String subject,
     String content,
-    int retryCount
+    int retryCount,
+    Long notificationId
 ) {}

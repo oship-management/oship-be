@@ -1,6 +1,6 @@
 package org.example.oshipserver.domain.order.service;
 
-import static org.example.oshipserver.global.config.RedisCacheConfig.CURRENT_MONTH_CACHE;
+import static org.example.oshipserver.global.config.redis.RedisCacheConfig.CURRENT_MONTH_CACHE;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -130,7 +130,8 @@ public class OrderService {
 //        비동기 호출
 //        orderNotificationService.sendOrderCreatedAsync(order);
 
-
+//        V2 큐 기반 비동기 이메일 전송
+//        orderNotificationService.sendOrderCreatedV2(order);
         return masterNo;
     }
 
