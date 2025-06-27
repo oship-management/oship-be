@@ -43,7 +43,7 @@ public class Shipment extends BaseTimeEntity {
     @Column(name = "gross_weight", precision = 20, scale = 2)
     private BigDecimal grossWeight;
 
-    @Column(name = "volumn_weight", precision = 20, scale = 2)
+    @Column(name = "volume_weight", precision = 20, scale = 2)
     private BigDecimal volumeWeight;
 
     @Column(name = "charge_weight", precision = 20, scale = 2)
