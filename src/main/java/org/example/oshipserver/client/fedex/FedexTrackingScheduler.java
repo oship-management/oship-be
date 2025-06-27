@@ -1,7 +1,5 @@
 package org.example.oshipserver.client.fedex;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,10 +10,7 @@ import org.example.oshipserver.domain.carrier.entity.Carrier;
 import org.example.oshipserver.domain.carrier.enums.CarrierName;
 import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
-import org.example.oshipserver.domain.shipping.entity.TrackingEvent;
-import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
-import org.example.oshipserver.domain.shipping.repository.TrackingEventRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -23,8 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +33,16 @@ public class FedexTrackingScheduler {
     private final FedexClient fedexClient;
     private final CarrierRepository carrierRepository;
     private final ShipmentRepository shipmentRepository;
-    private final TrackingEventRepository trackingEventRepository;
+    private final FedexTrackingService fedexTrackingService;
+
+
+    //오늘로부터 100일전 구하는 함수
+    private static String getStartDay() {
+        LocalDate hundredDaysAgo = LocalDate.now().minusDays(100);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return hundredDaysAgo.format(formatter);
+    }
+
 
     @PostConstruct
     public void runOnStartup() throws Exception {
@@ -48,7 +52,7 @@ public class FedexTrackingScheduler {
 
     @Scheduled(cron = "0 0 0/2 * * ?")
     public void trackingScheduler() throws Exception {
-        DateTimeFormatter dtf =  DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
+        DateTimeFormatter dtf =  DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         System.out.println("스케쥴러 테스트 " + LocalDateTime.now().format(dtf));
         List<Carrier> carriers = carrierRepository.findAllByName(CarrierName.FEDEX);
         for(Carrier carrier : carriers){
@@ -60,7 +64,7 @@ public class FedexTrackingScheduler {
             Slice<Shipment> slice;
             do {
                 Pageable pageable = PageRequest.of(page, size);
-                slice = shipmentRepository.findAllByCarrierId(carrierId, pageable);
+                slice = shipmentRepository.findAllByCarrierIdAndDeliveredAtIsNull(carrierId, pageable);
                 List<Shipment> shipments = slice.getContent();
                 HashMap<String, Long> trackingOrderId = new HashMap<>();
                 List<TrackingInfo> trackingInfos = new ArrayList<>();
@@ -68,60 +72,18 @@ public class FedexTrackingScheduler {
                     String trackingNo = shipment.getCarrierTrackingNo();
                     Long orderId = shipment.getOrderId();
                     trackingOrderId.put(trackingNo, orderId);
-                    TrackingInfo fdxe = new TrackingInfo(null, null, new TrackingNumberInfo(trackingNo, "FDXE"));
+                    TrackingInfo fdxe = new TrackingInfo(getStartDay(), new TrackingNumberInfo(trackingNo));
                     trackingInfos.add(fdxe);
                 }
                 FedexTrackingRequest fedexTrackingRequest =
-                        new FedexTrackingRequest(false, trackingInfos);
+                        new FedexTrackingRequest(true, trackingInfos);
                 ResponseEntity<String> response = fedexClient.tracking(token, fedexTrackingRequest);
-                parseTrackingResponseAndSave(response,trackingOrderId);
+                fedexTrackingService.parseTrackingResponseAndSave(response,trackingOrderId);
                 page++; // 다음 페이지 이동
             } while (slice.hasNext());
         }
 
 
     }
-
-    private void parseTrackingResponseAndSave(ResponseEntity<String> response, HashMap<String , Long> trackNoMapOrderId) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(response.getBody());
-        List<TrackingEvent> trackingEvents = new ArrayList<>();
-        JsonNode completeTrackResults = root
-                .path("output")
-                .path("completeTrackResults");
-
-        for (JsonNode trackResultItem : completeTrackResults) {
-            JsonNode trackResults = trackResultItem.path("trackResults");
-            for (JsonNode track : trackResults) {
-                // trackingNumber
-                String trackingNumber = track
-                        .path("trackingNumberInfo")
-                        .path("trackingNumber")
-                        .asText();
-                Long orderId = trackNoMapOrderId.get(trackingNumber);
-                // scanEvents
-                JsonNode scanEvents = track.path("scanEvents");
-                for (JsonNode event : scanEvents) {
-                    String derivedStatusCode = event.path("derivedStatusCode").asText();
-                    TrackingEventEnum trackingEventEnum = TrackingEventEnum.toOshipEvent(derivedStatusCode);
-                    String date = event.path("date").asText();
-                    OffsetDateTime offsetDateTime = OffsetDateTime.parse(date);
-                    LocalDateTime scanEventAt = offsetDateTime.toLocalDateTime();
-                    TrackingEvent te = TrackingEvent.builder()
-                            .orderId(orderId)
-                            .scanEventAt(scanEventAt)
-                            .description(trackingEventEnum.getDesc())
-                            .event(trackingEventEnum)
-                            .build();
-                    trackingEvents.add(te);
-                }
-            }
-            List<TrackingEvent> deduplicated = trackingEvents.stream()
-                    .filter(event -> !trackingEventRepository.existsByOrderIdAndEvent(event.getOrderId(), event.getEvent()))
-                    .toList();
-            trackingEventRepository.saveAll(deduplicated);
-        }
-    }
-
 
 }

@@ -3,7 +3,6 @@ package org.example.oshipserver.domain.shipping.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,7 +10,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "shipments")
 @Getter
-@SQLRestriction("delivered_at is NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Shipment extends BaseTimeEntity {
 
