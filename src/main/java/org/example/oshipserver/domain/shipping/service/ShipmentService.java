@@ -10,6 +10,8 @@ import org.example.oshipserver.domain.carrier.repository.CarrierRateChargeReposi
 import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
+import org.example.oshipserver.domain.partner.entity.Partner;
+import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
 import org.example.oshipserver.domain.shipping.dto.response.AwbResponse;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
@@ -31,6 +33,7 @@ public class ShipmentService {
     private final CarrierRepository carrierRepository;
     private final CarrierRateChargeRepository carrierRateChargeRepository;
     private final OrderRepository orderRepository;
+    private final PartnerRepository partnerRepository;
     private final TrackingEventHandler trackingEventHandler;
     private final FedexClient fedexClient;
 
@@ -75,6 +78,11 @@ public class ShipmentService {
         // 권한 검증 - 파트너만 AWB 발급 가능
         Long userId = Long.valueOf(authentication.getName());
         
+        // userId로 Partner 조회
+        Partner partner = partnerRepository.findByUserId(userId)
+            .orElseThrow(() -> new ApiException("파트너 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        Long partnerId = partner.getId();
+        
         // 1. 배송 정보 조회
         Shipment shipment = shipmentRepository.findById(shipmentId)
             .orElseThrow(() -> new ApiException("배송 정보를 찾을 수 없습니다: " + shipmentId, ErrorType.NOT_FOUND));
@@ -84,7 +92,7 @@ public class ShipmentService {
             .orElseThrow(() -> new ApiException("운송사를 찾을 수 없습니다: " + shipment.getCarrierId(), ErrorType.NOT_FOUND));
             
         // 소유권 검증 - 해당 파트너의 배송물인지 확인
-        if (carrier.getPartner() == null || !carrier.getPartner().getId().equals(userId)) {
+        if (carrier.getPartner() == null || !carrier.getPartner().getId().equals(partnerId)) {
             throw new ApiException("해당 배송에 대한 권한이 없습니다.", ErrorType.FORBIDDEN);
         }
 
