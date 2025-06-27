@@ -5,7 +5,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
 
 import java.time.LocalDateTime;

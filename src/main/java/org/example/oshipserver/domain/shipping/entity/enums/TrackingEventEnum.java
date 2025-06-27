@@ -1,4 +1,4 @@
-package org.example.oshipserver.client.fedex.enums;
+package org.example.oshipserver.domain.shipping.entity.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -50,28 +50,6 @@ public enum TrackingEventEnum {
     RETURN("Return");
 
     private final String desc;
-
-    public static TrackingEventEnum toOshipEvent(String eventCode) {
-        TrackingEventEnum oshipEvent = null;
-
-        switch(eventCode) {
-            case "AF": oshipEvent = TrackingEventEnum.FINAL_DEST_TRANSIT; break;
-            case "AR": oshipEvent = TrackingEventEnum.FINAL_DEST_ARRIVED; break;
-            case "DD": oshipEvent = TrackingEventEnum.DELIVERY_DELAY; break;
-            case "DE": oshipEvent = TrackingEventEnum.DELIVERY_EXCEPTION; break;
-            case "DL": oshipEvent = TrackingEventEnum.DELIVERED; break;
-            case "DP": oshipEvent = TrackingEventEnum.SHIPPED; break;
-            case "IT": oshipEvent = TrackingEventEnum.IN_TRANSIT; break;
-            case "OD": oshipEvent = TrackingEventEnum.IN_DELIVERY; break;
-            case "PD": oshipEvent = TrackingEventEnum.PICKUP_DELAY; break;
-            case "PU": oshipEvent = TrackingEventEnum.READY_SHIP; break;
-            case "CC": oshipEvent = TrackingEventEnum.CLEARED; break;
-            case "CD": oshipEvent = TrackingEventEnum.CLEARANCE_DELAY; break;
-            case "CP": oshipEvent = TrackingEventEnum.IN_CLEARANCE; break;
-        }
-
-        return oshipEvent;
-    }
 
 }
 

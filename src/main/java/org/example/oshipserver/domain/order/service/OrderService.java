@@ -1,27 +1,16 @@
 package org.example.oshipserver.domain.order.service;
 
-import static org.example.oshipserver.global.config.RedisCacheConfig.CURRENT_MONTH_CACHE;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.auth.vo.CustomUserDetail;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
 import org.example.oshipserver.domain.order.dto.request.OrderUpdateRequest;
 import org.example.oshipserver.domain.order.dto.response.OrderDetailResponse;
 import org.example.oshipserver.domain.order.dto.response.OrderListResponse;
-import org.example.oshipserver.domain.order.entity.Order;
-import org.example.oshipserver.domain.order.entity.OrderItem;
-import org.example.oshipserver.domain.order.entity.OrderRecipient;
-import org.example.oshipserver.domain.order.entity.OrderSender;
-import org.example.oshipserver.domain.order.entity.RecipientAddress;
-import org.example.oshipserver.domain.order.entity.SenderAddress;
+import org.example.oshipserver.domain.order.entity.*;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.DeleterRole;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
-import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.example.oshipserver.global.exception.ApiException;
@@ -33,6 +22,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
+
+import static org.example.oshipserver.global.config.RedisCacheConfig.CURRENT_MONTH_CACHE;
 
 
 @Service

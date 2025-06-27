@@ -2,7 +2,8 @@ package org.example.oshipserver.client.fedex;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.oshipserver.client.fedex.enums.TrackingEventEnum;
+import org.example.oshipserver.client.fedex.enums.FedexTrackingEnums;
+import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
 import org.example.oshipserver.domain.shipping.entity.TrackingEvent;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
@@ -53,7 +54,7 @@ public class FedexTrackingService {
                 JsonNode scanEvents = track.path("scanEvents");
                 for (JsonNode event : scanEvents) {
                     String derivedStatusCode = event.path("derivedStatusCode").asText();
-                    TrackingEventEnum trackingEventEnum = TrackingEventEnum.toOshipEvent(derivedStatusCode);
+                    TrackingEventEnum trackingEventEnum = FedexTrackingEnums.toTrackingEvent(derivedStatusCode);
                     if(trackingEventEnum == null){
                         continue;
                     }
