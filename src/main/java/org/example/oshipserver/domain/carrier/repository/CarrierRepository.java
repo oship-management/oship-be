@@ -3,6 +3,7 @@ package org.example.oshipserver.domain.carrier.repository;
 import java.util.List;
 import org.example.oshipserver.domain.carrier.dto.PartnerCarrierNativeDto;
 import org.example.oshipserver.domain.carrier.entity.Carrier;
+import org.example.oshipserver.domain.carrier.enums.CarrierName;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,4 +53,6 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
     List<PartnerCarrierNativeDto> findPartnerCarrierNative(
         @Param("orderIds") List<Long> orderIds
     );
+
+    List<Carrier> findAllByName(CarrierName name);
 }
