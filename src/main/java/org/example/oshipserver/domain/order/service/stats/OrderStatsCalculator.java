@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.order.service;
+package org.example.oshipserver.domain.order.service.stats;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

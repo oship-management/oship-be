@@ -9,7 +9,7 @@ import java.util.List;
 @Getter
 @Builder
 public class PageResponseDto<T> {
-    private List<T> data; // 결과 Data 목록
+    private List<T> content; // 결과 Data 목록
 
     private Long totalElements; // 총 Data 수
 
@@ -21,7 +21,7 @@ public class PageResponseDto<T> {
 
     public static <T> PageResponseDto<T> toDto(Page<T> result) {
         return PageResponseDto.<T>builder()
-                .data(result.get().toList())
+                .content(result.get().toList())
                 .totalElements(result.getTotalElements())
                 .size(result.getSize())
                 .page(result.getNumber() + 1)

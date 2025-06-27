@@ -5,20 +5,22 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.oshipserver.domain.order.entity.Order;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "payment_cancel_histories")
 public class PaymentCancelHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 결제 정보 연관관계
+    // 결제-주문 중간 테이블과의 연관관계 (payment, order 각각 연결하는 대신)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id", nullable = false)
-    private Payment payment;
+    @JoinColumn(name = "payment_order_id", nullable = false)
+    private PaymentOrder paymentOrder;
 
     // 부분취소한 금액
     @Column(nullable = false)
@@ -33,9 +35,9 @@ public class PaymentCancelHistory {
     private LocalDateTime canceledAt;
 
     // 정적 팩토리 메서드
-    public static PaymentCancelHistory create(Payment payment, Integer cancelAmount, String cancelReason) {
+    public static PaymentCancelHistory create(PaymentOrder paymentOrder, Integer cancelAmount, String cancelReason) {
         PaymentCancelHistory history = new PaymentCancelHistory();
-        history.payment = payment;
+        history.paymentOrder = paymentOrder;
         history.cancelAmount = cancelAmount;
         history.cancelReason = cancelReason;
         history.canceledAt = LocalDateTime.now();

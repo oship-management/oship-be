@@ -42,6 +42,7 @@ out/
 
 # yml
 application-prod.yml
+application-test.yml
 .env
 infra/mysql/
 infra/redis/
@@ -54,3 +55,4 @@ infra/redis/
 
 # MySQL socket file
 mysql/data/*.sock
+.DS_Store

@@ -19,6 +19,7 @@ import org.example.oshipserver.domain.order.util.ExcelOrderParser;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -43,7 +44,10 @@ public class OrderExcelUploadController {
      */
     @OrderExecutionLog
     @PostMapping("/upload")
-    public ResponseEntity<BaseResponse<List<OrderCreateResponse>>> uploadOrderExcel(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<BaseResponse<List<OrderCreateResponse>>> uploadOrderExcel(
+        Authentication authentication,
+        @RequestParam(value = "file", required = false) MultipartFile file ) {
+        Long userId = Long.valueOf(authentication.getName()); // 인증 정보에서 userId 추출
         List<OrderExcelRequest> dtos = excelOrderParser.parse(file);
 
         Map<String, List<OrderExcelRequest>> grouped = dtos.stream()
@@ -55,8 +59,8 @@ public class OrderExcelUploadController {
         // CompletableFuture로 병렬 처리
         List<CompletableFuture<OrderCreateResponse>> futures = grouped.values().stream()
             .map(group -> CompletableFuture.supplyAsync(() -> {
-                OrderCreateRequest request = toOrderCreateRequest(group);
-                return new OrderCreateResponse(orderService.createOrder(request));
+                OrderCreateRequest request = toOrderCreateRequest(group); // sellerId 하드 코딩 제외 필요
+                return new OrderCreateResponse(orderService.createOrder(userId, request));
             }, executor))
             .toList();
 
@@ -65,7 +69,7 @@ public class OrderExcelUploadController {
             .map(CompletableFuture::join)
             .toList();
 
-        executor.shutdown();
+        executor.shutdown(); // 사용자 응답 속도 느려짐 , 쿼리가 많이 날라감.
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(new BaseResponse<>(201, "엑셀 업로드 주문 생성 완료", responses));
@@ -141,7 +145,7 @@ public class OrderExcelUploadController {
             base.dimensionHeight().intValue(),
             base.packageType(),
             base.shippingTerm(),
-            Long.parseLong(base.sellerId()),
+            base.lastTrackingEvent(),
 
             // 상품 목록
             orderItems

@@ -11,7 +11,9 @@ import java.util.List;
 import org.example.oshipserver.domain.order.dto.OrderItemDto;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.entity.enums.StateCode;
+import org.example.oshipserver.domain.order.service.validation.annotation.ValidStateCode;
 
+@ValidStateCode
 public record OrderCreateRequest(
 
     // 주문 정보
@@ -59,7 +61,7 @@ public record OrderCreateRequest(
     @Min(1) int dimensionHeight,
     @NotBlank String packageType,
     @NotBlank String shippingTerm,
-    @NotNull Long sellerId,
+    String lastTrackingEvent,
 
     @NotEmpty List<@Valid OrderItemDto> orderItems
 ) {}

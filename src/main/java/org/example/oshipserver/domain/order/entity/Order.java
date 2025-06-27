@@ -48,7 +48,7 @@ public class Order extends BaseTimeEntity {
     private String orderNo;
 
     // 수량 및 중량
-    private int parcelCount;
+    private Integer parcelCount;
     private BigDecimal shipmentActualWeight;
     private BigDecimal shipmentVolumeWeight;
     private String weightUnit;
@@ -62,7 +62,7 @@ public class Order extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     // 상태
-    private boolean deleted = false;
+    private Boolean deleted = false;
 
     @Enumerated(EnumType.STRING)
     @CreatedBy // 삭제 주체 자동 주입
@@ -102,7 +102,7 @@ public class Order extends BaseTimeEntity {
     private List<OrderItem> orderItems = new ArrayList<>();
 
     // Partner와 Seller
-    private Long parterId;
+    private Long partnerId;
     private Long sellerId;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -116,18 +116,19 @@ public class Order extends BaseTimeEntity {
         String orderNo,
         String oshipMasterNo,
         String weightUnit,
-        int parcelCount,
+        Integer parcelCount,
         BigDecimal shipmentActualWeight,
         BigDecimal shipmentVolumeWeight,
         BigDecimal dimensionWidth,
         BigDecimal dimensionHeight,
         BigDecimal dimensionLength,
-        boolean deleted,
+        Boolean deleted,
         OrderStatus currentStatus,
         String itemContentsType,
         String serviceType,
         String packageType,
         String shippingTerm,
+        String lastTrackingEvent,
         Long sellerId
     ) {
         this.orderNo = orderNo;
@@ -144,6 +145,7 @@ public class Order extends BaseTimeEntity {
         this.serviceType = serviceType;
         this.packageType = packageType;
         this.shippingTerm = shippingTerm;
+        this.lastTrackingEvent = lastTrackingEvent;
         this.sellerId = sellerId;
         this.deleted = false;
         this.deletedBy = null;
@@ -156,7 +158,7 @@ public class Order extends BaseTimeEntity {
      * @param dto      주문 요청 DTO
      * @param masterNo 외부 식별자
      */
-    public static Order of(OrderCreateRequest dto, String masterNo) {
+    public static Order of(OrderCreateRequest dto, String masterNo, Long userId) {
         return Order.builder()
             .orderNo(dto.orderNo())
             .oshipMasterNo(masterNo)
@@ -173,9 +175,11 @@ public class Order extends BaseTimeEntity {
             .serviceType(dto.serviceType())
             .packageType(dto.packageType())
             .shippingTerm(dto.shippingTerm())
-            .sellerId(dto.sellerId())
+            .lastTrackingEvent(dto.lastTrackingEvent())
+            .sellerId(userId)
             .build();
     }
+
 
     /**
      * 주문 상품 목록 추가
@@ -191,6 +195,10 @@ public class Order extends BaseTimeEntity {
 
     public void assignRecipient(OrderRecipient recipient) {
         this.recipient = recipient;
+    }
+
+    public void assignPartner(Long partnerId) {
+        this.partnerId = partnerId;
     }
 
     public void softDelete(DeleterRole deletedBy) {
@@ -216,18 +224,35 @@ public class Order extends BaseTimeEntity {
     }
 
     public void updateItems(List<OrderItemRequest> updatedRequests) {
+        // 1. 기존 아이템들을 ID 기준으로 Map화
         Map<Long, OrderItem> existingItemMap = this.orderItems.stream()
             .collect(Collectors.toMap(OrderItem::getId, Function.identity()));
+
+        List<OrderItem> newItemList = new ArrayList<>();
 
         for (OrderItemRequest req : updatedRequests) {
             Long id = req.id();
 
-            if (id == null || !existingItemMap.containsKey(id)) {
-                throw new ApiException("수정할 수 없는 주문 항목입니다: id=" + id, ErrorType.NOT_FOUND);
+            if (id != null) {
+                OrderItem existing = existingItemMap.get(id);
+                if (existing == null) {
+                    throw new ApiException("존재하지 않는 주문 항목입니다. id=" + id, ErrorType.NOT_FOUND);
+                }
+                existing.updateFrom(req);
+                newItemList.add(existing);
+                existingItemMap.remove(id); // 삭제 대상에서 제외
+            } else {
+                OrderItem newItem = req.toEntity(); // 신규 생성
+                newItem.assignOrder(this);
+                newItemList.add(newItem);
             }
-            existingItemMap.get(id).updateFrom(req);
         }
+
+        // 2. 기존 orderItems 중 요청에 포함되지 않은 항목은 제거됨
+        this.orderItems.clear();
+        this.orderItems.addAll(newItemList);
     }
+
 
     // 주문이 삭제되었는지 확인
     public boolean isDeleted() {
@@ -253,5 +278,18 @@ public class Order extends BaseTimeEntity {
      */
     public void markAwbGenerated() {
         this.isPrintAwb = true;
+    }
+
+    /**
+     * 결제 상태에 따른, 주문 상태 업데이트
+     */
+    public void markAs(OrderStatus nextStatus) {
+        if (!this.currentStatus.canTransitionTo(nextStatus)) {
+            throw new IllegalStateException(
+                String.format("현재 상태 '%s'에서는 상태 '%s'로 전이할 수 없습니다.",
+                    this.currentStatus.name(), nextStatus.name())
+            );
+        }
+        this.currentStatus = nextStatus;
     }
 }

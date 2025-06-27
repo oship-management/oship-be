@@ -14,6 +14,7 @@ import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -34,48 +35,64 @@ public class OrderController {
     @OrderExecutionLog
     @PostMapping
     public ResponseEntity<BaseResponse<OrderCreateResponse>> createOrder(
+        Authentication user,
         @Valid @RequestBody OrderCreateRequest orderCreateRequest
     ) {
-        String masterNo = orderService.createOrder(orderCreateRequest);
+        Long userId = Long.valueOf(user.getName()); // 인증 정보에서 추출
+        String masterNo = orderService.createOrder(userId, orderCreateRequest);
+
         BaseResponse<OrderCreateResponse> response =
             new BaseResponse<>(201, "주문 생성이 완료되었습니다.", new OrderCreateResponse(masterNo));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+
     @GetMapping
     public BaseResponse<PageResponseDto<OrderListResponse>> getOrderList(
-        @RequestParam(required = false) Long sellerId,
+        Authentication user,
         @RequestParam(required = false) String startDate,
         @RequestParam(required = false) String endDate,
         Pageable pageable
     ) {
-        PageResponseDto<OrderListResponse> response = orderService.getOrderList(sellerId, startDate, endDate, pageable);
-        return new BaseResponse<>(200, "주문 목록 조회 성공", response);
+        Long userId = Long.valueOf(user.getName());
+        return new BaseResponse<>(200, "주문 목록 조회 성공", orderService.getOrderList(userId, startDate, endDate, pageable));
     }
 
-
     @GetMapping("/{id}")
-    public BaseResponse<OrderDetailResponse> getOrderDetail(@PathVariable final Long id) {
-        return new BaseResponse<>(200, "주문 상세 조회 성공", orderService.getOrderDetail(id));
+    public BaseResponse<OrderDetailResponse> getOrderDetail(
+        Authentication user,
+        @PathVariable final Long id
+
+    ) {
+        Long userId = Long.valueOf(user.getName());
+        return new BaseResponse<>(200, "주문 상세 조회 성공", orderService.getOrderDetail(userId, id));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<BaseResponse<Void>> updateOrder(
+        Authentication user,
         @PathVariable Long id,
-        @Valid @RequestBody OrderUpdateRequest request
+        @Valid @RequestBody OrderUpdateRequest orderUpdateRequest
     ) {
-        orderService.updateOrder(id, request);
+        Long userId = Long.valueOf(user.getName());
+        orderService.updateOrder(userId, id, orderUpdateRequest); // userId 전달
         return ResponseEntity.ok(new BaseResponse<>(200, "주문 정보가 수정되었습니다.", null));
     }
+
 
     /**
      * 주문 삭제 (Soft Delete)
      */
     @DeleteMapping("/{id}")
-    public BaseResponse<Void> deleteOrder(@PathVariable final Long id) {
-        orderService.softDeleteOrder(id);
+    public BaseResponse<Void> deleteOrder(
+        Authentication user,
+        @PathVariable final Long id
+    ) {
+        Long userId = Long.valueOf(user.getName());
+        orderService.softDeleteOrder(userId, id); // userId 전달
         return new BaseResponse<>(204, "주문이 성공적으로 삭제되었습니다.", null);
     }
+
 
 }

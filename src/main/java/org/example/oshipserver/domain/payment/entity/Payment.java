@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,7 @@ import org.example.oshipserver.global.entity.BaseTimeEntity;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "payments")
 public class Payment extends BaseTimeEntity {
 
     // db 내부 참조용
@@ -66,6 +68,10 @@ public class Payment extends BaseTimeEntity {
     // 결제 실패 사유
     private String failReason;
 
+    // 결제 요청자
+    @Column(nullable = false)
+    private Long sellerId;
+
     // 우리 서버의 내부 엔티티
     @ManyToOne(fetch = FetchType.LAZY)
     private Order order;
@@ -73,6 +79,10 @@ public class Payment extends BaseTimeEntity {
     // 주문 여러건을 묶어서 결제 (다건 결제용)
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentOrder> paymentOrders = new ArrayList<>();
+
+    public void addPaymentOrder(PaymentOrder paymentOrder) {
+        this.paymentOrders.add(paymentOrder);
+    }
 
     // 직접 매핑된 주문 리스트만 추출
     public List<Order> getOrders() {
@@ -103,7 +113,8 @@ public class Payment extends BaseTimeEntity {
     @Builder
     public Payment(String paymentNo, String paymentKey, String tossOrderId,
         PaymentStatus status, PaymentMethod method, Integer amount,
-        String currency, LocalDateTime paidAt, String failReason) {
+        String currency, LocalDateTime paidAt, String failReason, Long sellerId,
+        String idempotencyKey) {
         this.paymentNo = paymentNo;
         this.paymentKey = paymentKey;
         this.tossOrderId = tossOrderId;
@@ -113,35 +124,35 @@ public class Payment extends BaseTimeEntity {
         this.currency = currency;
         this.paidAt = paidAt;
         this.failReason = failReason;
+        this.sellerId = sellerId;
+        this.idempotencyKey = idempotencyKey;
     }
 
-    public void markSuccess(String paymentKey, LocalDateTime paidAt, String cardLast4Digits, String receiptUrl) {
-        this.paymentKey = paymentKey;
-        this.status = PaymentStatus.COMPLETE;
-        this.paidAt = paidAt;
-        this.cardLast4Digits = cardLast4Digits;
-        this.receiptUrl = receiptUrl;
+    public void updateStatus(PaymentStatus nextStatus) {
+        if (!this.status.canTransitionTo(nextStatus)) {
+            throw new IllegalStateException(
+                String.format("현재 상태 '%s'에서는 상태 '%s'로 전이할 수 없습니다.",
+                    this.status.name(), nextStatus.name())
+            );
+        }
+        this.status = nextStatus;
     }
 
-    public void markFailed(String reason) {
-        this.status = PaymentStatus.FAIL;
-        this.failReason = reason;
-    }
-
-    public void cancel() {
-        this.status = PaymentStatus.CANCEL;
-    }
-
-    public void partialCancel(int cancelAmount, String cancelReason) {
+    public void partialCancel(int cancelAmount) {
         // 전체 금액보다 많을 수 없도록 제어할 수도 있음
         if (cancelAmount <= 0 || cancelAmount > this.amount) {
             throw new IllegalArgumentException("부분 취소 금액이 유효하지 않습니다.");
         }
-
-        // 부분 취소 상태로 변경
-        this.status = PaymentStatus.PARTIAL_CANCEL;
-
-        // 추후 이력 관리나 누적 취소 금액 관리로 확장 예정
+        // 추후 이력 관리나 누적 취소 금액 관리로 확장 가능
     }
+
+    @Column(name = "idempotency_key", nullable = false, unique = true)
+    private String idempotencyKey;
+
+//    // payment > paymentOrder > order르 통해 sellerId 가지고 오는 것보다
+//    // payment엔티티에서 결제자 id를 직접 가지고 있도록 연관관계를 맺는게 효율적
+//    public void setSellerId(Long sellerId) {
+//        this.sellerId = sellerId;
+//    }
 
 }

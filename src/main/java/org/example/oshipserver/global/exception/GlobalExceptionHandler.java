@@ -21,15 +21,23 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(
-            MethodArgumentNotValidException e) {
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException e) {
         Map<String, String> errors = new HashMap<>();
 
+        // FieldError 처리 (기존 필드 단위 @NotNull 등)
         for (FieldError error : e.getBindingResult().getFieldErrors()) {
             errors.put(error.getField(), error.getDefaultMessage());
         }
+
+        // ObjectError 처리 (같은 클래스 수준 검증)
+        e.getBindingResult().getGlobalErrors().forEach(error -> {
+            String objectName = error.getObjectName(); // ex: orderCreateRequest
+            errors.put(objectName, error.getDefaultMessage());
+        });
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
+
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<BaseExceptionResponse> handleApiException(ApiException e) {
@@ -39,7 +47,7 @@ public class GlobalExceptionHandler {
                 .status(e.getErrorType().getStatus())
                 .body(new BaseExceptionResponse(
                         e.getErrorType().getStatus().value(),
-                        e.getMessage()
+                        e.getErrorType().getMessage()
                 ));
     }
 
