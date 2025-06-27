@@ -1,12 +1,11 @@
 package org.example.oshipserver.domain.shipping.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "shipments")
@@ -56,6 +55,11 @@ public class Shipment extends BaseTimeEntity {
 
     @Column(name = "url", length = 500)
     private String awbUrl;
+
+    //배송완료를 나타내는 필드
+    @Setter
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
 
     @Builder
     private Shipment(

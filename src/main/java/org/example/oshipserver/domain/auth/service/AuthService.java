@@ -44,6 +44,9 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
         }
+        if (sellerRepository.existsByCompanyRegisterNo(request.companyRegisterNo())) {
+            throw new ApiException("이미 등록된 사업자번호입니다.", ErrorType.VALID_FAIL);
+        }
 
         String encodedPassword = passwordEncoder.encode(request.password());
 
@@ -77,6 +80,9 @@ public class AuthService {
 
         if (userRepository.existsByEmail(request.email())) {
             throw new ApiException("이미 존재하는 이메일입니다.", ErrorType.FAIL);
+        }
+        if (partnerRepository.existsByCompanyRegisterNo(request.companyRegisterNo())) {
+            throw new ApiException("이미 등록된 사업자번호입니다.", ErrorType.VALID_FAIL);
         }
 
         String encodedPassword = passwordEncoder.encode(request.password());
