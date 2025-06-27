@@ -8,6 +8,7 @@ import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,11 +31,12 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(HttpStatus.CREATED.value(), "성공", null));
     }
 
-    @PostMapping(value = "/rates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/rates/{carrierId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponse<ResponseRateDto>> uploadRateExcel(
+        @PathVariable Long carrierId,
         @RequestParam("file") MultipartFile file
     ){
-        return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(HttpStatus.CREATED.value(), "성공", adminService.uploadRateExcel(file)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(HttpStatus.CREATED.value(), "성공", adminService.uploadRateExcel(file, carrierId)));
     }
 
 }

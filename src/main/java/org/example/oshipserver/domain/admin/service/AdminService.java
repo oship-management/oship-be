@@ -10,7 +10,6 @@ import org.example.oshipserver.domain.admin.dto.request.RateGroupRequest;
 import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.carrier.service.AdminCarrierService;
-import org.example.oshipserver.global.common.excel.RateExcelProcessor;
 import org.example.oshipserver.global.common.excel.record.ExcelParseResult;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,29 +26,36 @@ public class AdminService {
         adminCarrierService.createZone(dto);
     }
 
-    public ResponseRateDto uploadRateExcel(MultipartFile file){
+    public ResponseRateDto uploadRateExcel(MultipartFile file, Long carrierId) {
+
         ExcelParseResult<RateCreateRequest> records = rateExcelProcessor.process(file);
 
         if (!records.errors().isEmpty()){
             return ResponseRateDto.from(records);
         }
 
-        List<RateGroupRequest> results =
-            records.success().stream()
-                .collect(Collectors.groupingBy(r ->
-                    Map.entry(r.carrierId(), r.zoneIndex())
+        List<RateGroupRequest> grouped = records.success().stream()
+            .flatMap(r -> r.amounts().entrySet().stream()
+                .map(e -> Map.entry(
+                    e.getKey(),
+                    new RateGroupRequest.amounts(
+                        r.weight(),
+                        e.getValue()
+                    )
                 ))
-                .entrySet().stream()
-                .map(e -> {
-                    Long carrierId = e.getKey().getKey();
-                    Integer zoneIndex = e.getKey().getValue();
-                    List<RateGroupRequest.amounts> amounts = e.getValue().stream()
-                        .map(r -> new RateGroupRequest.amounts(r.weight(), r.amount()))
-                        .collect(Collectors.toList());
-                    return new RateGroupRequest(carrierId, zoneIndex, amounts);
-                })
-                .toList();
+            )
+            .collect(Collectors.groupingBy(
+                Map.Entry::getKey,
+                Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+            ))
+            .entrySet().stream()
+            .map(e -> new RateGroupRequest(
+                carrierId,
+                e.getKey(),
+                e.getValue()
+            ))
+            .toList();
 
-        return adminCarrierService.createRate(results);
+        return adminCarrierService.createRate(grouped);
     }
 }
