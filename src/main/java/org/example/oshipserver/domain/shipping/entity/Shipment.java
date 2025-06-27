@@ -111,4 +111,14 @@ public class Shipment extends BaseTimeEntity {
         this.awbUrl = awbUrl;
         this.carrierTrackingNo = carrierTrackingNo;
     }
+    
+    // 부피 무게 설정 메서드
+    public void updateVolumeWeight(BigDecimal volumeWeight) {
+        this.volumeWeight = volumeWeight;
+    }
+    
+    // 요금 설정 메서드
+    public void updateChargeValue(BigDecimal chargeValue) {
+        this.chargeValue = chargeValue;
+    }
 }
