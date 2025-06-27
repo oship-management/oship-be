@@ -21,10 +21,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // tossPaymentKey로 조회 (결제 취소용)
     Optional<Payment> findByPaymentKey(String paymentKey);
 
-//    // sellerId 기준으로 결제 조회
-//    List<Payment> findAllBySellerId(Long sellerId);
-
     // 날짜 + sellerId 기준으로 결제 조회
     List<Payment> findBySellerIdAndCreatedAtBetween(Long sellerId, LocalDateTime start, LocalDateTime end);
 
+    Optional<Payment> findByIdempotencyKey(String idempotencyKey);
 }

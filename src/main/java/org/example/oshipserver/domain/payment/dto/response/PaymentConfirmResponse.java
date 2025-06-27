@@ -26,19 +26,19 @@ public record PaymentConfirmResponse(
         TossPaymentConfirmResponse response,
         PaymentMethod method) {
         return new PaymentConfirmResponse(
-            response.orderId(),
-            response.paymentKey(),
-            PaymentStatusMapper.fromToss(response.status()),
-            response.approvedAt(),
-            response.totalAmount(),
-            response.currency(),
+            response.getOrderId(),
+            response.getPaymentKey(),
+            PaymentStatusMapper.fromToss(response.getStatus()),
+            response.getApprovedAt(),
+            response.getTotalAmount(),
+            response.getCurrency(),
             method,
 //            method == PaymentMethod.CARD && response.card() != null
-            (method == PaymentMethod.EASY_PAY_CARD || method == PaymentMethod.CARD) && response.card() != null
+            (method == PaymentMethod.EASY_PAY_CARD || method == PaymentMethod.CARD) && response.getCard() != null
 
-                ? getLast4Digits(response.card().number())  // 결제방법이 카드일때만 카드4자리 보여줌
+                ? getLast4Digits(response.getCard().getNumber())  // 결제방법이 카드일때만 카드4자리 보여줌
                 : null,
-            response.receipt() != null ? response.receipt().url() : null
+            response.getReceipt() != null ? response.getReceipt().getUrl() : null
         );
 
     }

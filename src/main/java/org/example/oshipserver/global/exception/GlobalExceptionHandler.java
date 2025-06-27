@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
                 .status(e.getErrorType().getStatus())
                 .body(new BaseExceptionResponse(
                         e.getErrorType().getStatus().value(),
-                        e.getMessage()
+                        e.getErrorType().getMessage()
                 ));
     }
 

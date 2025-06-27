@@ -6,18 +6,18 @@ import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 
 public record PaymentCancelHistoryResponse(
     Long orderId,
-    int cancelAmount,
+    Integer cancelAmount,
     String cancelReason,
     LocalDateTime canceledAt,
     PaymentStatus paymentStatus
 ) {
     public static PaymentCancelHistoryResponse fromEntity(PaymentCancelHistory history) {
         return new PaymentCancelHistoryResponse(
-            history.getOrder() != null ? history.getOrder().getId() : null,
+            history.getPaymentOrder() != null ? history.getPaymentOrder().getOrder().getId() : null,
             history.getCancelAmount(),
             history.getCancelReason(),
             history.getCanceledAt(),
-            history.getPayment().getStatus()
+            history.getPaymentOrder().getPaymentStatus()
         );
     }
 }

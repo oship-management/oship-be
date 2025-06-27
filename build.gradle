@@ -39,6 +39,7 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:mysql'
 	testImplementation 'org.testcontainers:testcontainers'
+
 	// bcrypt
 	implementation 'at.favre.lib:bcrypt:0.10.2'
 
@@ -73,6 +74,11 @@ dependencies {
 	// implementation 'com.sendgrid:sendgrid-java:4.9.3'
 
 	implementation 'org.apache.httpcomponents.client5:httpclient5'
+
+	// spring retry
+	implementation 'org.springframework.retry:spring-retry'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
 
 }
 
