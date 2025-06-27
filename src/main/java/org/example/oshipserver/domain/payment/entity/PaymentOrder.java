@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@Table(name = "payment_orders")
 public class PaymentOrder extends BaseTimeEntity {
 
     @Id
