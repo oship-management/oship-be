@@ -10,6 +10,7 @@ import org.example.oshipserver.global.entity.BaseTimeEntity;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@Table(name = "payment_fail_logs")
 public class PaymentFailLog extends BaseTimeEntity {
 
     @Id
