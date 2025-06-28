@@ -26,3 +26,6 @@ logs/
 *.pem
 *.key
 *.crt
+
+mysql/
+redis/

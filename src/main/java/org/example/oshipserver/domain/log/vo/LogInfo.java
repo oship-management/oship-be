@@ -14,6 +14,7 @@ public class LogInfo {
     private Long userId;
     private final String method;
     private final String uri;
+    private final String query;
     private final String ip;
     private final String userAgent;
     @Setter

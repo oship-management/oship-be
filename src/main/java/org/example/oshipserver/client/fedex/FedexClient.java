@@ -3,6 +3,8 @@ package org.example.oshipserver.client.fedex;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.oshipserver.client.fedex.dto.FedexTrackingRequest;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
 import org.example.oshipserver.domain.auth.repository.AuthAddressRepository;
 import org.example.oshipserver.domain.carrier.entity.Carrier;
@@ -14,22 +16,17 @@ import org.example.oshipserver.domain.shipping.entity.Shipment;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class FedexClient { // 외부 연동 모듈
 
     private final RestTemplate restTemplate;
-
     private final ObjectMapper objectMapper;
     private final CarrierRepository carrierRepository;
     private final AuthAddressRepository authAddressRepository;
@@ -40,7 +37,7 @@ public class FedexClient { // 외부 연동 모듈
     // 요청 url 생성
     private static final String FEDEX_TOKEN_URL_SUFFIX = "/oauth/token";
     private static final String FEDEX_SHIPMENT_URL_SUFFIX = "/ship/v1/shipments";
-
+    private static final String FEDEX_TRACKING_URL_SUFFIX = "/track/v1/trackingnumbers";
     /**
      * FedEx 토큰 발급 요청
      */
@@ -199,4 +196,22 @@ public class FedexClient { // 외부 연동 모듈
         return authAddressRepository.findByUserId(userId)
             .orElseThrow(() -> new ApiException("출고지 주소를 찾을 수 없습니다: userId=" + userId, ErrorType.NOT_FOUND));
     }
+
+    protected ResponseEntity<String> tracking(String token, FedexTrackingRequest fedexTrackingRequest){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token); // 발급받은 FedEx OAuth 토큰
+
+        HttpEntity<FedexTrackingRequest> requestEntity = new HttpEntity<>(fedexTrackingRequest, headers);
+
+        ResponseEntity<String> response =restTemplate.postForEntity(
+                apiUrl+FEDEX_TRACKING_URL_SUFFIX,
+                requestEntity,
+                String.class
+        );
+        log.info("fedex tracking info {}", response); //응답오는거 받아야함
+        return response;
+    }
+
+
 }

@@ -15,6 +15,7 @@ import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
 import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +30,18 @@ public class ShipmentService {
     private final TrackingEventHandler trackingEventHandler;
     private final FedexClient fedexClient;
 
-    public Long createShipment(Long orderId, Long carrierId) {
+    public Long createShipment(Long orderId, Long carrierId, Authentication authentication) {
+        // 권한 검증 - 셀러만 배송 연결 가능
+        Long userId = Long.valueOf(authentication.getName());
+        
         // 주문 존재 여부 확인
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ApiException("주문을 찾을 수 없습니다: " + orderId, ErrorType.NOT_FOUND));
+            
+        // 소유권 검증 - 자신의 주문인지 확인
+        if (!order.getSellerId().equals(userId)) {
+            throw new ApiException("해당 주문에 대한 권한이 없습니다.", ErrorType.FORBIDDEN);
+        }
 
         // Carrier 조회
         Carrier carrier = carrierRepository.findById(carrierId)
@@ -58,10 +67,22 @@ public class ShipmentService {
         return savedShipment.getId();
     }
 
-    public AwbResponse updateMeasureAndGenerateAwb(Long shipmentId, ShipmentMeasureRequest request) {
+    public AwbResponse updateMeasureAndGenerateAwb(Long shipmentId, ShipmentMeasureRequest request, Authentication authentication) {
+        // 권한 검증 - 파트너만 AWB 발급 가능
+        Long userId = Long.valueOf(authentication.getName());
+        
         // 1. 배송 정보 조회
         Shipment shipment = shipmentRepository.findById(shipmentId)
             .orElseThrow(() -> new ApiException("배송 정보를 찾을 수 없습니다: " + shipmentId, ErrorType.NOT_FOUND));
+            
+        // Carrier 조회하여 파트너 검증
+        Carrier carrier = carrierRepository.findById(shipment.getCarrierId())
+            .orElseThrow(() -> new ApiException("운송사를 찾을 수 없습니다: " + shipment.getCarrierId(), ErrorType.NOT_FOUND));
+            
+        // 소유권 검증 - 해당 파트너의 배송물인지 확인
+        if (carrier.getPartner() == null || !carrier.getPartner().getId().equals(userId)) {
+            throw new ApiException("해당 배송에 대한 권한이 없습니다.", ErrorType.FORBIDDEN);
+        }
 
         // 2. 주문 정보 조회 (MasterNo 획득을 위해)
         Order order = orderRepository.findById(shipment.getOrderId())

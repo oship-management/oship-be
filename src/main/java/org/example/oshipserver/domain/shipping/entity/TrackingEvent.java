@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "tracking_events")
 @Getter
@@ -28,11 +30,15 @@ public class TrackingEvent extends BaseTimeEntity {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "scan_event_at")
+    private LocalDateTime scanEventAt;
+
     @Builder
-    private TrackingEvent(Long orderId, TrackingEventEnum event, String description) {
+    private TrackingEvent(Long orderId, TrackingEventEnum event, String description, LocalDateTime scanEventAt) {
         this.orderId = orderId;
         this.event = event;
         this.description = description;
+        this.scanEventAt = scanEventAt;
     }
 
     // 정적 팩토리 메서드
