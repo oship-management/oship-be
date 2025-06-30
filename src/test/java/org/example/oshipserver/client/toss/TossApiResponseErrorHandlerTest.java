@@ -113,4 +113,20 @@ class TossApiResponseErrorHandlerTest {
         assertFalse(result);
     }
 
+    @Test
+    @DisplayName("응답 바디가 JSON이 아닌 경우에도 ApiException 발생")
+    void handleError_shouldHandleMalformedJsonGracefully() throws IOException {
+        // given: Toss API에서 비정상적인 응답 포맷을 반환한 상황
+        String malformedBody = "Not a JSON";
+        ClientHttpResponse response = mock(ClientHttpResponse.class);
+        when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(500));
+        when(response.getBody()).thenReturn(new ByteArrayInputStream(malformedBody.getBytes(StandardCharsets.UTF_8)));
+
+        // when & then: errorHandler가 예외를 던지는지 확인
+        assertThatThrownBy(() -> errorHandler.handleError(response))
+            .isInstanceOf(ApiException.class)
+            .hasMessageContaining("Toss API Error");
+    }
+
+
 }
