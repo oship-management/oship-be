@@ -1,7 +1,6 @@
 package org.example.oshipserver.client.toss;
 
 import java.util.Map;
-import org.example.oshipserver.domain.order.repository.OrderRepository;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.repository.PaymentFailLogRepository;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
@@ -11,7 +10,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.HttpServerErrorException;
@@ -21,7 +19,6 @@ import static org.mockito.Mockito.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.junit.jupiter.api.Assertions.*;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.http.client.ClientHttpResponse;
 import java.nio.charset.StandardCharsets;
 
 class IdempotentRestClientRetryRecoverTest {
@@ -90,7 +87,10 @@ class IdempotentRestClientRetryRecoverTest {
     @DisplayName("문제인식: 고객 잘못의 400 에러에도 @Retryable이 작동함")
     @Test
     void 고객잘못_400에러인데도_retry가_발생하는_문제() {
-        // given
+        // 이전의 mock 기반 구조 유지하기 때문에 리팩토링 이후에도 여전히 해당 테스트 성공함 (문제 인식 기록용)
+        // 리팩토링 이후에는 errorHandler가 적용된 RestTemplate을 연결해야 실제 작동을 확인할 수 있음 (통합테스트로 확인할것)
+
+        // given : 요청 본문 구성 및 toss api의 400 오류 상황 구성
         Map<String, Object> requestBody = Map.of(
             "paymentKey", "abc123",
             "orderId", "ORD123",
@@ -105,6 +105,7 @@ class IdempotentRestClientRetryRecoverTest {
         }
         """;
 
+        // RestTemplate을 mock하여 400 응답을 항상 반환하게 설정
         when(restTemplate.exchange(
             eq(URL),
             eq(HttpMethod.POST),
@@ -117,20 +118,21 @@ class IdempotentRestClientRetryRecoverTest {
             StandardCharsets.UTF_8
         ));
 
-        // RetryTemplate 구성
+        // RetryTemplate 구성: 재시도(총 2회)하도록 설정
         RetryTemplate template = RetryTemplate.builder()
             .maxAttempts(2)  // 기대대로라면 이 maxAttempts를 넘지 않아야 함
             .fixedBackoff(10)
             .build();
 
-        // when & then
+        // when : Toss 결제시 api 호출 시도 (HttpClientErrorException(400)이 발생하면 ApiException으로 변환되어 던져짐)
         assertThrows(ApiException.class, () -> {
             template.execute(context -> {
                 return restClient.postForIdempotent(URL, requestBody, TossPaymentConfirmResponse.class, IDEMPOTENCY_KEY);
             });
         });
 
-        // ❗ then : 고객 귀책 400이지만 실제로는 retry가 발생 → times(2) 검증
+        // then : retry가 일어났는지 검증
+        // 400오류일때 실제로는 재시도가 없어야하지만, 2번 호출(retry실행)되어 문제 상황 인식함
         verify(restTemplate, times(2)).exchange(
             eq(URL),
             eq(HttpMethod.POST),
