@@ -9,7 +9,13 @@ import org.example.oshipserver.domain.auth.repository.RefreshTokenRepository;
 import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
 import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
+import org.example.oshipserver.domain.partner.entity.Partner;
+import org.example.oshipserver.domain.carrier.dto.response.CarrierListResponse;
+import org.example.oshipserver.domain.carrier.entity.Carrier;
+import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.user.entity.User;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.example.oshipserver.domain.user.repository.UserRepository;
 import org.example.oshipserver.global.common.utils.PasswordEncoder;
 import org.example.oshipserver.global.exception.ApiException;
@@ -26,6 +32,7 @@ public class PartnerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthAddressRepository authAddressRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CarrierRepository carrierRepository;
 
     @Transactional(readOnly = true)
     public PartnerInfoResponse getPartnerInfo(Long userId) {
@@ -54,6 +61,18 @@ public class PartnerService {
                 .orElseThrow(()->new ApiException("주소 정보를 찾을 수 없습니다", ErrorType.NOT_FOUND));
         findAddress.update(request);
         return AuthAddressResponse.from(findAddress);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CarrierListResponse> getPartnerCarriers(Long userId) {
+        Partner partner = partnerRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException("파트너 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        
+        List<Carrier> carriers = carrierRepository.findByPartnerId(partner.getId());
+        
+        return carriers.stream()
+                .map(CarrierListResponse::from)
+                .collect(Collectors.toList());
     }
 
 }
