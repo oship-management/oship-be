@@ -7,6 +7,7 @@ import org.example.oshipserver.domain.payment.repository.PaymentFailLogRepositor
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.global.exception.ApiException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,9 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.junit.jupiter.api.Assertions.*;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.http.client.ClientHttpResponse;
+import java.nio.charset.StandardCharsets;
 
 class IdempotentRestClientRetryRecoverTest {
 
@@ -42,6 +46,7 @@ class IdempotentRestClientRetryRecoverTest {
         ReflectionTestUtils.setField(restClient, "tossSecretKey", "test_sk");
     }
 
+    @DisplayName("정상동작: Toss API가 500 에러를 반환하면 @Retryable 작동")
     @Test
     void retryTemplate_retries_1_times_on_5xx_error() { // retry 설정 검증
 
@@ -74,6 +79,58 @@ class IdempotentRestClientRetryRecoverTest {
         });
 
         // then : RestTemplate이 총 2번 호출되었는지 검증 (최초 1회 + 재시도 1회)
+        verify(restTemplate, times(2)).exchange(
+            eq(URL),
+            eq(HttpMethod.POST),
+            any(HttpEntity.class),
+            eq(TossPaymentConfirmResponse.class)
+        );
+    }
+
+    @DisplayName("문제인식: 고객 잘못의 400 에러에도 @Retryable이 작동함")
+    @Test
+    void 고객잘못_400에러인데도_retry가_발생하는_문제() {
+        // given
+        Map<String, Object> requestBody = Map.of(
+            "paymentKey", "abc123",
+            "orderId", "ORD123",
+            "amount", 10000
+        );
+
+        // Toss API에서 ALREADY_PROCESSED_PAYMENT 오류 발생하도록 mock
+        String errorJson = """
+        {
+          "code": "ALREADY_PROCESSED_PAYMENT",
+          "message": "이미 처리된 결제입니다."
+        }
+        """;
+
+        when(restTemplate.exchange(
+            eq(URL),
+            eq(HttpMethod.POST),
+            any(HttpEntity.class),
+            eq(TossPaymentConfirmResponse.class))
+        ).thenThrow(new HttpClientErrorException(
+            HttpStatus.BAD_REQUEST,
+            "Bad Request",
+            errorJson.getBytes(StandardCharsets.UTF_8),
+            StandardCharsets.UTF_8
+        ));
+
+        // RetryTemplate 구성
+        RetryTemplate template = RetryTemplate.builder()
+            .maxAttempts(2)  // 기대대로라면 이 maxAttempts를 넘지 않아야 함
+            .fixedBackoff(10)
+            .build();
+
+        // when & then
+        assertThrows(ApiException.class, () -> {
+            template.execute(context -> {
+                return restClient.postForIdempotent(URL, requestBody, TossPaymentConfirmResponse.class, IDEMPOTENCY_KEY);
+            });
+        });
+
+        // ❗ then : 고객 귀책 400이지만 실제로는 retry가 발생 → times(2) 검증
         verify(restTemplate, times(2)).exchange(
             eq(URL),
             eq(HttpMethod.POST),
