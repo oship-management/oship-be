@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ExtendWith(SpringExtension.class)
-public class SellerIntergrationTest {
+public class SellerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

@@ -43,7 +43,7 @@ public class Shipment extends BaseTimeEntity {
     @Column(name = "gross_weight", precision = 20, scale = 2)
     private BigDecimal grossWeight;
 
-    @Column(name = "volumn_weight", precision = 20, scale = 2)
+    @Column(name = "volume_weight", precision = 20, scale = 2)
     private BigDecimal volumeWeight;
 
     @Column(name = "charge_weight", precision = 20, scale = 2)
@@ -110,5 +110,15 @@ public class Shipment extends BaseTimeEntity {
     public void updateAwb(String awbUrl, String carrierTrackingNo) {
         this.awbUrl = awbUrl;
         this.carrierTrackingNo = carrierTrackingNo;
+    }
+    
+    // 부피 무게 설정 메서드
+    public void updateVolumeWeight(BigDecimal volumeWeight) {
+        this.volumeWeight = volumeWeight;
+    }
+    
+    // 요금 설정 메서드
+    public void updateChargeValue(BigDecimal chargeValue) {
+        this.chargeValue = chargeValue;
     }
 }

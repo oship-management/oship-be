@@ -6,6 +6,8 @@ import org.example.oshipserver.domain.carrier.entity.Carrier;
 import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
+import org.example.oshipserver.domain.partner.entity.Partner;
+import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
 import org.example.oshipserver.domain.shipping.entity.enums.TrackingEventEnum;
 import org.example.oshipserver.domain.shipping.repository.ShipmentRepository;
@@ -24,11 +26,17 @@ public class BarcodeService {
     private final OrderRepository orderRepository;
     private final ShipmentRepository shipmentRepository;
     private final CarrierRepository carrierRepository;
+    private final PartnerRepository partnerRepository;
     private final TrackingEventHandler trackingEventHandler;
 
     public Long validateBarcode(String barcode, Authentication authentication) {
         // 권한 검증 - 파트너만 바코드 스캔 가능
         Long userId = Long.valueOf(authentication.getName());
+        
+        // userId로 Partner 조회
+        Partner partner = partnerRepository.findByUserId(userId)
+            .orElseThrow(() -> new ApiException("파트너 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        Long partnerId = partner.getId();
 
         // 1. 바코드에서 MasterNo 추출
         String masterNo = extractMasterNoFromBarcode(barcode);
@@ -54,7 +62,7 @@ public class BarcodeService {
             .orElseThrow(() -> new ApiException("운송사를 찾을 수 없습니다: " + shipment.getCarrierId(), ErrorType.NOT_FOUND));
             
         // 소유권 검증 - 해당 파트너의 배송물인지 확인
-        if (carrier.getPartner() == null || !carrier.getPartner().getId().equals(userId)) {
+        if (carrier.getPartner() == null || !carrier.getPartner().getId().equals(partnerId)) {
             throw new ApiException("해당 배송물에 대한 권한이 없습니다.", ErrorType.FORBIDDEN);
         }
 
