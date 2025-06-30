@@ -1,4 +1,4 @@
-package org.example.oshipserver.global.config;
+package org.example.oshipserver.global.config.redis;
 
 import java.time.Duration;
 import java.util.HashMap;

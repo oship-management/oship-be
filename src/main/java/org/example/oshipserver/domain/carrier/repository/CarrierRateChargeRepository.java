@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface CarrierRateChargeRepository extends JpaRepository<CarrierRateCharge, Long> {
+public interface CarrierRateChargeRepository extends JpaRepository<CarrierRateCharge, Long>, CarrierRateChargeRepositoryCustom {
 
     @Modifying(clearAutomatically = true)
     @Query("""

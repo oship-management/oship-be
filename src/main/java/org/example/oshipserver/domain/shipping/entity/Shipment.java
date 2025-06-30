@@ -1,12 +1,11 @@
 package org.example.oshipserver.domain.shipping.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.oshipserver.global.entity.BaseTimeEntity;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "shipments")
@@ -44,7 +43,7 @@ public class Shipment extends BaseTimeEntity {
     @Column(name = "gross_weight", precision = 20, scale = 2)
     private BigDecimal grossWeight;
 
-    @Column(name = "volumn_weight", precision = 20, scale = 2)
+    @Column(name = "volume_weight", precision = 20, scale = 2)
     private BigDecimal volumeWeight;
 
     @Column(name = "charge_weight", precision = 20, scale = 2)
@@ -56,6 +55,11 @@ public class Shipment extends BaseTimeEntity {
 
     @Column(name = "url", length = 500)
     private String awbUrl;
+
+    //배송완료를 나타내는 필드
+    @Setter
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
 
     @Builder
     private Shipment(
@@ -106,5 +110,15 @@ public class Shipment extends BaseTimeEntity {
     public void updateAwb(String awbUrl, String carrierTrackingNo) {
         this.awbUrl = awbUrl;
         this.carrierTrackingNo = carrierTrackingNo;
+    }
+    
+    // 부피 무게 설정 메서드
+    public void updateVolumeWeight(BigDecimal volumeWeight) {
+        this.volumeWeight = volumeWeight;
+    }
+    
+    // 요금 설정 메서드
+    public void updateChargeValue(BigDecimal chargeValue) {
+        this.chargeValue = chargeValue;
     }
 }

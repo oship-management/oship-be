@@ -1,7 +1,7 @@
 package org.example.oshipserver.domain.order.service.stats;
 
-import static org.example.oshipserver.global.config.RedisCacheConfig.CURRENT_MONTH_CACHE;
-import static org.example.oshipserver.global.config.RedisCacheConfig.PAST_MONTH_CACHE;
+import static org.example.oshipserver.global.config.redis.RedisCacheConfig.CURRENT_MONTH_CACHE;
+import static org.example.oshipserver.global.config.redis.RedisCacheConfig.PAST_MONTH_CACHE;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;

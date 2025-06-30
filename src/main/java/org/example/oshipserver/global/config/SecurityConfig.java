@@ -38,6 +38,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/sellers/**").hasRole("SELLER")
                         .requestMatchers("/api/v1/partners/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/payments/**").hasRole("SELLER")
+                        .requestMatchers("/api/v1/shipping/barcode").hasRole("PARTNER")
+                        .requestMatchers("/api/v1/shipping/orders/*/barcode-printed").hasRole("SELLER")
+                        .requestMatchers("/api/v1/shipping/orders/*/carriers/*").hasRole("SELLER")
+                        .requestMatchers("/api/v1/shipping/shipment/*").hasRole("PARTNER")
                         .anyRequest().authenticated()
 
                 )

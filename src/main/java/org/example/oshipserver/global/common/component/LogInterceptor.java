@@ -28,13 +28,11 @@ public class LogInterceptor implements HandlerInterceptor {
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String uri = request.getRequestURI();
         String queryString = request.getQueryString();
-        if (queryString != null) {
-            uri += "?" + queryString;
-        }
         LogInfo logInfo = LogInfo.builder()
                 .date(date)
                 .userId(userId)
                 .method(request.getMethod())
+                .query(queryString)
                 .uri(uri)
                 .userAgent(request.getHeader("User-Agent"))
                 .ip(request.getRemoteAddr())
