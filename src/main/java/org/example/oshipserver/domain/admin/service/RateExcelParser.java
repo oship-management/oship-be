@@ -36,7 +36,7 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
 
             Row header = sheet.getRow(firstRow-1);
             int lastCol = header.getLastCellNum();
-            List<String> zoneKey = IntStream.range(2, lastCol)
+            List<String> zoneKey = IntStream.range(1, lastCol)
                 .mapToObj(i -> header.getCell(i).getStringCellValue().trim())
                 .map(raw -> raw.substring(raw.lastIndexOf('_') + 1))
                 .toList();
@@ -78,3 +78,6 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
         return new ExcelParseResult<>(records, errors);
     }
 }
+
+
+// 페덱스 따라서 예외처리하기
