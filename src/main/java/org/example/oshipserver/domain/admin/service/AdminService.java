@@ -11,6 +11,8 @@ import org.example.oshipserver.domain.admin.dto.request.RequestZone;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.carrier.service.AdminCarrierService;
 import org.example.oshipserver.global.common.excel.record.ExcelParseResult;
+import org.example.oshipserver.global.common.response.BaseResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,12 +28,12 @@ public class AdminService {
         adminCarrierService.createZone(dto);
     }
 
-    public ResponseRateDto uploadRateExcel(MultipartFile file, Long carrierId) {
+    public BaseResponse<ResponseRateDto> uploadRateExcel(MultipartFile file, Long carrierId) {
 
         ExcelParseResult<RateCreateRequest> records = rateExcelProcessor.process(file);
 
         if (!records.errors().isEmpty()){
-            return ResponseRateDto.from(records);
+            return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "엑셀 파싱 실패", ResponseRateDto.from(records));
         }
 
         List<RateGroupRequest> grouped = records.success().stream()
@@ -56,6 +58,11 @@ public class AdminService {
             ))
             .toList();
 
-        return adminCarrierService.createRate(grouped);
+        ResponseRateDto result = adminCarrierService.createRate(grouped);
+
+        if(result.errors().isEmpty()){
+            return new BaseResponse<>(HttpStatus.CREATED.value(), "성공", result);
+        }
+        return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "엑셀 저장 실패", result);
     }
 }

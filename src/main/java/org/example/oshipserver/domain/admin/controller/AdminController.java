@@ -36,7 +36,8 @@ public class AdminController {
         @PathVariable Long carrierId,
         @RequestParam("file") MultipartFile file
     ){
-        return ResponseEntity.status(HttpStatus.CREATED).body(new BaseResponse<>(HttpStatus.CREATED.value(), "성공", adminService.uploadRateExcel(file, carrierId)));
+        BaseResponse<ResponseRateDto> response = adminService.uploadRateExcel(file, carrierId);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
 }
