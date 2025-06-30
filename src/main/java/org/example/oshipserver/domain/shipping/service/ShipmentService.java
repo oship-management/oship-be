@@ -1,12 +1,17 @@
 package org.example.oshipserver.domain.shipping.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.client.fedex.FedexClient;
 import org.example.oshipserver.client.fedex.FedexShipmentResponse;
 import org.example.oshipserver.domain.carrier.entity.Carrier;
+import org.example.oshipserver.domain.carrier.repository.CarrierRateChargeRepository;
 import org.example.oshipserver.domain.carrier.repository.CarrierRepository;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
+import org.example.oshipserver.domain.partner.entity.Partner;
+import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.shipping.dto.request.ShipmentMeasureRequest;
 import org.example.oshipserver.domain.shipping.dto.response.AwbResponse;
 import org.example.oshipserver.domain.shipping.entity.Shipment;
@@ -26,7 +31,9 @@ public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final CarrierRepository carrierRepository;
+    private final CarrierRateChargeRepository carrierRateChargeRepository;
     private final OrderRepository orderRepository;
+    private final PartnerRepository partnerRepository;
     private final TrackingEventHandler trackingEventHandler;
     private final FedexClient fedexClient;
 
@@ -71,6 +78,11 @@ public class ShipmentService {
         // 권한 검증 - 파트너만 AWB 발급 가능
         Long userId = Long.valueOf(authentication.getName());
         
+        // userId로 Partner 조회
+        Partner partner = partnerRepository.findByUserId(userId)
+            .orElseThrow(() -> new ApiException("파트너 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        Long partnerId = partner.getId();
+        
         // 1. 배송 정보 조회
         Shipment shipment = shipmentRepository.findById(shipmentId)
             .orElseThrow(() -> new ApiException("배송 정보를 찾을 수 없습니다: " + shipmentId, ErrorType.NOT_FOUND));
@@ -80,7 +92,7 @@ public class ShipmentService {
             .orElseThrow(() -> new ApiException("운송사를 찾을 수 없습니다: " + shipment.getCarrierId(), ErrorType.NOT_FOUND));
             
         // 소유권 검증 - 해당 파트너의 배송물인지 확인
-        if (carrier.getPartner() == null || !carrier.getPartner().getId().equals(userId)) {
+        if (carrier.getPartner() == null || !carrier.getPartner().getId().equals(partnerId)) {
             throw new ApiException("해당 배송에 대한 권한이 없습니다.", ErrorType.FORBIDDEN);
         }
 
@@ -93,32 +105,40 @@ public class ShipmentService {
             throw new ApiException("이미 AWB가 발행된 배송입니다.", ErrorType.AWB_ALREADY_ISSUED);
         }
 
-        // 4. 측정 정보 업데이트
+        // 4. 부피 무게 계산 (가로 × 세로 × 높이) / 5000
+        BigDecimal volumeWeight = calculateVolumeWeight(request.width(), request.height(), request.length());
+        
+        // 5. 측정 정보 업데이트 (부피 무게 포함)
         shipment.updateMeasurements(
             request.width(),
             request.height(),
             request.length(),
             request.grossWeight()
         );
+        shipment.updateVolumeWeight(volumeWeight);
+        
+        // 6. 요금 계산
+        BigDecimal chargeValue = calculateShippingCharge(shipment, order);
+        shipment.updateChargeValue(chargeValue);
 
-        // 5. AWB URL 생성
+        // 7. AWB URL 생성
         FedexShipmentResponse fedexResponse = fedexClient.requestAwbLabelUrl(shipment, order, request);
         shipment.updateAwb(fedexResponse.labelUrl(), fedexResponse.carrierTrackingNo());
 
-        // 6. 저장
+        // 8. 저장
         shipmentRepository.save(shipment);
 
-        // 7. AWB 생성 트래킹 이벤트 추가
+        // 9. AWB 생성 트래킹 이벤트 추가
         trackingEventHandler.handleTrackingEvent(
             order.getId(),
             TrackingEventEnum.AWB_CREATED,
             ""
         );
 
-        // 8. OrderTable AWB 생성 완료 처리
+        // 10. OrderTable AWB 생성 완료 처리
         order.markAwbGenerated();
 
-        // 9. 응답 데이터 생성 (Builder 패턴 사용)
+        // 11. 응답 데이터 생성 (Builder 패턴 사용)
         AwbResponse.MeasurementData measurements = AwbResponse.MeasurementData.builder()
             .width(request.width())
             .height(request.height())
@@ -136,5 +156,40 @@ public class ShipmentService {
         return AwbResponse.builder()
             .shipment(shipmentData)
             .build();
+    }
+    
+    /**
+     * 부피 무게 계산: (가로 × 세로 × 높이) / 5000
+     */
+    private BigDecimal calculateVolumeWeight(BigDecimal width, BigDecimal height, BigDecimal length) {
+        if (width == null || height == null || length == null) {
+            return BigDecimal.ZERO;
+        }
+        
+        BigDecimal volume = width.multiply(height).multiply(length);
+        return volume.divide(new BigDecimal("5000"), 2, RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * 배송 요금 계산
+     */
+    private BigDecimal calculateShippingCharge(Shipment shipment, Order order) {
+        // 실제 무게와 부피 무게 중 큰 값 사용
+        BigDecimal actualWeight = shipment.getGrossWeight() != null ? shipment.getGrossWeight() : BigDecimal.ZERO;
+        BigDecimal volumeWeight = shipment.getVolumeWeight() != null ? shipment.getVolumeWeight() : BigDecimal.ZERO;
+        BigDecimal chargeableWeight = actualWeight.compareTo(volumeWeight) > 0 ? actualWeight : volumeWeight;
+        
+        // 0.5kg 단위로 올림 (20kg 미만인 경우)
+        if (chargeableWeight.compareTo(new BigDecimal("20")) < 0) {
+            BigDecimal halfKg = new BigDecimal("0.5");
+            chargeableWeight = chargeableWeight.divide(halfKg, 0, RoundingMode.UP).multiply(halfKg);
+        }
+        
+        // QueryDSL로 요금 조회
+        return carrierRateChargeRepository.findChargeByCarrierAndWeightAndCountry(
+            shipment.getCarrierId(),
+            chargeableWeight,
+            order.getRecipient().getRecipientAddress().getRecipientCountryCode()
+        );
     }
 }

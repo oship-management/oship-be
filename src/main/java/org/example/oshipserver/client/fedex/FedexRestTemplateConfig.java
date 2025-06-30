@@ -17,8 +17,8 @@ import org.springframework.web.client.RestTemplate;
 public class FedexRestTemplateConfig {
 
     // 타임아웃 상수 정의
-    private static final int CONNECT_TIMEOUT_MS = 30000;           // 30초
-    private static final int CONNECTION_REQUEST_TIMEOUT_MS = 30000; // 30초
+    private static final int CONNECT_TIMEOUT_MS = 60000;           // 60초
+    private static final int CONNECTION_REQUEST_TIMEOUT_MS = 60000; // 60초
     private static final int HTTP_STATUS_BAD_REQUEST = 400;
     private static final int HTTP_STATUS_UNAUTHORIZED = 401;
 
