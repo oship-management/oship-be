@@ -2,6 +2,7 @@ package org.example.oshipserver.domain.partner.service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +48,7 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
 
                 try {
                     double weight = row.getCell(0).getNumericCellValue();
+                    validateWeight(weight);
 
                     Map<Integer, Double> amounts = new LinkedHashMap<>();
                     for(int j=0; j<zoneKey.size(); j++){
@@ -66,7 +68,7 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
 
                     records.add(record);
                 } catch (Exception e) {
-                    errors.add(new ErrorDetail(i, e.getMessage()));
+                    errors.add(new ErrorDetail(i+1, e.getMessage()));
                     log.warn("엑셀 파싱 실패 - {} 행: {}", i, e.getMessage());
                 }
             }
@@ -75,7 +77,13 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
         }
         return new ExcelParseResult<>(records, errors);
     }
+
+    private void validateWeight(double weight) {
+        BigDecimal bigDecimal = BigDecimal.valueOf(weight);
+
+        BigDecimal twice = bigDecimal.multiply(BigDecimal.valueOf(2));
+        if (twice.stripTrailingZeros().scale() > 0) {
+            throw new ApiException("무게는 0.5kg 단위로만 입력 가능합니다.", ErrorType.INVALID_PARAMETER);
+        }
+    }
 }
-
-
-// 페덱스 따라서 예외처리하기

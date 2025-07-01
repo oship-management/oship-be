@@ -1,7 +1,10 @@
 package org.example.oshipserver.domain.partner.service;
 
+import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
@@ -95,6 +98,11 @@ public class PartnerService {
 
         ExcelParseResult<RateCreateRequest> records = rateExcelProcessor.process(file);
 
+        boolean dup = hasDuplicates(records.success());
+        if(dup){
+            throw new ApiException("엑셀에 중복 weight가 있습니다.", ErrorType.INVALID_PARAMETER);
+        }
+
         if (!records.errors().isEmpty()) {
             return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "엑셀 파싱 실패",
                 ResponseRateDto.from(records));
@@ -142,6 +150,16 @@ public class PartnerService {
             return new BaseResponse<>(HttpStatus.CREATED.value(), "성공", result);
         }
         return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), "엑셀 저장 실패", result);
+    }
+
+    private static boolean hasDuplicates(List<RateCreateRequest> list) {
+        Set<BigDecimal> set = new HashSet<>();
+        for (RateCreateRequest item : list) {
+            if (!set.add(item.weight())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
