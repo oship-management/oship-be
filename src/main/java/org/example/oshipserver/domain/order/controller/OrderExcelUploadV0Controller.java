@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/orders/upload/v0")
+@RequestMapping("/api/v0/orders/upload")
 @RequiredArgsConstructor
 public class OrderExcelUploadV0Controller {
 
