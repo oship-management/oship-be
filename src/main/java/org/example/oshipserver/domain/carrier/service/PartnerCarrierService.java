@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.admin.service;
+package org.example.oshipserver.domain.carrier.service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,8 +71,14 @@ public class PartnerCarrierService {
     }
 
     @Transactional(readOnly = true)
-    public boolean isZone(int zoneNo, Long carrierId) {
+    public boolean validateZone(int zoneNo, Long carrierId) {
 
         return carrierCountryRepository.existsByZoneNoAndCarrierId(zoneNo, carrierId);
+    }
+
+    @Transactional(readOnly = true)
+    public void findCarrierOrThrow(Long partnerId, Long carrierId) {
+        carrierRepository.findCarrierByIdAndPartnerId(partnerId, carrierId)
+            .orElseThrow(() -> new ApiException("partner에 등록되지 않은 carrierId입니다."));
     }
 }

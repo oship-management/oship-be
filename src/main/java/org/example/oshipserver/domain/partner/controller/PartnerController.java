@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -57,10 +59,11 @@ public class PartnerController {
 
     @PostMapping(value = "/rates/{carrierId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BaseResponse<ResponseRateDto>> uploadRateExcel(
-        @PathVariable Long carrierId,
-        @RequestParam("file") MultipartFile file
+        @RequestParam("file") MultipartFile file,
+        @AuthenticationPrincipal UserDetails userDetails,
+        @PathVariable Long carrierId
     ){
-        BaseResponse<ResponseRateDto> response = partnerService.uploadRateExcel(file, carrierId);
+        BaseResponse<ResponseRateDto> response = partnerService.uploadRateExcel(file, userDetails.getUsername(), carrierId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 }

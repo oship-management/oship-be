@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.carrier.repository;
 
 import java.util.List;
+import java.util.Optional;
 import org.example.oshipserver.domain.carrier.dto.PartnerCarrierNativeDto;
 import org.example.oshipserver.domain.carrier.entity.Carrier;
 import org.example.oshipserver.domain.carrier.enums.CarrierName;
@@ -55,4 +56,6 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
     );
 
     List<Carrier> findAllByName(CarrierName name);
+
+    Optional<Carrier> findCarrierByIdAndPartnerId(Long PartnerId, Long CarrierId);
 }

@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
 import org.example.oshipserver.domain.admin.dto.request.RateGroupRequest;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
-import org.example.oshipserver.domain.admin.service.PartnerCarrierService;
+import org.example.oshipserver.domain.carrier.service.PartnerCarrierService;
 import org.example.oshipserver.domain.admin.service.RateExcelProcessor;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
@@ -70,10 +70,9 @@ public class PartnerService {
         return AuthAddressResponse.from(findAddress);
     }
 
-    public BaseResponse<ResponseRateDto> uploadRateExcel(MultipartFile file, Long carrierId) {
+    public BaseResponse<ResponseRateDto> uploadRateExcel(MultipartFile file, String partnerId, Long carrierId) {
 
-
-
+        partnerCarrierService.findCarrierOrThrow(Long.valueOf(partnerId), carrierId);
 
         ExcelParseResult<RateCreateRequest> records = rateExcelProcessor.process(file);
 
@@ -106,7 +105,7 @@ public class PartnerService {
 
         StringBuilder message = new StringBuilder();
         for (RateGroupRequest r : grouped) {
-            boolean checked = partnerCarrierService.isZone(r.zoneIndex(), r.carrierId());
+            boolean checked = partnerCarrierService.validateZone(r.zoneIndex(), r.carrierId());
 
             if (!checked) {
                 message.append(r.zoneIndex()).append(" ");
