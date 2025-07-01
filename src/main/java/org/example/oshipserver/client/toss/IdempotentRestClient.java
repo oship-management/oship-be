@@ -44,6 +44,13 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
     @Value("${toss.secret-key}")
     private String tossSecretKey;
 
+    // ✅ 테스트용 강제 실패 플래그 추가
+    private boolean forceFail = false;
+
+    public void setForceFail(boolean forceFail) {
+        this.forceFail = forceFail;
+    }
+
     /**
      * 멱등성 post 요청 처리 메서드
      *
