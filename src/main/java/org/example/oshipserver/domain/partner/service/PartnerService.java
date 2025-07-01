@@ -1,14 +1,6 @@
 package org.example.oshipserver.domain.partner.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
-import org.example.oshipserver.domain.admin.dto.request.RateGroupRequest;
-import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
-import org.example.oshipserver.domain.carrier.service.PartnerCarrierService;
-import org.example.oshipserver.domain.admin.service.RateExcelProcessor;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
@@ -19,15 +11,11 @@ import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.repository.PartnerRepository;
 import org.example.oshipserver.domain.user.entity.User;
 import org.example.oshipserver.domain.user.repository.UserRepository;
-import org.example.oshipserver.global.common.excel.record.ExcelParseResult;
-import org.example.oshipserver.global.common.response.BaseResponse;
 import org.example.oshipserver.global.common.utils.PasswordEncoder;
 import org.example.oshipserver.global.exception.ApiException;
 import org.example.oshipserver.global.exception.ErrorType;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +26,7 @@ public class PartnerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthAddressRepository authAddressRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CarrierRepository carrierRepository;
     private final RateExcelProcessor rateExcelProcessor;
     private final PartnerCarrierService partnerCarrierService;
 
@@ -68,6 +57,18 @@ public class PartnerService {
                 .orElseThrow(()->new ApiException("주소 정보를 찾을 수 없습니다", ErrorType.NOT_FOUND));
         findAddress.update(request);
         return AuthAddressResponse.from(findAddress);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CarrierListResponse> getPartnerCarriers(Long userId) {
+        Partner partner = partnerRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException("파트너 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+
+        List<Carrier> carriers = carrierRepository.findByPartnerId(partner.getId());
+
+        return carriers.stream()
+                .map(CarrierListResponse::from)
+                .collect(Collectors.toList());
     }
 
     public BaseResponse<ResponseRateDto> uploadRateExcel(MultipartFile file, String partnerId, Long carrierId) {

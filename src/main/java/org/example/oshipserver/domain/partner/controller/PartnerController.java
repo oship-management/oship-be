@@ -8,7 +8,9 @@ import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
 import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.service.PartnerService;
+import org.example.oshipserver.domain.carrier.dto.response.CarrierListResponse;
 import org.example.oshipserver.global.common.response.BaseResponse;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +56,16 @@ public class PartnerController {
         Long userId = Long.valueOf(authentication.getName());
         AuthAddressResponse addressResponse = partnerService.updateAddress(userId, request);
         BaseResponse<AuthAddressResponse> response = new BaseResponse<>(200, "주소 수정 성공", addressResponse);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("/carriers")
+    public ResponseEntity<BaseResponse<List<CarrierListResponse>>> getPartnerCarriers(
+            Authentication authentication
+    ){
+        Long userId = Long.valueOf(authentication.getName());
+        List<CarrierListResponse> carriers = partnerService.getPartnerCarriers(userId);
+        BaseResponse<List<CarrierListResponse>> response = new BaseResponse<>(200, "배송사 목록 조회 성공", carriers);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

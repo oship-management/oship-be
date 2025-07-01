@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CarrierRepository extends JpaRepository<Carrier, Long> {
 
+    List<Carrier> findByPartnerId(Long partnerId);
+
     @Query(value = """
         WITH order_country AS (
              SELECT DISTINCT
