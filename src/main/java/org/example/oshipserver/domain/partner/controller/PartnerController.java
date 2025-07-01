@@ -2,6 +2,7 @@ package org.example.oshipserver.domain.partner.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
@@ -9,9 +10,11 @@ import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.service.PartnerService;
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/partners")
@@ -52,5 +55,12 @@ public class PartnerController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-
+    @PostMapping(value = "/rates/{carrierId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<BaseResponse<ResponseRateDto>> uploadRateExcel(
+        @PathVariable Long carrierId,
+        @RequestParam("file") MultipartFile file
+    ){
+        BaseResponse<ResponseRateDto> response = partnerService.uploadRateExcel(file, carrierId);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 }
