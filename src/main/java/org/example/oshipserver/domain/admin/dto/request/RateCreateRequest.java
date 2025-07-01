@@ -8,8 +8,6 @@ import lombok.Builder;
 @Builder
 public record RateCreateRequest(
     @NotNull
-    Integer index,
-    @NotNull
     BigDecimal weight,
     @NotNull
     Map<Integer, BigDecimal> amounts

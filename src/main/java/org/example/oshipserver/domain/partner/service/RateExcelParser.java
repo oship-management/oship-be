@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.admin.service;
+package org.example.oshipserver.domain.partner.service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,28 +31,27 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
         List<ErrorDetail> errors = new ArrayList<>();
         try (Workbook wb = WorkbookFactory.create(in)) {
             Sheet sheet = wb.getSheetAt(0);
-            int firstRow = sheet.getFirstRowNum() + 1;
+            int firstRow = sheet.getFirstRowNum();
             int lastRow  = sheet.getLastRowNum();
 
-            Row header = sheet.getRow(firstRow-1);
+            Row header = sheet.getRow(firstRow);
             int lastCol = header.getLastCellNum();
             List<String> zoneKey = IntStream.range(1, lastCol)
                 .mapToObj(i -> header.getCell(i).getStringCellValue().trim())
                 .map(raw -> raw.substring(raw.lastIndexOf('_') + 1))
                 .toList();
 
-            for (int i = firstRow; i <= lastRow; i++) {
+            for (int i = firstRow+1; i <= lastRow; i++) {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
                 try {
-                    int idx = (int) row.getCell(0).getNumericCellValue();
-                    double weight = row.getCell(1).getNumericCellValue();
+                    double weight = row.getCell(0).getNumericCellValue();
 
                     Map<Integer, Double> amounts = new LinkedHashMap<>();
                     for(int j=0; j<zoneKey.size(); j++){
                         Row.MissingCellPolicy policy = MissingCellPolicy.RETURN_BLANK_AS_NULL;
-                        var cell = row.getCell(j+2,policy);
+                        var cell = row.getCell(j+1,policy);
                         double value = 0d;
                         if(cell != null) {
                             value = cell.getNumericCellValue();
@@ -61,7 +60,6 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
                     }
 
                     RateExcelRequest record = RateExcelRequest.builder()
-                        .index(idx)
                         .weight(weight)
                         .amounts(amounts)
                         .build();

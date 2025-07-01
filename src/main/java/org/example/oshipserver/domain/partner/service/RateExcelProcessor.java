@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.admin.service;
+package org.example.oshipserver.domain.partner.service;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -26,7 +26,6 @@ public class RateExcelProcessor extends
             ));
 
         return RateCreateRequest.builder()
-            .index(dto.index())
             .weight(BigDecimal.valueOf(dto.weight()))
             .amounts(bigAmounts)
             .build();

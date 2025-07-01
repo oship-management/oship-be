@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.oshipserver.domain.admin.dto.request.RateCreateRequest;
 import org.example.oshipserver.domain.admin.dto.request.RateGroupRequest;
 import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
-import org.example.oshipserver.domain.admin.service.RateExcelProcessor;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.auth.entity.AuthAddress;
@@ -87,9 +86,12 @@ public class PartnerService {
                 .collect(Collectors.toList());
     }
 
-    public BaseResponse<ResponseRateDto> uploadRateExcel(MultipartFile file, String partnerId, Long carrierId) {
+    public BaseResponse<ResponseRateDto> uploadRateExcel(MultipartFile file, String userId, Long carrierId) {
 
-        partnerCarrierService.findCarrierOrThrow(Long.valueOf(partnerId), carrierId);
+        Long partnerId = partnerRepository.findByUserId(Long.valueOf(userId))
+            .orElseThrow(() -> new ApiException("해당 userId를 가진 partner가 없습니다.", ErrorType.INVALID_PARAMETER)).getId();
+
+        partnerCarrierService.findCarrierOrThrow(partnerId, carrierId);
 
         ExcelParseResult<RateCreateRequest> records = rateExcelProcessor.process(file);
 
@@ -129,8 +131,8 @@ public class PartnerService {
             }
         }
 
-        message.append("에 해당하는 zone이 등록되지 않았습니다.");
         if (!message.isEmpty()) {
+            message.append("에 해당하는 zone이 등록되지 않았습니다.");
             return new BaseResponse<>(HttpStatus.BAD_REQUEST.value(), message.toString(), null);
         }
 

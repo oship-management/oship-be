@@ -79,6 +79,6 @@ public class PartnerCarrierService {
     @Transactional(readOnly = true)
     public void findCarrierOrThrow(Long partnerId, Long carrierId) {
         carrierRepository.findCarrierByIdAndPartnerId(partnerId, carrierId)
-            .orElseThrow(() -> new ApiException("partner에 등록되지 않은 carrierId입니다."));
+            .orElseThrow(() -> new ApiException("partner에 등록되지 않은 carrierId입니다.", ErrorType.INVALID_PARAMETER));
     }
 }
