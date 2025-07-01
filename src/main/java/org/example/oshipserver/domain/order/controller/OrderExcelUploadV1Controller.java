@@ -29,7 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
-public class OrderExcelUploadController {
+public class OrderExcelUploadV1Controller {
 
     private static final int ORDER_UPLOAD_THREAD_POOL_SIZE = 10; // 주문 처리용 스레드 풀 개수
 
