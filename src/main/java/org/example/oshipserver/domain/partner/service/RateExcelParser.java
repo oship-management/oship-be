@@ -81,6 +81,10 @@ public class RateExcelParser implements ExcelParser<RateExcelRequest> {
     private void validateWeight(double weight) {
         BigDecimal bigDecimal = BigDecimal.valueOf(weight);
 
+        if(weight <= 0){
+         throw new ApiException("0kg 이하의 무게는 입력할 수 없습니다.", ErrorType.INVALID_PARAMETER);
+        }
+
         BigDecimal twice = bigDecimal.multiply(BigDecimal.valueOf(2));
         if (twice.stripTrailingZeros().scale() > 0) {
             throw new ApiException("무게는 0.5kg 단위로만 입력 가능합니다.", ErrorType.INVALID_PARAMETER);
