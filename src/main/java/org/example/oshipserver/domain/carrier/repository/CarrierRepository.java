@@ -1,6 +1,7 @@
 package org.example.oshipserver.domain.carrier.repository;
 
 import java.util.List;
+import java.util.Optional;
 import org.example.oshipserver.domain.carrier.dto.PartnerCarrierNativeDto;
 import org.example.oshipserver.domain.carrier.entity.Carrier;
 import org.example.oshipserver.domain.carrier.enums.CarrierName;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CarrierRepository extends JpaRepository<Carrier, Long> {
+
+    List<Carrier> findByPartnerId(Long partnerId);
 
     @Query(value = """
         WITH order_country AS (
@@ -55,4 +58,6 @@ public interface CarrierRepository extends JpaRepository<Carrier, Long> {
     );
 
     List<Carrier> findAllByName(CarrierName name);
+
+    Optional<Carrier> findCarrierByIdAndPartnerId(Long PartnerId, Long CarrierId);
 }
