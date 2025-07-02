@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CarrierCountryRepository extends JpaRepository<CarrierCountry, Long> {
 
+    boolean existsByZoneNoAndCarrierId(int zoneNo, Long carrierId);
 }

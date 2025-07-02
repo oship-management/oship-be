@@ -4,22 +4,19 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 
 public record OrderStatsResponse(
     String month,
     int totalOrders,
-    Map<OrderStatus, Long> statusCounts,
+    Map<String, Long> statusCounts,
     BigDecimal totalWeightKg,
-    Amount totalOrderValue,
-    Map<String, Long> dailyOrderCount // redis 역직렬화 문제로 변경 LocalDate → String
+    Map<String, Long> dailyOrderCount
 ) {
     public static OrderStatsResponse from(
         String month,
         int totalOrders,
-        Map<OrderStatus, Long> statusCounts,
+        Map<String, Long> statusCounts,
         BigDecimal totalWeightKg,
-        long totalAmount,
         Map<LocalDate, Long> dailyOrderCount
     ) {
         return new OrderStatsResponse(
@@ -27,8 +24,7 @@ public record OrderStatsResponse(
             totalOrders,
             statusCounts,
             totalWeightKg,
-            new Amount(totalAmount, "KRW"),
-            convertDateMapToStringMap(dailyOrderCount) // 변환 메서드 적용
+            convertDateMapToStringMap(dailyOrderCount)
         );
     }
 
@@ -39,6 +35,4 @@ public record OrderStatsResponse(
                 Map.Entry::getValue
             ));
     }
-
-    public record Amount(long amount, String currency) {}
 }
