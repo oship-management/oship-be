@@ -71,7 +71,7 @@ class PaymentCancelHistoryRepositoryTest {
             .sellerId(123L)
             .idempotencyKey("unique-key")
             .paymentNo("PAY-20250702-001")
-            .method(PaymentMethod.CARD)
+            .method(PaymentMethod.EASY_PAY_CARD)
             .status(PaymentStatus.COMPLETE)
             .build());
 
