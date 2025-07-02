@@ -8,7 +8,6 @@ import java.util.List;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.domain.payment.entity.Payment;
-import org.example.oshipserver.domain.payment.entity.PaymentCancelHistory;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
 import org.example.oshipserver.domain.payment.entity.PaymentOrder;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
@@ -27,10 +26,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @DataJpaTest
-@Import(QuerydslTestConfig.class)  // Querydsltestconfig를 통해 JpaRepository 주입받음
+@Import(QuerydslTestConfig.class)
 @Testcontainers
 @ActiveProfiles("test")
-class PaymentCancelHistoryRepositoryTest {
+class PaymentOrderRepositoryTest {
 
     @Container
     private static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
@@ -53,69 +52,82 @@ class PaymentCancelHistoryRepositoryTest {
     private PaymentOrderRepository paymentOrderRepository;
 
     @Autowired
-    private PaymentCancelHistoryRepository cancelHistoryRepository;
-
-    @Autowired
-    private TestEntityManager em; // Order를 저장하기 위함
+    private TestEntityManager em;
 
     @Test
-    @DisplayName("결제에 속한 모든 결제취소이력을 정상조회한다")
-    void 결제에_속한_모든_결제취소이력을_정상조회한다() {
+    @DisplayName("결제 ID로 연결된 모든 PaymentOrder 조회")
+    void 결제ID로_연결된_모든_PaymentOrder_조회() {
         // Given
-        // 1. 결제 저장
         Payment payment = paymentRepository.save(Payment.builder()
-            .paymentKey("test-key")
-            .tossOrderId("test-order-id")
-            .amount(50000)
+            .paymentKey("test-key-2")
+            .tossOrderId("toss-order-id-2")
+            .amount(70000)
             .currency("KRW")
-            .sellerId(123L)
-            .idempotencyKey("unique-key")
-            .paymentNo("PAY-20250702-001")
-            .method(PaymentMethod.CARD)
+            .sellerId(456L)
+            .idempotencyKey("unique-key-2")
+            .paymentNo("PAY-20250702-002")
+            .method(PaymentMethod.EASY_PAY_CARD)
             .status(PaymentStatus.COMPLETE)
             .build());
 
-        // 2. 주문 저장 (필수 필드만 입력)
-        Order order = em.persist(Order.builder()
-            .orderNo("ORD-20250702-001")
-            .oshipMasterNo("OSH-001")
+        Order order1 = em.persist(Order.builder()
+            .orderNo("ORD-20250702-002")
+            .oshipMasterNo("OSH-002")
             .weightUnit("kg")
             .parcelCount(1)
-            .shipmentActualWeight(new BigDecimal("2.5"))
-            .shipmentVolumeWeight(new BigDecimal("3.0"))
+            .shipmentActualWeight(new BigDecimal("1.0"))
+            .shipmentVolumeWeight(new BigDecimal("1.5"))
             .dimensionWidth(new BigDecimal("10"))
             .dimensionHeight(new BigDecimal("20"))
             .dimensionLength(new BigDecimal("30"))
             .currentStatus(OrderStatus.PENDING)
-            .itemContentsType("전자제품")
+            .itemContentsType("도서")
             .serviceType("일반")
-            .packageType("Box")
-            .shippingTerm("DDP")
-            .lastTrackingEvent("출발지에서 수거됨")
-            .sellerId(1L)
+            .packageType("Envelope")
+            .shippingTerm("DAP")
+            .lastTrackingEvent("배송 준비 완료")
+            .sellerId(2L)
             .build());
 
-        // 3. 결제-주문 연결 저장
-        PaymentOrder paymentOrder = paymentOrderRepository.save(PaymentOrder.builder()
+        Order order2 = em.persist(Order.builder()
+            .orderNo("ORD-20250702-003")
+            .oshipMasterNo("OSH-003")
+            .weightUnit("kg")
+            .parcelCount(2)
+            .shipmentActualWeight(new BigDecimal("2.0"))
+            .shipmentVolumeWeight(new BigDecimal("2.5"))
+            .dimensionWidth(new BigDecimal("15"))
+            .dimensionHeight(new BigDecimal("25"))
+            .dimensionLength(new BigDecimal("35"))
+            .currentStatus(OrderStatus.PENDING)
+            .itemContentsType("의류")
+            .serviceType("퀵")
+            .packageType("Bag")
+            .shippingTerm("FOB")
+            .lastTrackingEvent("집화 완료")
+            .sellerId(2L)
+            .build());
+
+        paymentOrderRepository.save(PaymentOrder.builder()
             .payment(payment)
-            .order(order)
+            .order(order1)
             .paymentAmount(30000)
             .paymentStatus(PaymentStatus.COMPLETE)
             .build());
 
-        // 4. 취소 이력 저장 (정적 팩토리 메서드 방식)
-        PaymentCancelHistory cancelHistory = PaymentCancelHistory.create(
-            paymentOrder,
-            10000,
-            "사용자 요청"
-        );
-        cancelHistoryRepository.save(cancelHistory);
+        paymentOrderRepository.save(PaymentOrder.builder()
+            .payment(payment)
+            .order(order2)
+            .paymentAmount(40000)
+            .paymentStatus(PaymentStatus.COMPLETE)
+            .build());
 
-        // When : 조회 쿼리 실행
-        List<PaymentCancelHistory> result = cancelHistoryRepository.findByPaymentOrder_Payment(payment);
+        // When
+        List<PaymentOrder> results = paymentOrderRepository.findAllByPayment_Id(payment.getId());
 
-        // Then : 조회된 결과 검증
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getCancelReason()).isEqualTo("사용자 요청");
+        // Then
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting("order").extracting("orderNo")
+            .containsExactlyInAnyOrder("ORD-20250702-002", "ORD-20250702-003");
     }
 }
