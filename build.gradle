@@ -86,7 +86,8 @@ dependencies {
 	implementation 'org.springframework.retry:spring-retry'
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 
-
+	// 테스트용 내장 db
+	testImplementation 'com.h2database:h2'
 }
 
 tasks.named('test') {
