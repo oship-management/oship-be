@@ -90,6 +90,9 @@ public class TossPaymentConfirmResponse {
     @JsonProperty("version")
     private String version;
 
+    @JsonProperty("transfer")
+    private Transfer transfer;
+
     @Getter
     @Setter
     public static class Card {
@@ -167,5 +170,28 @@ public class TossPaymentConfirmResponse {
 
         @JsonProperty("url")
         private String url;
+    }
+
+    @Getter
+    @Setter
+    public static class Transfer {
+
+        @JsonProperty("bankCode")
+        private String bankCode;
+
+        @JsonProperty("accountNumber")
+        private String accountNumber;
+
+        @JsonProperty("bankName")
+        private String bankName;
+
+        @JsonProperty("settlementStatus")
+        private String settlementStatus;
+
+        @JsonProperty("refundStatus")
+        private String refundStatus;
+
+        @JsonProperty("amount")
+        private int amount;
     }
 }

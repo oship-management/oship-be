@@ -1,5 +1,6 @@
 package org.example.oshipserver.domain.payment.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
 import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
@@ -7,6 +8,7 @@ import org.example.oshipserver.domain.payment.mapper.PaymentStatusMapper;
 /**
  * 단건 결제 생성 응답 DTO (내부 응답용)
  */
+@JsonInclude(JsonInclude.Include.NON_NULL) // null인 값은 json 응답에서 제외 (토스 간편결제시 카드 뒷자리가 null로 들어옴)
 public record PaymentConfirmResponse(
     String tossOrderId,           // 주문 번호
     String paymentKey,        // Toss 결제 키
@@ -33,7 +35,6 @@ public record PaymentConfirmResponse(
             response.getTotalAmount(),
             response.getCurrency(),
             method,
-//            method == PaymentMethod.CARD && response.card() != null
             (method == PaymentMethod.EASY_PAY_CARD || method == PaymentMethod.CARD) && response.getCard() != null
 
                 ? getLast4Digits(response.getCard().getNumber())  // 결제방법이 카드일때만 카드4자리 보여줌

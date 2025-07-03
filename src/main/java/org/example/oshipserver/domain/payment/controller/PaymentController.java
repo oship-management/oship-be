@@ -100,7 +100,6 @@ public class PaymentController {
     }
 
 
-
     /**
      * 사용자 본인의 결제 내역 조회
      * 토큰에서 seller 정보를 추출하는 방식

@@ -3,6 +3,7 @@ package org.example.oshipserver.domain.payment.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.oshipserver.domain.order.entity.Order;
@@ -35,6 +36,7 @@ public class PaymentCancelHistory {
     private LocalDateTime canceledAt;
 
     // 정적 팩토리 메서드
+    @Builder
     public static PaymentCancelHistory create(PaymentOrder paymentOrder, Integer cancelAmount, String cancelReason) {
         PaymentCancelHistory history = new PaymentCancelHistory();
         history.paymentOrder = paymentOrder;
