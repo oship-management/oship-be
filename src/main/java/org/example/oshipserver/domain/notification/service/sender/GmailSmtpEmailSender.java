@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.notification.service;
+package org.example.oshipserver.domain.notification.service.sender;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
