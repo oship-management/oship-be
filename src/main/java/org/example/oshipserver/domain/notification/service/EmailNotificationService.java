@@ -32,11 +32,7 @@ public class EmailNotificationService {
 
         try {
             // 2. 템플릿 변환 + 메시지 생성
-            String html = emailTemplateService.renderEmail(
-                request.title(),
-                request.content()
-            );
-
+            String html = emailTemplateService.renderEmail(request.title(), request.content());
             EmailNotificationMessage message = new EmailNotificationMessage(
                 request.targetEmail(),
                 request.title(),
@@ -53,3 +49,4 @@ public class EmailNotificationService {
         }
     }
 }
+
