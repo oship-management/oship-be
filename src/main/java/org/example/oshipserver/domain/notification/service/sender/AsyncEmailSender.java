@@ -1,4 +1,4 @@
-package org.example.oshipserver.domain.notification.service;
+package org.example.oshipserver.domain.notification.service.sender;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;

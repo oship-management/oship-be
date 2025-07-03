@@ -1,10 +1,11 @@
-package org.example.oshipserver.domain.notification.service;
+package org.example.oshipserver.domain.notification.service.async;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.oshipserver.domain.notification.dto.message.EmailNotificationMessage;
 import org.example.oshipserver.domain.notification.repository.NotificationRepository;
+import org.example.oshipserver.domain.notification.service.sender.EmailSender;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

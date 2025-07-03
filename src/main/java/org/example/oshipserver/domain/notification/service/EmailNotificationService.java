@@ -6,6 +6,7 @@ import org.example.oshipserver.domain.notification.dto.message.EmailNotification
 import org.example.oshipserver.domain.notification.dto.request.NotificationRequest;
 import org.example.oshipserver.domain.notification.entity.Notification;
 import org.example.oshipserver.domain.notification.repository.NotificationRepository;
+import org.example.oshipserver.domain.notification.service.async.EmailNotificationProducer;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
