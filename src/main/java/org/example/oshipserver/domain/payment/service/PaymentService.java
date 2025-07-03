@@ -49,6 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -61,6 +62,7 @@ public class PaymentService {
     private final PaymentCancelHistoryRepository paymentCancelHistoryRepository;
     private final OrderRepository orderRepository;
     private final ObjectMapper objectMapper;
+    private final PaymentNotificationService paymentNotificationService;
 
     /**
      * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
@@ -161,7 +163,10 @@ public class PaymentService {
                 order.getId(), order.getCurrentStatus(), e.getMessage());
         }
 
-        // 9. 응답 DTO 반환
+        // 9. 큐 기반 비동기 이메일 전송 (결제 완료 알림)
+        paymentNotificationService.sendPaymentCompletedV2(payment);
+
+        // 10. 응답 DTO 반환
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
     }
 
@@ -270,7 +275,10 @@ public class PaymentService {
             }
         }
 
-        // 8. 응답용 orderId 리스트 추출
+        // 8. 큐 기반 비동기 이메일 전송 (결제 완료 알림)
+        paymentNotificationService.sendPaymentCompletedV2(payment);
+
+        // 9. 응답용 orderId 리스트 추출
         List<String> orderIds = request.orders().stream()
             .map(o -> o.orderId().toString())
             .toList();
@@ -337,6 +345,9 @@ public class PaymentService {
             PaymentCancelHistory history = PaymentCancelHistory.create(po, po.getPaymentAmount(), cancelReason);
             paymentCancelHistoryRepository.save(history);
         }
+
+        // 7. 큐 기반 비동기 이메일 전송 (결제 취소 알림)
+        paymentNotificationService.sendPaymentCancelledV2(payment);
     }
 
     /**
@@ -425,6 +436,8 @@ public class PaymentService {
                         order.getId(), order.getCurrentStatus(), exx.getMessage());
                 }
             }
+            // 큐 기반 비동기 이메일 전송 (전체 취소가 완료된 시점에 결제 취소 알림)
+            paymentNotificationService.sendPaymentCancelledV2(payment);
         } else {
             // 전체 취소가 아닌 경우에만 PARTIAL_CANCEL 적용
             try {
