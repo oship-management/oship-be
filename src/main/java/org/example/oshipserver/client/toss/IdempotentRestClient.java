@@ -45,11 +45,11 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
     private String tossSecretKey;
 
     // ✅ 테스트용 강제 실패 플래그 추가
-    private boolean forceFail = false;
-
-    public void setForceFail(boolean forceFail) {
-        this.forceFail = forceFail;
-    }
+//    private boolean forceFail = false;
+//
+//    public void setForceFail(boolean forceFail) {
+//        this.forceFail = forceFail;
+//    }
 
     /**
      * 멱등성 post 요청 처리 메서드
@@ -138,12 +138,12 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             }
             return response.getBody();
 
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
-            // Toss API에서 에러 응답이 온 경우
-            log.error("[Toss 호출 실패] 상태코드: {}", e.getStatusCode());
-            log.error("[Toss 에러 바디] {}", e.getResponseBodyAsString());
-            // @retryable이 예외를 인식할 수 있도록
-            throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), ErrorType.TOSS_PAYMENT_FAILED);
+//        } catch (HttpClientErrorException | HttpServerErrorException e) {
+//            // Toss API에서 에러 응답이 온 경우
+//            log.error("[Toss 호출 실패] 상태코드: {}", e.getStatusCode());
+//            log.error("[Toss 에러 바디] {}", e.getResponseBodyAsString());
+//            // @retryable이 예외를 인식할 수 있도록
+//            throw new ApiException("Toss 호출 실패: " + e.getResponseBodyAsString(), ErrorType.TOSS_PAYMENT_FAILED);
         } catch (Exception e) {
             // 네트워크 오류 등 기타 예외
             log.error("[Toss 호출 예외 발생] {}", e.getMessage(), e);

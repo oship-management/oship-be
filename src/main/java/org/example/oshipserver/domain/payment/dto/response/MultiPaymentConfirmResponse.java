@@ -1,5 +1,6 @@
 package org.example.oshipserver.domain.payment.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
 import org.example.oshipserver.domain.payment.entity.PaymentStatus;
@@ -10,6 +11,7 @@ import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmRes
 /**
  * 다건 결제 생성 응답 DTO (내부 응답용)
  */
+@JsonInclude(JsonInclude.Include.NON_NULL) // null인 값은 json 응답에서 제외 (토스 간편결제시 카드 뒷자리가 null로 들어옴)
 public record MultiPaymentConfirmResponse(
     List<String> orderIds,
     String paymentKey,
