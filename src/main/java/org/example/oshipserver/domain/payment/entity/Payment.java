@@ -129,6 +129,10 @@ public class Payment extends BaseTimeEntity {
     }
 
     public void updateStatus(PaymentStatus nextStatus) {
+        // 동일 상태로의 전이는 무시
+        if (this.status == nextStatus) {
+            return;
+        }
         if (!this.status.canTransitionTo(nextStatus)) {
             throw new IllegalStateException(
                 String.format("현재 상태 '%s'에서는 상태 '%s'로 전이할 수 없습니다.",
