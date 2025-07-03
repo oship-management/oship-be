@@ -29,12 +29,18 @@ public class PaymentNotificationService {
      * 결제 완료 알림
      */
     public void sendPaymentCompletedV2(Payment payment) {
-        Seller seller = sellerRepository.findById(payment.getSellerId())
-            .orElseThrow(() -> new ApiException("셀러 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        // sellerId와 userId 연관관계 다시 정리되고 나면 아래 코드로 살릴 것
+//        Seller seller = sellerRepository.findById(payment.getSellerId())
+//            .orElseThrow(() -> new ApiException("셀러 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+//        User user = userRepository.findById(seller.getUserId())
+//            .orElseThrow(() -> new ApiException("유저 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
+        // sellerId와 userId 연관관계 수정 전, 임시 코드
+        // sellerId는 사실상 userId임
+        Seller seller = sellerRepository.findByUserId(payment.getSellerId())
+            .orElseThrow(() -> new ApiException("셀러 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
         User user = userRepository.findById(seller.getUserId())
             .orElseThrow(() -> new ApiException("유저 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
-
 
         NotificationRequest request = new NotificationRequest(
             NotificationType.PAYMENT_COMPLETED,
@@ -52,9 +58,16 @@ public class PaymentNotificationService {
      * 결제 취소 알림
      */
     public void sendPaymentCancelledV2(Payment payment) {
-        Seller seller = sellerRepository.findById(payment.getSellerId())
-            .orElseThrow(() -> new ApiException("셀러 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+        // sellerId와 userId 연관관계 다시 정리되고 나면 아래 코드로 살릴 것
+//        Seller seller = sellerRepository.findById(payment.getSellerId())
+//            .orElseThrow(() -> new ApiException("셀러 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
+//        User user = userRepository.findById(seller.getUserId())
+//            .orElseThrow(() -> new ApiException("유저 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
+        // sellerId와 userId 연관관계 수정 전, 임시 코드
+        // sellerId는 사실상 userId임
+        Seller seller = sellerRepository.findByUserId(payment.getSellerId())
+            .orElseThrow(() -> new ApiException("셀러 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
         User user = userRepository.findById(seller.getUserId())
             .orElseThrow(() -> new ApiException("유저 정보를 찾을 수 없습니다.", ErrorType.NOT_FOUND));
 
