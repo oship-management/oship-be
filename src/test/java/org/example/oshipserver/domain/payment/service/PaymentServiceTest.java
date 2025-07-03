@@ -75,6 +75,8 @@ class PaymentServiceTest {
     private OrderRepository orderRepository;
     @Mock
     private ObjectMapper objectMapper;
+    @Mock
+    private PaymentNotificationService paymentNotificationService;
 
 
     @Test
@@ -663,4 +665,50 @@ class PaymentServiceTest {
         );
     }
 
+    @Test
+    @DisplayName("부분 취소 요청 시 해당 주문의 orderStatus는 CANCELLED, 나머지 주문은 PAID 상태가 유지된다")
+    void cancelPartialPayment_부분취소시_주문상태_검증() {
+        // given
+        String paymentKey = "payKey-partial-test";
+        Long targetOrderId = 1L;
+        Long otherOrderId = 2L;
+        String cancelReason = "부분 취소 테스트";
+
+        // 주문 객체
+        Order order1 = Order.builder().currentStatus(OrderStatus.PAID).build();
+        ReflectionTestUtils.setField(order1, "id", targetOrderId);
+
+        Order order2 = Order.builder().currentStatus(OrderStatus.PAID).build();
+        ReflectionTestUtils.setField(order2, "id", otherOrderId);
+
+        // 결제 객체
+        Payment payment = Payment.builder()
+            .paymentKey(paymentKey)
+            .amount(50000) // 전체 결제 금액
+            .status(PaymentStatus.COMPLETE)
+            .build();
+        ReflectionTestUtils.setField(payment, "id", 10L);
+
+        // 실제 PaymentOrder 객체 생성
+        PaymentOrder po1 = PaymentOrder.of(payment, order1, 20000);
+        PaymentOrder po2 = PaymentOrder.of(payment, order2, 30000);
+        ReflectionTestUtils.setField(payment, "paymentOrders", List.of(po1, po2));
+
+        // 취소 이력 없음 → 누적 취소 금액 0
+        given(paymentRepository.findByPaymentKey(paymentKey)).willReturn(Optional.of(payment));
+        given(paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment)).willReturn(List.of());
+
+        // when
+        paymentService.cancelPartialPayment(paymentKey, targetOrderId, cancelReason);
+
+        // then
+        verify(tossPaymentClient).requestCancel(paymentKey, cancelReason, 20000);
+        verify(paymentOrderRepository).save(po1);
+        verify(paymentCancelHistoryRepository).save(any(PaymentCancelHistory.class));
+
+        // 상태 검증
+        assertThat(order1.getCurrentStatus()).isEqualTo(OrderStatus.CANCELLED); // 실제 코드가 PARTIAL_CANCEL로 변경되면 여기만 바꾸면 됨
+        assertThat(order2.getCurrentStatus()).isEqualTo(OrderStatus.PAID);
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PARTIAL_CANCEL);
+    }
 }

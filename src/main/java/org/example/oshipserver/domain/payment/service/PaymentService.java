@@ -387,21 +387,20 @@ public class PaymentService {
             throw new ApiException("부분취소 금액이 유효하지 않습니다.", ErrorType.PAYMENT_INVALID_CANCEL_AMOUNT);
         }
 
-        // 7. PaymentOrder 상태만 CANCEL 처리 (ORDER는 상태변화 없음)
+        // 7. PaymentOrder 상태만 CANCEL 처리
         paymentOrder.cancel();  // paymentStatus : CANCEL
         paymentOrderRepository.save(paymentOrder);
 
-//        Order order = paymentOrder.getOrder();
-//        try {
-//            order.markAs(OrderStatus.CANCELLED);
-//            log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
-//        } catch (IllegalStateException exxx) {
-//            log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
-//                order.getId(), order.getCurrentStatus(), exxx.getMessage());
-//        }
-//
-//        paymentOrderRepository.save(paymentOrder);
-//        orderRepository.save(order);
+        // 취소된 order의 상태만 PARTIAL_CANCEL로 변경
+        Order order = paymentOrder.getOrder();
+        try {
+            order.markAs(OrderStatus.CANCELLED);
+            log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
+            orderRepository.save(order);
+        } catch (IllegalStateException ex) {
+            log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                order.getId(), order.getCurrentStatus(), ex.getMessage());
+        }
 
         // 8. 취소 이력 저장
         PaymentCancelHistory history = PaymentCancelHistory.create(paymentOrder, cancelAmount, cancelReason);
@@ -426,14 +425,14 @@ public class PaymentService {
 
             // 모든 주문 상태를 REFUNDED로 변경
             for (PaymentOrder po : payment.getPaymentOrders()) {
-                Order order = po.getOrder();
+                Order o = po.getOrder();
                 try {
-                    order.markAs(OrderStatus.REFUNDED);
+                    o.markAs(OrderStatus.REFUNDED);
                     log.info("주문 상태가 REFUNDED로 변경되었습니다. orderId={}", order.getId());
-                    orderRepository.save(order);
+                    orderRepository.save(o);
                 } catch (IllegalStateException exx) {
                     log.warn("주문 상태 REFUNDED 전이 실패. orderId={}, currentStatus={}, reason={}",
-                        order.getId(), order.getCurrentStatus(), exx.getMessage());
+                        o.getId(), o.getCurrentStatus(), exx.getMessage());
                 }
             }
             // 큐 기반 비동기 이메일 전송 (전체 취소가 완료된 시점에 결제 취소 알림)
