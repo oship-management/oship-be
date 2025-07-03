@@ -61,7 +61,7 @@ class PaymentNotificationServiceTest {
     @Test
     @DisplayName("결제 완료 알림 전송 성공")
     void sendPaymentCompletedV2_success() {
-        when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(sellerRepository.findByUserId(1L)).thenReturn(Optional.of(seller));
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 
         paymentNotificationService.sendPaymentCompletedV2(payment);
@@ -72,7 +72,7 @@ class PaymentNotificationServiceTest {
     @Test
     @DisplayName("결제 취소 알림 전송 성공")
     void sendPaymentCancelledV2_success() {
-        when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(sellerRepository.findByUserId(1L)).thenReturn(Optional.of(seller));
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 
         paymentNotificationService.sendPaymentCancelledV2(payment);
