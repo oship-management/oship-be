@@ -40,7 +40,7 @@ public class PaymentNotificationService {
             NotificationType.PAYMENT_COMPLETED,
             "[OSH] 결제 완료 알림",
             "결제가 정상적으로 완료되었습니다.\n" +
-                "결제번호: " + payment.getPaymentKey() + "\n" +
+                "결제번호: " + payment.getPaymentNo() + "\n" +
                 "결제금액: " + payment.getAmount() + "원",
             user.getEmail()
         );
