@@ -18,7 +18,7 @@ public enum OrderStatus {
     }
 
     static {
-        PENDING.next = Set.of(PAID, CANCELLED, FAILED);
+        PENDING.next = Set.of(PAID, CANCELLED, FAILED, REFUNDED);
         PAID.next = Set.of(CANCELLED, REFUNDED);
         FAILED.next = Set.of(PAID);
         CANCELLED.next = Set.of(REFUNDED);

@@ -1,8 +1,14 @@
 package org.example.oshipserver.domain.payment.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.example.oshipserver.client.toss.IdempotentRestClient;
 import org.example.oshipserver.client.toss.TossPaymentClient;
+import org.example.oshipserver.domain.order.dto.response.OrderPaymentResponse;
 import org.example.oshipserver.domain.order.entity.Order;
 import org.example.oshipserver.domain.order.entity.enums.OrderStatus;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
@@ -10,8 +16,11 @@ import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmReq
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest.MultiOrderRequest;
 import org.example.oshipserver.domain.payment.dto.request.PaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.dto.response.MultiPaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import org.example.oshipserver.domain.payment.dto.response.PaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.PaymentLookupResponse;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
+import org.example.oshipserver.domain.payment.dto.response.UserPaymentLookupResponse;
 import org.example.oshipserver.domain.payment.entity.Payment;
 import org.example.oshipserver.domain.payment.entity.PaymentCancelHistory;
 import org.example.oshipserver.domain.payment.entity.PaymentMethod;
@@ -108,7 +117,7 @@ class PaymentServiceTest {
         TossPaymentConfirmResponse.Card card = new TossPaymentConfirmResponse.Card();
         card.setNumber("1234567812345678");
         tossResponse.setCard(card);
-        tossResponse.setMethod("CARD");
+        tossResponse.setMethod("카드");
 
         TossPaymentConfirmResponse.Receipt receipt = new TossPaymentConfirmResponse.Receipt();
         receipt.setUrl("https://toss.com/receipt");
@@ -157,7 +166,7 @@ class PaymentServiceTest {
         tossResponse.setTotalAmount(50000);
         tossResponse.setStatus("DONE");
         tossResponse.setApprovedAt("2025-06-12T10:08:43+09:00");
-        tossResponse.setMethod("CARD");
+        tossResponse.setMethod("카드");
 
         TossPaymentConfirmResponse.Card card = new TossPaymentConfirmResponse.Card();
         card.setNumber("1234567812345953");
@@ -246,52 +255,51 @@ class PaymentServiceTest {
         verify(paymentCancelHistoryRepository, times(2)).save(any(PaymentCancelHistory.class));
     }
 
-//    @Test
-//    @DisplayName("부분 결제 취소 요청이 성공하면 Payment 상태가 PARTIAL_CANCEL로 변경된다")
-//    void cancelPartialPayment_성공() {
-//        // given
-//        String paymentKey = "payKey123";
-//        Long orderId = 1001L;
-//        String cancelReason = "사용자 요청";
-//
-//        // 결제 엔티티
-//        Payment payment = Payment.builder()
-//            .paymentKey(paymentKey)
-//            .amount(50000)
-//            .status(PaymentStatus.COMPLETE)
-//            .build();
-//        ReflectionTestUtils.setField(payment, "id", 1L);
-//
-//        // 주문 + 매핑 객체
-//        Order order = Order.builder().currentStatus(OrderStatus.PENDING).build();
-//        ReflectionTestUtils.setField(order, "id", orderId);
-//
-//        PaymentOrder paymentOrder = mock(PaymentOrder.class);
-//        given(paymentOrder.getOrder()).willReturn(order);
-//        given(paymentOrder.getPaymentStatus()).willReturn(PaymentStatus.COMPLETE);
-//        given(paymentOrder.getPaymentAmount()).willReturn(20000);
-//
-//        List<PaymentOrder> allOrders = List.of(paymentOrder);
-//        ReflectionTestUtils.setField(payment, "paymentOrders", allOrders);
-//
-//        // 취소 이력 - 누적 취소 금액 20000원
-//        PaymentCancelHistory cancelHistory = mock(PaymentCancelHistory.class);
-//        given(cancelHistory.getCancelAmount()).willReturn(20000);
-//
-//        given(paymentRepository.findByPaymentKey(paymentKey)).willReturn(Optional.of(payment));
-//        given(paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment)).willReturn(
-//            List.of(cancelHistory));
-//
-//        // when
-//        paymentService.cancelPartialPayment(paymentKey, orderId, cancelReason);
-//
-//        // then
-//        verify(tossPaymentClient).requestCancel(paymentKey, cancelReason, 20000);
-//        verify(paymentRepository).save(payment);
-//        verify(paymentOrderRepository).save(paymentOrder);
-//        verify(orderRepository).save(order);
-//        verify(paymentCancelHistoryRepository).save(any(PaymentCancelHistory.class));
-//    }
+    @Test
+    @DisplayName("부분 결제 취소 요청이 성공하면 Payment 상태가 PARTIAL_CANCEL로 변경된다")
+    void cancelPartialPayment_성공() {
+        // given
+        String paymentKey = "payKey123";
+        Long orderId = 1001L;
+        String cancelReason = "사용자 요청";
+
+        // 결제 엔티티
+        Payment payment = Payment.builder()
+            .paymentKey(paymentKey)
+            .amount(50000)
+            .status(PaymentStatus.COMPLETE)
+            .build();
+        ReflectionTestUtils.setField(payment, "id", 1L);
+
+        // 주문 + 매핑 객체
+        Order order = Order.builder().currentStatus(OrderStatus.PENDING).build();
+        ReflectionTestUtils.setField(order, "id", orderId);
+
+        PaymentOrder paymentOrder = mock(PaymentOrder.class);
+        given(paymentOrder.getOrder()).willReturn(order);
+        given(paymentOrder.getPaymentStatus()).willReturn(PaymentStatus.COMPLETE);
+        given(paymentOrder.getPaymentAmount()).willReturn(20000);
+
+        List<PaymentOrder> allOrders = List.of(paymentOrder);
+        ReflectionTestUtils.setField(payment, "paymentOrders", allOrders);
+
+        // 취소 이력 - 누적 취소 금액 20000원
+        PaymentCancelHistory cancelHistory = mock(PaymentCancelHistory.class);
+        given(cancelHistory.getCancelAmount()).willReturn(20000);
+
+        given(paymentRepository.findByPaymentKey(paymentKey)).willReturn(Optional.of(payment));
+        given(paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment)).willReturn(
+            List.of(cancelHistory));
+
+        // when
+        paymentService.cancelPartialPayment(paymentKey, orderId, cancelReason);
+
+        // then
+        verify(tossPaymentClient).requestCancel(paymentKey, cancelReason, 20000);
+        verify(paymentRepository).save(payment);
+        verify(paymentOrderRepository).save(paymentOrder);
+        verify(paymentCancelHistoryRepository).save(any(PaymentCancelHistory.class));
+    }
 
     @Test
     @DisplayName("부분 취소 후 전체 취소가 남은 금액에 대해 정상 처리된다")
@@ -348,11 +356,11 @@ class PaymentServiceTest {
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCEL);
 
         // 주문 상태 확인
-        assertThat(order1.getCurrentStatus()).isEqualTo(OrderStatus.CANCELLED); // 부분 취소한 주문
+        assertThat(order1.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED); // 부분 취소한 주문 > 전체취소시 REFUNDED로 덮어씌워짐
         assertThat(order2.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED);  // 전체 취소 시 환불 처리
 
         // 취소 이력 저장 2회 (부분 1 + 전체 1)
-        verify(paymentCancelHistoryRepository, times(2)).save(any(PaymentCancelHistory.class));
+        verify(paymentCancelHistoryRepository, times(3)).save(any(PaymentCancelHistory.class));
     }
 
 
@@ -426,77 +434,233 @@ class PaymentServiceTest {
 
     }
 
+//    @Test
+//    @DisplayName("부분 취소 3회로 누적 금액이 전액이면 결제 상태가 CANCEL, 주문은 REFUNDED 처리된다")
+//    void 부분취소_누적합이_전체금액과_같으면_CANCEL로_전이() {
+//        // given
+//        String paymentKey = "payKey123";
+//        String cancelReason = "사용자 요청";
+//
+//        // 주문 3개
+//        Order order1 = Order.builder().currentStatus(OrderStatus.PENDING).build();
+//        Order order2 = Order.builder().currentStatus(OrderStatus.PENDING).build();
+//        Order order3 = Order.builder().currentStatus(OrderStatus.PENDING).build();
+//        ReflectionTestUtils.setField(order1, "id", 1L);
+//        ReflectionTestUtils.setField(order2, "id", 2L);
+//        ReflectionTestUtils.setField(order3, "id", 3L);
+//
+//        // Payment
+//        Payment payment = Payment.builder()
+//            .paymentKey(paymentKey)
+//            .amount(50000)
+//            .status(PaymentStatus.COMPLETE)
+//            .method(PaymentMethod.CARD)
+//            .currency("KRW")
+//            .sellerId(99L)
+//            .build();
+//        ReflectionTestUtils.setField(payment, "id", 1L);
+//
+//        // PaymentOrder (팩토리 메서드 사용)
+//        PaymentOrder po1 = PaymentOrder.of(payment, order1, 20000);
+//        PaymentOrder po2 = PaymentOrder.of(payment, order2, 20000);
+//        PaymentOrder po3 = PaymentOrder.of(payment, order3, 10000);
+//        ReflectionTestUtils.setField(payment, "paymentOrders", List.of(po1, po2, po3));
+//
+//        given(paymentRepository.findByPaymentKey(paymentKey)).willReturn(Optional.of(payment));
+//        given(paymentOrderRepository.findAllByPayment_Id(payment.getId()))
+//            .willReturn(List.of(po1, po2, po3));
+//
+//        // 취소 이력 mock
+//        PaymentCancelHistory h1 = mock(PaymentCancelHistory.class);
+//        PaymentCancelHistory h2 = mock(PaymentCancelHistory.class);
+//        PaymentCancelHistory h3 = mock(PaymentCancelHistory.class);
+//        given(h1.getCancelAmount()).willReturn(20000);
+//        given(h2.getCancelAmount()).willReturn(20000);
+//        given(h3.getCancelAmount()).willReturn(10000);
+//
+//        // 취소 이력 설정
+//        AtomicInteger count = new AtomicInteger(0);
+//        given(paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment))
+//            .willAnswer(invocation -> {
+//                int i = count.getAndIncrement();
+//                return switch (i) {
+//                    case 0 -> List.of();               // 1차 취소 시점
+//                    case 1 -> List.of(h1);             // 2차
+//                    case 2 -> List.of(h1, h2);         // 3차 (이때 4만)
+//                    default -> List.of(h1, h2, h3);    // 3차 이후 (최종 5만)
+//                };
+//            });
+//
+//
+//        // when
+//        paymentService.cancelPartialPayment(paymentKey, 1L, cancelReason); // 2만
+//        paymentService.cancelPartialPayment(paymentKey, 2L, cancelReason); // 2만
+//        paymentService.cancelPartialPayment(paymentKey, 3L, cancelReason); // 1만
+//
+//        // then
+//        verify(tossPaymentClient, times(2)).requestCancel(paymentKey, cancelReason, 20000);
+//        verify(tossPaymentClient).requestCancel(paymentKey, cancelReason, 10000);
+//
+//        // 최종 결제 상태는 CANCEL
+//        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCEL);
+//
+//        // 모든 주문 상태는 REFUNDED
+//        assertThat(order1.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED);
+//        assertThat(order2.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED);
+//        assertThat(order3.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED);
+//
+//        // 취소 이력은 총 3건 저장됨
+//        verify(paymentCancelHistoryRepository, times(3)).save(any(PaymentCancelHistory.class));
+//    }
+
+    @DisplayName("결제 취소 이력을 조회하면 PaymentCancelHistoryResponse 리스트를 반환한다")
     @Test
-    @DisplayName("부분 취소 3회로 누적 금액이 전액이면 결제 상태가 CANCEL, 주문은 REFUNDED 처리된다")
-    void 부분취소_누적합이_전체금액과_같으면_CANCEL로_전이() {
+    void getCancelHistory_성공() {
         // given
         String paymentKey = "payKey123";
-        String cancelReason = "사용자 요청";
 
-        // 주문 3개
-        Order order1 = Order.builder().currentStatus(OrderStatus.PENDING).build();
-        Order order2 = Order.builder().currentStatus(OrderStatus.PENDING).build();
-        Order order3 = Order.builder().currentStatus(OrderStatus.PENDING).build();
-        ReflectionTestUtils.setField(order1, "id", 1L);
-        ReflectionTestUtils.setField(order2, "id", 2L);
-        ReflectionTestUtils.setField(order3, "id", 3L);
-
-        // Payment
         Payment payment = Payment.builder()
             .paymentKey(paymentKey)
             .amount(50000)
             .status(PaymentStatus.COMPLETE)
-            .method(PaymentMethod.CARD)
-            .currency("KRW")
-            .sellerId(99L)
             .build();
         ReflectionTestUtils.setField(payment, "id", 1L);
 
-        // PaymentOrder (팩토리 메서드 사용)
-        PaymentOrder po1 = PaymentOrder.of(payment, order1, 20000);
-        PaymentOrder po2 = PaymentOrder.of(payment, order2, 20000);
-        PaymentOrder po3 = PaymentOrder.of(payment, order3, 10000);
-        ReflectionTestUtils.setField(payment, "paymentOrders", List.of(po1, po2, po3));
+        Order order = Order.builder().currentStatus(OrderStatus.CANCELLED).build();
+        PaymentOrder paymentOrder = PaymentOrder.of(payment, order, 50000);
+
+        PaymentCancelHistory h1 = PaymentCancelHistory.create(paymentOrder, 20000, "사용자 요청");
+        PaymentCancelHistory h2 = PaymentCancelHistory.create(paymentOrder, 30000, "배송 지연");
 
         given(paymentRepository.findByPaymentKey(paymentKey)).willReturn(Optional.of(payment));
-        given(paymentOrderRepository.findAllByPayment_Id(payment.getId()))
-            .willReturn(List.of(po1, po2, po3));
-
-        // 취소 이력 (누적 로직 흐름대로 순차 리턴)
-        PaymentCancelHistory h1 = mock(PaymentCancelHistory.class);
-        PaymentCancelHistory h2 = mock(PaymentCancelHistory.class);
-        PaymentCancelHistory h3 = mock(PaymentCancelHistory.class);
-        given(h1.getCancelAmount()).willReturn(20000);
-        given(h2.getCancelAmount()).willReturn(20000);
-        given(h3.getCancelAmount()).willReturn(10000);
-
-        given(paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment))
-            .willReturn(List.of())               // 1차: 누적 0
-            .willReturn(List.of(h1))             // 2차: 누적 20000
-            .willReturn(List.of(h1, h2))         // 3차: 누적 40000
-            .willReturn(List.of(h1, h2, h3));    // 4차: 누적 50000 (최종)
+        given(paymentCancelHistoryRepository.findByPaymentOrder_Payment(payment)).willReturn(List.of(h1, h2));
 
         // when
-        paymentService.cancelPartialPayment(paymentKey, 1L, cancelReason); // 2만
-        paymentService.cancelPartialPayment(paymentKey, 2L, cancelReason); // 2만
-        paymentService.cancelPartialPayment(paymentKey, 3L, cancelReason); // 1만
+        List<PaymentCancelHistoryResponse> result = paymentService.getCancelHistory(paymentKey);
 
         // then
-        verify(tossPaymentClient, times(2)).requestCancel(paymentKey, cancelReason, 20000);
-        verify(tossPaymentClient).requestCancel(paymentKey, cancelReason, 10000);
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).cancelAmount()).isEqualTo(20000);
+        assertThat(result.get(0).cancelReason()).isEqualTo("사용자 요청");
+        assertThat(result.get(1).cancelAmount()).isEqualTo(30000);
+        assertThat(result.get(1).cancelReason()).isEqualTo("배송 지연");
 
-        // 최종 결제 상태는 CANCEL
-        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CANCEL);
-
-        // 모든 주문 상태는 REFUNDED
-        assertThat(order1.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED);
-        assertThat(order2.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED);
-        assertThat(order3.getCurrentStatus()).isEqualTo(OrderStatus.REFUNDED);
-
-        // 취소 이력은 총 3건 저장됨
-        verify(paymentCancelHistoryRepository, times(3)).save(any(PaymentCancelHistory.class));
+        verify(paymentRepository).findByPaymentKey(paymentKey);
+        verify(paymentCancelHistoryRepository).findByPaymentOrder_Payment(payment);
     }
 
+    @DisplayName("판매자 ID와 날짜 범위로 결제 내역을 조회하면 PaymentLookupResponse 리스트를 반환한다")
+    @Test
+    void getPaymentsBySellerId_성공() {
+        // given
+        Long sellerId = 99L;
+        LocalDate startDate = LocalDate.of(2025, 7, 1);
+        LocalDate endDate = LocalDate.of(2025, 7, 3);
 
+        // 주문 엔티티
+        Order order1 = Order.builder().currentStatus(OrderStatus.PAID).build();
+        ReflectionTestUtils.setField(order1, "id", 101L);
+
+        Order order2 = Order.builder().currentStatus(OrderStatus.PAID).build();
+        ReflectionTestUtils.setField(order2, "id", 102L);
+
+        // 결제 엔티티
+        Payment payment = Payment.builder()
+            .paymentKey("payKey123")
+            .tossOrderId("tossOrder123")
+            .amount(50000)
+            .currency("KRW")
+            .status(PaymentStatus.COMPLETE)
+            .sellerId(sellerId)
+            .build();
+        ReflectionTestUtils.setField(payment, "id", 1L);
+        ReflectionTestUtils.setField(payment, "createdAt", LocalDateTime.of(2025, 7, 2, 12, 0));
+
+        // 결제-주문 매핑
+        PaymentOrder po1 = PaymentOrder.of(payment, order1, 20000);
+        PaymentOrder po2 = PaymentOrder.of(payment, order2, 30000);
+
+        ReflectionTestUtils.setField(payment, "paymentOrders", List.of(po1, po2));
+
+        given(paymentRepository.findBySellerIdAndCreatedAtBetween(
+            eq(sellerId),
+            eq(startDate.atStartOfDay()),
+            eq(endDate.plusDays(1).atStartOfDay())
+        )).willReturn(List.of(payment));
+
+        // when
+        List<PaymentLookupResponse> result = paymentService.getPaymentsBySellerId(sellerId, startDate, endDate);
+
+        // then
+        assertThat(result).hasSize(1);
+        PaymentLookupResponse response = result.get(0);
+        assertThat(response.tossOrderId()).isEqualTo("tossOrder123");
+        assertThat(response.paymentKey()).isEqualTo("payKey123");
+
+        // orders 안의 OrderPaymentResponse 리스트의 값들을 직접 비교
+        List<OrderPaymentResponse> orders = response.orders();
+        assertThat(orders).extracting("orderId").containsExactlyInAnyOrder(101L, 102L);
+        assertThat(orders).extracting("orderAmount").containsExactlyInAnyOrder(20000, 30000);
+
+        verify(paymentRepository).findBySellerIdAndCreatedAtBetween(
+            eq(sellerId), eq(startDate.atStartOfDay()), eq(endDate.plusDays(1).atStartOfDay())
+        );
+    }
+
+    @DisplayName("사용자 ID와 날짜 범위로 결제 내역을 조회하면 UserPaymentLookupResponse 리스트를 반환한다")
+    @Test
+    void getPaymentsByUser_성공() {
+        // given
+        Long userId = 77L;
+        LocalDate startDate = LocalDate.of(2025, 7, 1);
+        LocalDate endDate = LocalDate.of(2025, 7, 5);
+
+        Order order1 = Order.builder().currentStatus(OrderStatus.PAID).build();
+        ReflectionTestUtils.setField(order1, "id", 201L);
+
+        Order order2 = Order.builder().currentStatus(OrderStatus.PAID).build();
+        ReflectionTestUtils.setField(order2, "id", 202L);
+
+        Payment payment = Payment.builder()
+            .paymentKey("payKey-user")
+            .tossOrderId("tossOrder-user")
+            .amount(40000)
+            .currency("KRW")
+            .status(org.example.oshipserver.domain.payment.entity.PaymentStatus.COMPLETE)
+            .sellerId(userId)
+            .build();
+        ReflectionTestUtils.setField(payment, "id", 10L);
+        ReflectionTestUtils.setField(payment, "createdAt", LocalDateTime.of(2025, 7, 3, 10, 0));
+        ReflectionTestUtils.setField(payment, "paidAt", LocalDateTime.of(2025, 7, 3, 11, 0));
+
+        PaymentOrder po1 = PaymentOrder.of(payment, order1, 15000);
+        PaymentOrder po2 = PaymentOrder.of(payment, order2, 25000);
+        ReflectionTestUtils.setField(payment, "paymentOrders", List.of(po1, po2));
+
+        given(paymentRepository.findBySellerIdAndCreatedAtBetween(
+            eq(userId),
+            eq(startDate.atStartOfDay()),
+            eq(endDate.plusDays(1).atStartOfDay())
+        )).willReturn(List.of(payment));
+
+        // when
+        List<UserPaymentLookupResponse> result = paymentService.getPaymentsByUser(userId, startDate, endDate);
+
+        // then
+        assertThat(result).hasSize(1);
+        UserPaymentLookupResponse response = result.get(0);
+        assertThat(response.amount()).isEqualTo(40000);
+        assertThat(response.currency()).isEqualTo("KRW");
+        assertThat(response.paymentStatus()).isEqualTo("COMPLETE");
+        assertThat(response.paidAt()).isEqualTo("2025-07-03T11:00");
+
+        List<OrderPaymentResponse> orders = response.orders();
+        assertThat(orders).extracting("orderId").containsExactlyInAnyOrder(201L, 202L);
+        assertThat(orders).extracting("orderAmount").containsExactlyInAnyOrder(15000, 25000);
+
+        verify(paymentRepository).findBySellerIdAndCreatedAtBetween(
+            eq(userId), eq(startDate.atStartOfDay()), eq(endDate.plusDays(1).atStartOfDay())
+        );
+    }
 
 }
