@@ -25,6 +25,7 @@ import org.example.oshipserver.domain.payment.service.PaymentNotificationService
 import org.example.oshipserver.global.common.response.BaseResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -86,6 +87,13 @@ class PaymentIntegrationTest {
 
     static String accessToken;
 
+    @BeforeEach
+    void setUpMocks() {
+        // 알림 비동기 로직 무력화 (Redis 접근 방지)
+        doNothing().when(emailNotificationService).send(any(NotificationRequest.class));
+        doNothing().when(paymentNotificationService).sendPaymentCompletedV2(any());
+    }
+
     @BeforeAll
     static void setup(@Autowired MockMvc mockMvc, @Autowired ObjectMapper objectMapper) throws Exception {
         // 1. SELLER 회원가입
@@ -123,12 +131,6 @@ class PaymentIntegrationTest {
 
         BaseResponse<TokenResponse> baseResponse = objectMapper.readValue(content, responseType);
         accessToken = baseResponse.getData().accessToken();
-    }
-
-    @AfterAll
-    static void tearDown() throws InterruptedException {
-        // 비동기 로직이 끝날 시간을 줌 (정확한 보장은 없음)
-        Thread.sleep(10000);
     }
 
     // 전체 흐름을 테스트하지만 외부 api 호출만 모킹
