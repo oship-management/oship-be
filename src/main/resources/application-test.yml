@@ -10,8 +10,8 @@ spring:
           auth: true
           starttls:
             enable: true
-  scheduling:
-    enabled: false
+#  scheduling:
+#    enabled: false
   jpa:
     hibernate:
       ddl-auto: update
