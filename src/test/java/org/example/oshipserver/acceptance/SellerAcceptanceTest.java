@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 @ActiveProfiles("local")
 @Testcontainers
 @SpringBootTest
@@ -59,7 +60,6 @@ public class SellerAcceptanceTest {
     private JdbcTemplate jdbcTemplate;
 
     private static String jwt;
-    private static List<MultiPaymentConfirmRequest.MultiOrderRequest> orderList;
 
     @Container
     private static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
@@ -114,38 +114,38 @@ public class SellerAcceptanceTest {
                 .andExpect(status().isCreated());
 
         String sql = """
-        INSERT INTO carriers (
-            partner_id, name, description, weight_min, weight_max, service, token, api_key, secret_key, account_number, created_at, modified_at, expired
-        ) VALUES
-        (1, 'FEDEX', 'FedEx 국제 특급배송', 1.00, 100.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (1, 'FEDEX', 'FedEx 국제 특급배송', 0.50, 200.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (1, 'FEDEX', 'FedEx 국제 특급배송', 1.50, 150.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (1, 'FEDEX', 'FedEx 국제 특급배송', 0.80, 120.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (1, 'FEDEX', 'FedEx 국제 특급배송', 2.00, 300.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (2, 'FEDEX', 'FedEx 국제 특급배송', 0.30, 80.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (2, 'FEDEX', 'FedEx 국제 특급배송', 0.10, 10.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (2, 'FEDEX', 'FedEx 국제 특급배송', 5.00, 500.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (2, 'FEDEX', 'FedEx 국제 특급배송', 10.00, 1000.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
-        (2, 'FEDEX', 'FedEx 국제 특급배송', 20.00, 2000.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000')
-    """;
+                    INSERT INTO carriers (
+                        partner_id, name, description, weight_min, weight_max, service, token, api_key, secret_key, account_number, created_at, modified_at, expired
+                    ) VALUES
+                    (1, 'FEDEX', 'FedEx 국제 특급배송', 1.00, 100.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (1, 'FEDEX', 'FedEx 국제 특급배송', 0.50, 200.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (1, 'FEDEX', 'FedEx 국제 특급배송', 1.50, 150.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (1, 'FEDEX', 'FedEx 국제 특급배송', 0.80, 120.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (1, 'FEDEX', 'FedEx 국제 특급배송', 2.00, 300.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (2, 'FEDEX', 'FedEx 국제 특급배송', 0.30, 80.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (2, 'FEDEX', 'FedEx 국제 특급배송', 0.10, 10.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (2, 'FEDEX', 'FedEx 국제 특급배송', 5.00, 500.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (2, 'FEDEX', 'FedEx 국제 특급배송', 10.00, 1000.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000'),
+                    (2, 'FEDEX', 'FedEx 국제 특급배송', 20.00, 2000.00, 'IP', '', 'l788a926ae84234515a4f8136947b2f360', 'a1199da2557e430389c2ecadb06134aa', '740561073', NOW(), NOW(), '2025-12-31 23:59:59.000000')
+                """;
 
         jdbcTemplate.execute(sql);
 
         String sql2 = """
-        INSERT INTO carrier_countries
-        (id, created_at, modified_at, country_code, zone_no, carrier_id)
-        VALUES
-        (1,  '2025-04-01 12:00:00.000000', '2025-04-01 12:00:00.000000', 'US', 1,  1),
-        (2,  '2025-04-02 12:00:00.000000', '2025-04-02 12:00:00.000000', 'CA', 1,  2),
-        (3,  '2025-04-03 12:00:00.000000', '2025-04-03 12:00:00.000000', 'US', 1,  3),
-        (4,  '2025-04-04 12:00:00.000000', '2025-04-04 12:00:00.000000', 'CN', 1,  4),
-        (5,  '2025-04-05 12:00:00.000000', '2025-04-05 12:00:00.000000', 'US', 1,  5),
-        (6,  '2025-04-06 12:00:00.000000', '2025-04-06 12:00:00.000000', 'DE', 1,  6),
-        (7,  '2025-04-07 12:00:00.000000', '2025-04-07 12:00:00.000000', 'US', 1,  7),
-        (8,  '2025-04-08 12:00:00.000000', '2025-04-08 12:00:00.000000', 'GB', 1,  8),
-        (9,  '2025-04-09 12:00:00.000000', '2025-04-09 12:00:00.000000', 'US', 1,  9),
-        (10, '2025-04-10 12:00:00.000000', '2025-04-10 12:00:00.000000', 'SG', 1, 10)
-    """;
+                    INSERT INTO carrier_countries
+                    (id, created_at, modified_at, country_code, zone_no, carrier_id)
+                    VALUES
+                    (1,  '2025-04-01 12:00:00.000000', '2025-04-01 12:00:00.000000', 'US', 1,  1),
+                    (2,  '2025-04-02 12:00:00.000000', '2025-04-02 12:00:00.000000', 'CA', 1,  2),
+                    (3,  '2025-04-03 12:00:00.000000', '2025-04-03 12:00:00.000000', 'US', 1,  3),
+                    (4,  '2025-04-04 12:00:00.000000', '2025-04-04 12:00:00.000000', 'CN', 1,  4),
+                    (5,  '2025-04-05 12:00:00.000000', '2025-04-05 12:00:00.000000', 'US', 1,  5),
+                    (6,  '2025-04-06 12:00:00.000000', '2025-04-06 12:00:00.000000', 'DE', 1,  6),
+                    (7,  '2025-04-07 12:00:00.000000', '2025-04-07 12:00:00.000000', 'US', 1,  7),
+                    (8,  '2025-04-08 12:00:00.000000', '2025-04-08 12:00:00.000000', 'GB', 1,  8),
+                    (9,  '2025-04-09 12:00:00.000000', '2025-04-09 12:00:00.000000', 'US', 1,  9),
+                    (10, '2025-04-10 12:00:00.000000', '2025-04-10 12:00:00.000000', 'SG', 1, 10)
+                """;
 
         jdbcTemplate.execute(sql2);
 
@@ -593,9 +593,8 @@ public class SellerAcceptanceTest {
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // MIME type
                 new FileInputStream(file)           // file contents
         );
-
         // when & then
-        mockMvc.perform(multipart("/api/v3/orders/upload")
+        mockMvc.perform(multipart("/api/v1/orders/upload")
                         .file(multipartFile)
                         .header("Authorization", "Bearer " + jwt)
                         .contentType(MediaType.MULTIPART_FORM_DATA))
@@ -609,8 +608,8 @@ public class SellerAcceptanceTest {
     @DisplayName("오더조회한다")
     void getOrders() throws Exception {
         MvcResult res = mockMvc.perform(get("/api/v1/orders")
-                .header("Authorization", "Bearer " + jwt)
-                .contentType(MediaType.APPLICATION_JSON))
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
         String responseBody = res.getResponse().getContentAsString();
@@ -618,7 +617,8 @@ public class SellerAcceptanceTest {
         JsonNode dataNode = root.path("data"); // 반드시 "data"로 들어가야 함
 
         PageResponseDto<OrderListResponse> result = objectMapper
-                .readerFor(new TypeReference<PageResponseDto<OrderListResponse>>() {})
+                .readerFor(new TypeReference<PageResponseDto<OrderListResponse>>() {
+                })
                 .readValue(dataNode.toString());
 
         assertThat(result.getTotalElements()).isEqualTo(149);
@@ -627,16 +627,25 @@ public class SellerAcceptanceTest {
 
     @Test
     @Order(5)
-    @DisplayName("결제하기")
+    @DisplayName("배송사 선택하고 결제하기")
     void pay() throws Exception {
+        MvcResult res = mockMvc.perform(
+                        get("/api/v1/carriers/rates?orderIds=1,2")
+                                .header("Authorization", "Bearer " + jwt)
+                                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(4))
+                .andReturn();
+
+
         MultiPaymentConfirmRequest.MultiOrderRequest order1 =
                 new MultiPaymentConfirmRequest.MultiOrderRequest(1L, 30000);
         MultiPaymentConfirmRequest.MultiOrderRequest order2 =
                 new MultiPaymentConfirmRequest.MultiOrderRequest(2L, 20000);
 
         MultiPaymentConfirmRequest request = new MultiPaymentConfirmRequest(
-                "tgen_20250702120156mL3w6",
-                "MC4xOTExODE1MTg4MzY4",
+                "tgen_20250703202837DBuS2",
+                "MC4xNjQ5NzQ4NDExNzkz",
                 List.of(order1, order2),
                 "KRW"
         );
@@ -645,7 +654,7 @@ public class SellerAcceptanceTest {
                         .header("Authorization", "Bearer " + jwt)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("다건 결제가 승인되었습니다."));
     }
 
