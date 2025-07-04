@@ -656,6 +656,15 @@ public class SellerAcceptanceTest {
     }
 
     @Test
+    @DisplayName("바코드 조회")
+    void getBarcode() throws Exception {
+        mockMvc.perform(patch("/api/v1/shipping/orders/1/barcode-printed")
+                .header("Authorization", "Bearer " + jwt)
+                .contentType(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("주문 조회")
     void getPayments() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/v1/payments/mypayments")
