@@ -14,7 +14,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
 @Testcontainers
-@ActiveProfiles("local")
+@ActiveProfiles("test")
 class OshipServerApplicationTests {
 	private static final Logger log = LoggerFactory.getLogger(OshipServerApplicationTests.class);
 	@Container
