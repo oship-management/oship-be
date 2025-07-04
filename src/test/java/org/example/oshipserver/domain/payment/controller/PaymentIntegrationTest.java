@@ -23,6 +23,7 @@ import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.domain.payment.dto.response.TossPaymentConfirmResponse;
 import org.example.oshipserver.domain.payment.service.PaymentNotificationService;
 import org.example.oshipserver.global.common.response.BaseResponse;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -197,6 +198,7 @@ class PaymentIntegrationTest {
         assertThat(updated2.getCurrentStatus()).isEqualTo(OrderStatus.PAID);
 
         verify(paymentNotificationService, times(1)).sendPaymentCompletedV2(any());
+        Thread.sleep(2000); // Redis 관련 백그라운드 작업 종료 대기
     }
 
     @Test
@@ -273,6 +275,8 @@ class PaymentIntegrationTest {
 
         // 이메일 알림 호출 여부
         verify(emailNotificationService, times(1)).send(any(NotificationRequest.class));
+        Thread.sleep(2000); // Redis 관련 백그라운드 작업 종료 대기
     }
+
 
 }
