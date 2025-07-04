@@ -6,6 +6,7 @@ import org.example.oshipserver.domain.notification.dto.message.EmailNotification
 import org.example.oshipserver.domain.notification.dto.request.NotificationRequest;
 import org.example.oshipserver.domain.notification.entity.Notification;
 import org.example.oshipserver.domain.notification.repository.NotificationRepository;
+import org.example.oshipserver.domain.notification.service.async.EmailNotificationProducer;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -31,11 +32,7 @@ public class EmailNotificationService {
 
         try {
             // 2. 템플릿 변환 + 메시지 생성
-            String html = emailTemplateService.renderEmail(
-                request.title(),
-                request.content()
-            );
-
+            String html = emailTemplateService.renderEmail(request.title(), request.content());
             EmailNotificationMessage message = new EmailNotificationMessage(
                 request.targetEmail(),
                 request.title(),
@@ -52,3 +49,4 @@ public class EmailNotificationService {
         }
     }
 }
+

@@ -2,16 +2,23 @@ package org.example.oshipserver.domain.partner.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.oshipserver.domain.admin.dto.response.ResponseRateDto;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
 import org.example.oshipserver.domain.auth.dto.response.AuthAddressResponse;
 import org.example.oshipserver.domain.partner.dto.request.PartnerDeleteRequest;
 import org.example.oshipserver.domain.partner.dto.response.PartnerInfoResponse;
 import org.example.oshipserver.domain.partner.service.PartnerService;
+import org.example.oshipserver.domain.carrier.dto.response.CarrierListResponse;
 import org.example.oshipserver.global.common.response.BaseResponse;
+import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/partners")
@@ -52,5 +59,23 @@ public class PartnerController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @GetMapping("/carriers")
+    public ResponseEntity<BaseResponse<List<CarrierListResponse>>> getPartnerCarriers(
+            Authentication authentication
+    ){
+        Long userId = Long.valueOf(authentication.getName());
+        List<CarrierListResponse> carriers = partnerService.getPartnerCarriers(userId);
+        BaseResponse<List<CarrierListResponse>> response = new BaseResponse<>(200, "배송사 목록 조회 성공", carriers);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 
+    @PostMapping(value = "/rates/{carrierId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<BaseResponse<ResponseRateDto>> uploadRateExcel(
+        @RequestParam("file") MultipartFile file,
+        @AuthenticationPrincipal UserDetails userDetails,
+        @PathVariable Long carrierId
+    ){
+        BaseResponse<ResponseRateDto> response = partnerService.uploadRateExcel(file, userDetails.getUsername(), carrierId);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 }

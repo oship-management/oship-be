@@ -49,6 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.example.oshipserver.domain.payment.dto.response.PaymentCancelHistoryResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -61,6 +62,7 @@ public class PaymentService {
     private final PaymentCancelHistoryRepository paymentCancelHistoryRepository;
     private final OrderRepository orderRepository;
     private final ObjectMapper objectMapper;
+    private final PaymentNotificationService paymentNotificationService;
 
     /**
      * 단건 결제 승인 요청 (Toss 결제 위젯을 통한 요청 처리)
@@ -161,7 +163,10 @@ public class PaymentService {
                 order.getId(), order.getCurrentStatus(), e.getMessage());
         }
 
-        // 9. 응답 DTO 반환
+        // 9. 큐 기반 비동기 이메일 전송 (결제 완료 알림)
+        paymentNotificationService.sendPaymentCompletedV2(payment);
+
+        // 10. 응답 DTO 반환
         return PaymentConfirmResponse.convertFromTossConfirm(tossResponse, payment.getMethod());
     }
 
@@ -270,7 +275,10 @@ public class PaymentService {
             }
         }
 
-        // 8. 응답용 orderId 리스트 추출
+        // 8. 큐 기반 비동기 이메일 전송 (결제 완료 알림)
+        paymentNotificationService.sendPaymentCompletedV2(payment);
+
+        // 9. 응답용 orderId 리스트 추출
         List<String> orderIds = request.orders().stream()
             .map(o -> o.orderId().toString())
             .toList();
@@ -316,15 +324,18 @@ public class PaymentService {
 
         // 5. PaymentOrder + Order 상태도 전체 취소로 변경
         List<PaymentOrder> paymentOrders = paymentOrderRepository.findAllByPayment_Id(payment.getId());
+
         for (PaymentOrder po : paymentOrders) {
-            po.cancel();
+            po.cancel(); // paymentStatus : CANCEL
+            paymentOrderRepository.save(po);
+
             Order order = po.getOrder();
             try {
-                order.markAs(OrderStatus.CANCELLED);
+                order.markAs(OrderStatus.REFUNDED); // 주문상태 변경
                 orderRepository.save(order);
-                log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
+                log.info("주문 상태가 REFUNDED로 변경되었습니다. orderId={}", order.getId());
             } catch (IllegalStateException e) {
-                log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                log.warn("주문 상태를 REFUNDED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
                     order.getId(), order.getCurrentStatus(), e.getMessage());
             }
         }
@@ -334,6 +345,9 @@ public class PaymentService {
             PaymentCancelHistory history = PaymentCancelHistory.create(po, po.getPaymentAmount(), cancelReason);
             paymentCancelHistoryRepository.save(history);
         }
+
+        // 7. 큐 기반 비동기 이메일 전송 (결제 취소 알림)
+        paymentNotificationService.sendPaymentCancelledV2(payment);
     }
 
     /**
@@ -360,48 +374,33 @@ public class PaymentService {
         }
 
         // 부분취소금액을 외부에서 입력받지 않고, 내부에서 order 금액 가져오는 방식으로 리팩토링
-        // 취소금액 = order 단위의 전체 금액
+        // 결제 금액 계산 : 취소금액 = order 단위의 전체 금액
         int cancelAmount = paymentOrder.getPaymentAmount();
 
         // 5. Toss에 부분취소 요청
         tossPaymentClient.requestCancel(paymentKey, cancelReason, cancelAmount);
 
-        // 6. 결제 상태 변경
-        try{
-            payment.partialCancel(cancelAmount); // 금액 유효성 체크
-            payment.updateStatus(PaymentStatus.PARTIAL_CANCEL); // 상태 변경
-            paymentRepository.save(payment);
-            log.info("결제 상태가 PARTIAL_CANCEL로 변경되었습니다. paymentNo={}", payment.getPaymentNo());
+        // 6. 결제 금액 유효성 체크 (상태 변경은 나중에)
+        try {
+            payment.partialCancel(cancelAmount);
         } catch (IllegalArgumentException e) {
-            log.warn("결제 부분취소 요청 금액이 유효하지 않습니다. paymentNo={}, cancelAmount={}, reason={}",
-                payment.getPaymentNo(), cancelAmount, e.getMessage());
-            throw new ApiException(
-                String.format("부분취소 금액이 유효하지 않습니다. 취소 요청 금액=%d, 결제 총액=%d", cancelAmount, payment.getAmount()),
-                ErrorType.PAYMENT_INVALID_CANCEL_AMOUNT
-            );
-        } catch (IllegalStateException e) {
-            log.warn("결제 상태 PARTIAL_CANCEL로 변경 실패. 현재 상태={}, paymentNo={}, reason={}",
-                payment.getStatus(), payment.getPaymentNo(), e.getMessage());
-            throw new ApiException(
-                "PARTIAL_CANCEL 상태로 변경할 수 없습니다.",
-                ErrorType.PAYMENT_STATUS_TRANSITION_FAILED
-            );
+            throw new ApiException("부분취소 금액이 유효하지 않습니다.", ErrorType.PAYMENT_INVALID_CANCEL_AMOUNT);
         }
 
-        // 7. 주문 상태 변경
-        paymentOrder.cancel();
+        // 7. PaymentOrder 상태만 CANCEL 처리
+        paymentOrder.cancel();  // paymentStatus : CANCEL
+        paymentOrderRepository.save(paymentOrder);
 
+        // 취소된 order의 상태만 PARTIAL_CANCEL로 변경
         Order order = paymentOrder.getOrder();
         try {
             order.markAs(OrderStatus.CANCELLED);
             log.info("주문 상태가 CANCELLED로 변경되었습니다. orderId={}", order.getId());
-        } catch (IllegalStateException exxx) {
+            orderRepository.save(order);
+        } catch (IllegalStateException ex) {
             log.warn("주문 상태를 CANCELLED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
-                order.getId(), order.getCurrentStatus(), exxx.getMessage());
+                order.getId(), order.getCurrentStatus(), ex.getMessage());
         }
-
-        paymentOrderRepository.save(paymentOrder);
-        orderRepository.save(order);
 
         // 8. 취소 이력 저장
         PaymentCancelHistory history = PaymentCancelHistory.create(paymentOrder, cancelAmount, cancelReason);
@@ -414,7 +413,7 @@ public class PaymentService {
             .sum();
 
         // 10. 전체 취소 여부 체크
-        if (totalCanceledAmount == payment.getAmount()) { // 누적취소금액과 결제금액이 같을 경우
+        if (totalCanceledAmount == payment.getAmount()) {
             try {
                 payment.updateStatus(PaymentStatus.CANCEL);
                 paymentRepository.save(payment);
@@ -424,17 +423,32 @@ public class PaymentService {
                     payment.getPaymentNo(), payment.getStatus(), ex.getMessage());
             }
 
-            payment.getPaymentOrders().forEach(po -> {
+            // 모든 주문 상태를 REFUNDED로 변경
+            for (PaymentOrder po : payment.getPaymentOrders()) {
                 Order o = po.getOrder();
                 try {
                     o.markAs(OrderStatus.REFUNDED);
-                    log.info("주문 상태가 REFUNDED로 변경되었습니다. orderId={}", o.getId());
+                    log.info("주문 상태가 REFUNDED로 변경되었습니다. orderId={}", order.getId());
+                    orderRepository.save(o);
                 } catch (IllegalStateException exx) {
-                    log.warn("주문 상태를 REFUNDED로 변경하지 못했습니다. orderId={}, currentStatus={}, reason={}",
+                    log.warn("주문 상태 REFUNDED 전이 실패. orderId={}, currentStatus={}, reason={}",
                         o.getId(), o.getCurrentStatus(), exx.getMessage());
                 }
-                orderRepository.save(o);
-            });
+            }
+            // 큐 기반 비동기 이메일 전송 (전체 취소가 완료된 시점에 결제 취소 알림)
+            paymentNotificationService.sendPaymentCancelledV2(payment);
+        } else {
+            // 전체 취소가 아닌 경우에만 PARTIAL_CANCEL 적용
+            try {
+                payment.updateStatus(PaymentStatus.PARTIAL_CANCEL);
+                paymentRepository.save(payment);
+                log.info("결제 상태가 PARTIAL_CANCEL로 변경되었습니다. paymentNo={}", payment.getPaymentNo());
+            } catch (IllegalStateException e) {
+                log.warn("결제 상태 PARTIAL_CANCEL로 변경 실패. 현재 상태={}, paymentNo={}, reason={}",
+                    payment.getStatus(), payment.getPaymentNo(), e.getMessage());
+                throw new ApiException("PARTIAL_CANCEL 상태로 변경할 수 없습니다.", ErrorType.PAYMENT_STATUS_TRANSITION_FAILED
+                );
+            }
         }
     }
 

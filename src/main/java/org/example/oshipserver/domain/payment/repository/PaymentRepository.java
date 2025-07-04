@@ -15,9 +15,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // paymentNo 생성용 : createdAt 기준으로 오늘 생성된 payment 개수 반환
     int countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 
-    // tossOrderId로 조회(toss 기준의 결제 단위 조회)
-    Optional<Payment> findByTossOrderId(String tossOrderId);
-
     // tossPaymentKey로 조회 (결제 취소용)
     Optional<Payment> findByPaymentKey(String paymentKey);
 

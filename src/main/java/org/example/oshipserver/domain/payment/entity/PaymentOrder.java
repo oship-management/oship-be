@@ -48,5 +48,14 @@ public class PaymentOrder extends BaseTimeEntity {
         this.canceledAt = LocalDateTime.now();
     }
 
+    // 테스트 전용 객체 생성 메서드
+    public static PaymentOrder of(Payment payment, Order order, int amount) {
+        PaymentOrder po = new PaymentOrder();
+        po.payment = payment;
+        po.order = order;
+        po.paymentAmount = amount;
+        po.paymentStatus = PaymentStatus.COMPLETE;
+        return po;
+    }
 
 }
