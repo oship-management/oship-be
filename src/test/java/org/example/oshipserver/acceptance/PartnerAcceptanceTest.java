@@ -1,12 +1,11 @@
 package org.example.oshipserver.acceptance;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.oshipserver.domain.auth.dto.request.AuthAddressRequest;
+import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,6 +18,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -30,7 +30,7 @@ import java.time.Duration;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("local")
+@ActiveProfiles("test")
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -76,6 +76,7 @@ public class PartnerAcceptanceTest {
         registry.add("spring.data.redis.port", () -> port);
     }
 
+    @Order(0)
     @Test
     @DisplayName("파트너가 회원가입 한다")
     void partnerSignup() throws Exception {
@@ -92,6 +93,21 @@ public class PartnerAcceptanceTest {
     }
 
 
+    @Order(1)
     @Test @DisplayName("요율표 등록한다")
-    void set
+    void uploadCarriers() throws Exception {
+        LoginRequest sellerRequest = new LoginRequest("partner@test.com", "password123");
+
+        MvcResult res = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sellerRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String responseBody = res.getResponse().getContentAsString();
+        JsonNode root = objectMapper.readTree(responseBody);
+        jwt = root.path("data").path("accessToken").asText();
+
+//        mockMvc.perform(post("/api/v1/partners/rates"))
+//        "/api/v1/partners/rates/{carrierId}"
+    }
 }

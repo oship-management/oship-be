@@ -9,6 +9,7 @@ import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
 import org.example.oshipserver.domain.order.dto.response.OrderListResponse;
 import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
+import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,13 +28,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +40,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("local")
+@ActiveProfiles("test")
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -65,15 +64,13 @@ public class SellerAcceptanceTest {
     private static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
             .withDatabaseName("testdb")
             .withUsername("testuser")
-            .withPassword("testpass")
-            .withStartupTimeout(Duration.ofSeconds(30))
-            .waitingFor(Wait.forListeningPort());
+            .withPassword("testpass");
 
     @Container
     private static final GenericContainer<?> redis = new GenericContainer<>("redis:7.0.12")
-            .withExposedPorts(6379)
-            .waitingFor(Wait.forListeningPort())
-            .withStartupTimeout(Duration.ofSeconds(30));
+            .withExposedPorts(6379);
+    @Autowired
+    private PaymentRepository paymentRepository;
 
 
     @DynamicPropertySource
@@ -644,8 +641,8 @@ public class SellerAcceptanceTest {
                 new MultiPaymentConfirmRequest.MultiOrderRequest(2L, 20000);
 
         MultiPaymentConfirmRequest request = new MultiPaymentConfirmRequest(
-                "tgen_20250703202837DBuS2",
-                "MC4xNjQ5NzQ4NDExNzkz",
+                "tgen_20250704141314LCH75",
+                "MC45NDQ5MjI5NzExNDky",
                 List.of(order1, order2),
                 "KRW"
         );
@@ -657,5 +654,32 @@ public class SellerAcceptanceTest {
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("다건 결제가 승인되었습니다."));
     }
+
+    @Test
+    @DisplayName("주문 조회")
+    void getPayments() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/payments/mypayments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode root = objectMapper
+                .readTree(result.getResponse().getContentAsString()).path("data");
+    }
+
+    @Test
+    @DisplayName("주문취소하기")
+    void cancelPayment() throws Exception {
+
+//        PaymentPartialCancelRequest cancelRequest = new PaymentPartialCancelRequest(2L, "테스트");
+//        String paymentKey = "tgen_20250704141314LCH75";
+//        mockMvc.perform(post("/api/v1/payments/"+paymentKey+"/cancel/partial")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .header("Authorization", "Bearer " + jwt)
+//                .content(objectMapper.writeValueAsString(cancelRequest)))
+//                .andExpect(status().isOk());
+
+    }
+
 
 }
