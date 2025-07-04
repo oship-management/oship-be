@@ -125,6 +125,12 @@ class PaymentIntegrationTest {
         accessToken = baseResponse.getData().accessToken();
     }
 
+    @AfterAll
+    static void tearDown() throws InterruptedException {
+        // 비동기 로직이 끝날 시간을 줌 (정확한 보장은 없음)
+        Thread.sleep(10000);
+    }
+
     // 전체 흐름을 테스트하지만 외부 api 호출만 모킹
     @Test
     @org.junit.jupiter.api.Order(1)
@@ -198,7 +204,6 @@ class PaymentIntegrationTest {
         assertThat(updated2.getCurrentStatus()).isEqualTo(OrderStatus.PAID);
 
         verify(paymentNotificationService, times(1)).sendPaymentCompletedV2(any());
-        Thread.sleep(2000); // Redis 관련 백그라운드 작업 종료 대기
     }
 
     @Test
@@ -275,7 +280,6 @@ class PaymentIntegrationTest {
 
         // 이메일 알림 호출 여부
         verify(emailNotificationService, times(1)).send(any(NotificationRequest.class));
-        Thread.sleep(2000); // Redis 관련 백그라운드 작업 종료 대기
     }
 
 
