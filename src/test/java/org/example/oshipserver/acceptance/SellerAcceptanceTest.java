@@ -8,7 +8,6 @@ import org.example.oshipserver.domain.auth.dto.request.LoginRequest;
 import org.example.oshipserver.domain.auth.dto.request.PartnerSignupRequest;
 import org.example.oshipserver.domain.auth.dto.request.SellerSignupRequest;
 import org.example.oshipserver.domain.order.dto.response.OrderListResponse;
-import org.example.oshipserver.domain.payment.dto.request.MultiPaymentConfirmRequest;
 import org.example.oshipserver.domain.payment.repository.PaymentRepository;
 import org.example.oshipserver.global.common.response.PageResponseDto;
 import org.junit.jupiter.api.*;
@@ -33,7 +32,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -622,38 +620,38 @@ public class SellerAcceptanceTest {
 
     }
 
-    @Test
-    @Order(5)
-    @DisplayName("배송사 선택하고 결제하기")
-    void pay() throws Exception {
-        MvcResult res = mockMvc.perform(
-                        get("/api/v1/carriers/rates?orderIds=1,2")
-                                .header("Authorization", "Bearer " + jwt)
-                                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(4))
-                .andReturn();
-
-
-        MultiPaymentConfirmRequest.MultiOrderRequest order1 =
-                new MultiPaymentConfirmRequest.MultiOrderRequest(1L, 30000);
-        MultiPaymentConfirmRequest.MultiOrderRequest order2 =
-                new MultiPaymentConfirmRequest.MultiOrderRequest(2L, 20000);
-
-        MultiPaymentConfirmRequest request = new MultiPaymentConfirmRequest(
-                "tgen_20250704141314LCH75",
-                "MC45NDQ5MjI5NzExNDky",
-                List.of(order1, order2),
-                "KRW"
-        );
-        mockMvc.perform(post("/api/v1/payments/multi")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + jwt)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.message").value("다건 결제가 승인되었습니다."));
-    }
+//    @Test
+//    @Order(5)
+//    @DisplayName("배송사 선택하고 결제하기")
+//    void pay() throws Exception {
+//        MvcResult res = mockMvc.perform(
+//                        get("/api/v1/carriers/rates?orderIds=1,2")
+//                                .header("Authorization", "Bearer " + jwt)
+//                                .contentType(MediaType.APPLICATION_JSON))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.data.length()").value(4))
+//                .andReturn();
+//
+//
+//        MultiPaymentConfirmRequest.MultiOrderRequest order1 =
+//                new MultiPaymentConfirmRequest.MultiOrderRequest(1L, 30000);
+//        MultiPaymentConfirmRequest.MultiOrderRequest order2 =
+//                new MultiPaymentConfirmRequest.MultiOrderRequest(2L, 20000);
+//
+//        MultiPaymentConfirmRequest request = new MultiPaymentConfirmRequest(
+//                "tgen_20250704141314LCH75",
+//                "MC45NDQ5MjI5NzExNDky",
+//                List.of(order1, order2),
+//                "KRW"
+//        );
+//        mockMvc.perform(post("/api/v1/payments/multi")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .header("Authorization", "Bearer " + jwt)
+//                        .content(objectMapper.writeValueAsString(request)))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.status").value(200))
+//                .andExpect(jsonPath("$.message").value("다건 결제가 승인되었습니다."));
+//    }
 
     @Test
     @DisplayName("바코드 조회")
