@@ -63,9 +63,9 @@ class PaymentIntegrationTest {
 
     @Container
     private static final GenericContainer<?> redis = new GenericContainer<>("redis:7.0.12")
-        .withExposedPorts(6379)
-        .waitingFor(Wait.forListeningPort())
-        .withStartupTimeout(Duration.ofSeconds(30));
+            .withExposedPorts(6379)
+            .waitingFor(Wait.forListeningPort())
+            .withStartupTimeout(Duration.ofSeconds(30));
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry registry) {
