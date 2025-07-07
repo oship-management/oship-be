@@ -58,21 +58,22 @@
 
 ## 🚀 설치 및 실행 방법
 
+#### 1. 프로젝트 클론
 ```bash
-# 1. 프로젝트 클론
 git clone https://github.com/your-org/oship.git
 cd oship
+```
 
-# 2. 백엔드 설정
-cd backend
+#### 2. 백엔드 설정
+
+```bashcd backend
 ./gradlew build
 docker-compose up -d
-
-# 3. 프론트엔드 실행
-cd ../frontend
-npm install
-npm run dev
 ```
+
+#### 3. 프론트엔드
+- [🛒셀러 페이지](https://github.com/oship-management/oship-fe-partner)
+- [🤝파트너 페이지](https://github.com/oship-management/oship-fe-partner)
 
 ---
 ## 📑 문서자료
