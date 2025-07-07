@@ -87,10 +87,10 @@ docker-compose up -d
 ---
 
 ## 👨‍👩‍👧‍👦 팀원 소개
-| 이름           | 역할                 | 주요 업무                    |
-|--------------| ------------------ | ------------------------ |
-| 🐔 박민혁 (팀장)  | Frontend, Backend   | View 구성, FedEx API 연동    |
-| 🐣 김예은 (부팀장) | Backend            | 주문/통계 서비스, 비동기 알림 시스템    |
-| 🐣 김국민       | Infra              | CI/CD, 모니터링              |
-| 🐣 권하은       | Backend            | Toss 결제 연동, Spring Retry |
-| 🐣 서보경       | Backend            | 템플릿 기반 엑셀 업로드, 운송사 요율 비교 |
+| 이름           | 역할                 | 주요 업무                                            |
+|--------------| ------------------ |--------------------------------------------------|
+| 🐔 박민혁 (팀장)  | Frontend, Backend   | View 구성, Shipping Tracking Service, FedEx API 연동 |
+| 🐣 김예은 (부팀장) | Backend            | Order Service, 비동기 알림 시스템, 월별 판매자 통계 캐싱          |
+| 🐣 김국민       | Infra              | CI/CD, Infra, Monitoring                         |
+| 🐣 권하은       | Backend            | Payment Service, Toss 결제 연동, Spring Retry        |
+| 🐣 서보경       | Backend            | 템플릿 기반 엑셀 업로드, 운송사 요율 비교                         |
