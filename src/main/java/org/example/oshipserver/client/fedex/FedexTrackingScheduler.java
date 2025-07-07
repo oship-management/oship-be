@@ -1,6 +1,5 @@
 package org.example.oshipserver.client.fedex;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.oshipserver.client.fedex.dto.FedexTrackingRequest;
@@ -43,12 +42,6 @@ public class FedexTrackingScheduler {
         return hundredDaysAgo.format(formatter);
     }
 
-
-    @PostConstruct
-    public void runOnStartup() throws Exception {
-        // 애플리케이션 시작 시 한 번 실행
-        trackingScheduler();
-    }
 
     @Scheduled(cron = "0 0 0/2 * * ?")
     public void trackingScheduler() throws Exception {
