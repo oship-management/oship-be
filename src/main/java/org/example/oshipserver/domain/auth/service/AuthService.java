@@ -127,7 +127,7 @@ public class AuthService {
                 refreshToken.getRefreshToken(),
                 refreshToken.getExpiredAt().getTime() - System.currentTimeMillis()
         );
-        return new TokenResponse(accessToken);
+        return new TokenResponse(accessToken, refreshToken.getRefreshToken());
     }
 
     //로그아웃 리프레시토큰 레디스에서 삭제
@@ -151,7 +151,7 @@ public class AuthService {
             throw new ApiException(ErrorType.TOKEN_EXPIRED.getDesc(), ErrorType.TOKEN_EXPIRED);
         }
         String accessToken = jwtUtil.createToken(findUser.getId(), findUser.getEmail(), findUser.getUserRole());
-        return new TokenResponse(accessToken);
+        return new TokenResponse(accessToken, refreshToken);
     }
 
 }
