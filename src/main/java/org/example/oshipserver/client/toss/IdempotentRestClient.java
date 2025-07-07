@@ -1,6 +1,7 @@
 package org.example.oshipserver.client.toss;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -71,19 +72,17 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         Class<R> responseType,
         String idempotencyKey
     ) {
-        long start = System.currentTimeMillis();
+        long globalStartTime = System.currentTimeMillis();  // ✅ 전체 시도 시작 시간 기록
 
         // ✅  retry 테스트용 : 강제 실패 URL 덮어쓰기
 //        url = "https://api.tosspayments.com/this-path-does-not-exist";
 
         // 재시도 로그  남기기
-        log.warn("[RETRYABLE] Toss API 호출 시도 - idempotencyKey={}, url={}, retryCount={}",
-            idempotencyKey,
-            url,
-            RetrySynchronizationManager.getContext() != null
-                ? RetrySynchronizationManager.getContext().getRetryCount()
-                : 0
-        );
+        int retryCount = RetrySynchronizationManager.getContext() != null ?
+            RetrySynchronizationManager.getContext().getRetryCount() : 0;
+
+        log.warn("[RETRYABLE] Toss API 호출 시도 - idempotencyKey={}, url={}, retryCount={}, startAt={}",
+            idempotencyKey, url, retryCount, Instant.ofEpochMilli(globalStartTime));
 
         // 헤더 설정
         HttpHeaders headers = new HttpHeaders();
@@ -124,16 +123,12 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
                 log.warn("[Toss 응답 바디 JSON 직렬화 실패] {}", ex.getMessage(), ex);
             }
 
-            // 성공 응답 로그
-            int retryCount = RetrySynchronizationManager.getContext() != null ?
-                RetrySynchronizationManager.getContext().getRetryCount() : 0;
-
-            long duration = System.currentTimeMillis() - start;
+            long duration = System.currentTimeMillis() - globalStartTime;
 
             if (retryCount == 0) {
                 log.info("Toss API 첫 시도에 성공 - idempotencyKey={}, duration={}ms", idempotencyKey, duration);
             } else {
-                log.info("[RETRYABLE] Toss API 재시도 후 성공 - idempotencyKey={}, retryCount={}, duration={}ms",
+                log.info("[SUCCESS][RETRYABLE] Toss API 재시도 후 성공 - idempotencyKey={}, retryCount={}, duration={}ms",
                     idempotencyKey, retryCount, duration);
             }
             return response.getBody();
@@ -150,8 +145,9 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
             throw new ApiException("Toss 호출 중 알 수 없는 오류 발생", e);
         } finally {
             long end = System.currentTimeMillis();
-            long duration = end - start;
-            log.warn("[RETRYABLE] Toss API 최종 요청 소요 시간: {} ms (idempotencyKey={})", duration, idempotencyKey);
+            long duration = end - globalStartTime;
+            log.warn("[RETRYABLE] Toss API 최종 요청 소요 시간: {}ms (idempotencyKey={}, endAt={})",
+                duration, idempotencyKey, Instant.ofEpochMilli(end));
         }
     }
 
@@ -163,8 +159,9 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
         Class<R> responseType,
         String idempotencyKey
     ) {
-        long recoverStart = System.currentTimeMillis();  // 장애 대응 시간 측정 시작
-        log.error("Toss 결제 요청 최종 재시도 실패. 실패 로그를 DB에 기록합니다.");
+        long recoverStart = System.currentTimeMillis();  // 복구 시작 시간
+        log.error("[RECOVER] Toss 결제 최종 재시도 실패 - idempotencyKey={}, startAt={}",
+            idempotencyKey, Instant.ofEpochMilli(recoverStart));
 
         try {
             String bodyJson = objectMapper.writeValueAsString(body); // json 직렬화
@@ -178,10 +175,11 @@ public class IdempotentRestClient { // 토스의 post 요청을 멱등성 방식
 
             paymentFailLogRepository.save(failLog); // db 저장
             long recoverEnd = System.currentTimeMillis();  // 로그 저장 시점
-            long totalDuration = recoverEnd - recoverStart;
+            long recoverDuration = recoverEnd - recoverStart;
 
-            log.warn("결제 실패 로그 저장 완료: idempotencyKey={}", idempotencyKey);
-            log.warn("[RECOVER] 장애 대응 총 소요 시간: {} ms (idempotencyKey={})", totalDuration, idempotencyKey);
+            log.warn("[RECOVER] 결제 실패 로그 저장 완료 - idempotencyKey={}", idempotencyKey);
+            log.warn("[RECOVER] 복구 처리 소요 시간: {}ms", recoverDuration);
+            log.warn("[RECOVER] 장애 대응 종료 시각: {}", Instant.ofEpochMilli(recoverEnd));
 
             // 결재 실패시, payment 엔티티는 생성되지 않기 때문에, payment/order 상태 변경 없이 fail 로그만 남김
             // payment가 생성되었을 가능성을 대비하여 존재 여부만 체크
