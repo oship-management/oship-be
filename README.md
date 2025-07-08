@@ -66,19 +66,74 @@ cd oship
 
 #### 2. 백엔드 설정
 
-```bashcd backend
+```bash
+cd backend
 ./gradlew build
 docker-compose up -d
 ```
 
 #### 3. 프론트엔드
-- [🛒셀러 페이지](https://github.com/oship-management/oship-fe-partner)
-- [🤝파트너 페이지](https://github.com/oship-management/oship-fe-partner)
+- [🛒셀러 페이지 바로가기](https://github.com/oship-management/oship-fe-partner)
+- [🤝파트너 페이지 바로가기](https://github.com/oship-management/oship-fe-partner)
+
+---
+
+## 📐 도메인 아키텍쳐
+```bash
+┌────────────┐       ┌────────────┐       ┌────────────┐
+│   Order    │─────▶│  Payment   │─────▶│  Shipping  │
+└────┬───────┘       └────┬───────┘       └────┬───────┘
+     │                    │                    │
+     ▼                    ▼                    ▼
+┌────────────┐       ┌────────────┐       ┌─────────────┐
+│   Excel    │       │ TossClient │       │ FedexClient │
+└────────────┘       └────────────┘       └─────────────┘
+```
+
+- **Order**: 주문 등록 및 통계 조회 도메인 (엑셀 기반 대량 등록 포함)
+- **Payment**: 결제 생성 및 Toss 연동, 결제 상태 관리
+- **Shipping**: 배송 정보 관리, 송장번호 등록, 배송 추적 및 라벨 생성 기능
+- **Excel**: 주문 엑셀 업로드 시 유효성 검사 및 파싱 처리
+- **TossClient / FedexClient**: 외부 결제 및 배송 API와 통신하는 클라이언트 레이어
+
+---
+
+## 🗂️ 패키지 구조
+Oship 프로젝트는 **도메인 중심 설계**(DDD 기반)의 레이어드 아키텍처를 따르며,  
+핵심 로직은 domain 계층에, 외부 API 연동은 client 계층에, 전역 설정 및 공통 처리 로직은 global에 위치합니다.
+
+```bash
+org.example.oshipserver
+├── client/                 # 외부 시스템(API) 연동
+│   ├── fedex/              # FedEx 배송사 API 클라이언트
+│   └── toss/               # TossPayments 결제 API 클라이언트
+│
+├── domain/                # 핵심 도메인 계층
+│   ├── admin/              # 관리자 전용 기능
+│   ├── auth/               # 로그인, 인증/인가 처리
+│   ├── carrier/            # 배송사 관련 정보 및 설정
+│   ├── log/                # 요청/응답 로그 추적
+│   ├── notification/       # 비동기 알림 (이메일 등)
+│   ├── order/              # 주문 등록, 조회, 통계 처리
+│   ├── partner/            # 파트너사 관련 정보
+│   ├── payment/            # 결제 처리 및 Toss 연동
+│   ├── seller/             # 셀러 정보 및 배송 요율 설정
+│   ├── shipping/           # 배송 라벨, 송장번호, 추적 등
+│   └── user/               # 사용자 프로필, 권한, 설정 관리
+│
+├── global/                # 전역 설정 및 공통 유틸
+│   ├── common/             # 공용 상수, 유틸 클래스
+│   ├── config/             # Spring 설정 (Security, CORS 등)
+│   ├── entity/             # 공통 엔티티 상속 구조 (BaseTime 등)
+│   └── exception/          # 전역 에러 핸들링 구조
+│
+└── OshipServerApplication.java   # SpringBoot 메인 실행 클래스
+```
 
 ---
 ## 📑 문서자료
 
-- [API 명세서](링크추가예정)
+- [API 명세서](https://documenter.getpostman.com/view/31276367/2sB34cpNFj)
 
 - [ERD](https://www.erdcloud.com/d/P59dEbgyLSHW2zCGK)
 
@@ -94,3 +149,5 @@ docker-compose up -d
 | 🐣 김국민       | Infra              | CI/CD, Infra, Monitoring                         |
 | 🐣 권하은       | Backend            | Payment Service, Toss 결제 연동, Spring Retry        |
 | 🐣 서보경       | Backend            | 템플릿 기반 엑셀 업로드, 운송사 요율 비교                         |
+
+
