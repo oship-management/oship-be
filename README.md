@@ -133,7 +133,7 @@ org.example.oshipserver
 ---
 ## 📑 문서자료
 
-- [API 명세서](링크추가예정)
+- [API 명세서](https://documenter.getpostman.com/view/31276367/2sB34cpNFj)
 
 - [ERD](https://www.erdcloud.com/d/P59dEbgyLSHW2zCGK)
 
