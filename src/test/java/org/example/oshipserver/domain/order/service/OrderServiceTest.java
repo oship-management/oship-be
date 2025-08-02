@@ -7,8 +7,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.example.oshipserver.domain.order.dto.OrderItemDto;
 import org.example.oshipserver.domain.order.dto.request.OrderCreateRequest;
+import org.example.oshipserver.domain.order.dto.response.OrderDetailResponse;
+import org.example.oshipserver.domain.order.entity.Order;
+import org.example.oshipserver.domain.order.entity.OrderRecipient;
+import org.example.oshipserver.domain.order.entity.OrderSender;
+import org.example.oshipserver.domain.order.entity.RecipientAddress;
+import org.example.oshipserver.domain.order.entity.SenderAddress;
 import org.example.oshipserver.domain.order.entity.enums.CountryCode;
 import org.example.oshipserver.domain.order.repository.OrderRepository;
+import org.example.oshipserver.domain.shipping.service.interfaces.TrackingEventHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +28,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderServiceTest {
 
     @Mock private OrderRepository orderRepository;
+    @Mock private TrackingEventHandler trackingEventHandler;
+    @Mock private OrderNotificationService orderNotificationService;
 
     @InjectMocks private OrderService orderService;
 
@@ -44,9 +53,53 @@ class OrderServiceTest {
     void masterNo_정상생성_테스트() {
         Mockito.when(orderRepository.existsByOshipMasterNo(Mockito.anyString()))
             .thenReturn(false);
+
         String masterNo = orderService.generateUniqueMasterNo(CountryCode.US);
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+
         assertThat(masterNo).startsWith("OSH" + today + "US");
     }
+
+    @Test
+    void getOrderDetail_정상조회() {
+        Long userId = 1L;
+        Long orderId = 10L;
+
+        // sender와 recipient 세팅
+        OrderSender sender = OrderSender.builder()
+            .storePlatform("SHOPIFY")
+            .storeName("Test Store")
+            .senderName("John")
+            .senderEmail("john@test.com")
+            .senderPhoneNo("01012345678")
+            .senderAddress(SenderAddress.builder().senderCountryCode(CountryCode.KR).build())
+            .build();
+
+        OrderRecipient recipient = OrderRecipient.builder()
+            .recipientName("Tom")
+            .recipientEmail("tom@test.com")
+            .recipientPhoneNo("01098765432")
+            .recipientAddress(RecipientAddress.builder().recipientCountryCode(CountryCode.US).build())
+            .build();
+
+        Order order = Order.of(
+            createRequest, "OSH240802USXXXXX", userId
+        );
+        order.assignSender(sender);
+        sender.assignOrder(order);
+
+        order.assignRecipient(recipient);
+        recipient.assignOrder(order);
+
+        Mockito.when(orderRepository.findById(orderId)).thenReturn(java.util.Optional.of(order));
+
+        OrderDetailResponse result = orderService.getOrderDetail(userId, orderId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.storePlatform()).isEqualTo("SHOPIFY");
+    }
+
+
+
 
 }
